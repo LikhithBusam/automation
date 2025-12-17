@@ -1,67 +1,64 @@
 # AutoGen Agent Configurations
 # Migration from CrewAI to AutoGen framework
 
-# LLM Configuration Templates (using Gemini and Groq)
+# LLM Configuration Templates
+# NOW USING: OpenRouter with FREE models that support function calling!
+# Model: openai/gpt-oss-120b:free (free, supports function calling)
+
 llm_configs:
   code_analysis_config:
-    model: "llama-3.1-8b-instant"
+    model: "openai/gpt-oss-120b:free"
     api_type: "openai"
-    base_url: "https://api.groq.com/openai/v1"
-    api_key: "${GROQ_API_KEY}"
+    base_url: "https://openrouter.ai/api/v1"
+    api_key: "${OPENROUTER_API_KEY}"
     temperature: 0.3
     max_tokens: 4096
     timeout: 120
-    cache_seed: 42
 
   documentation_config:
-    model: "llama-3.1-70b-versatile"
+    model: "openai/gpt-oss-120b:free"
     api_type: "openai"
-    base_url: "https://api.groq.com/openai/v1"
-    api_key: "${GROQ_API_KEY}"
+    base_url: "https://openrouter.ai/api/v1"
+    api_key: "${OPENROUTER_API_KEY}"
     temperature: 0.7
     max_tokens: 4096
     timeout: 120
-    cache_seed: 42
 
   deployment_config:
-    model: "llama-3.1-8b-instant"
+    model: "openai/gpt-oss-120b:free"
     api_type: "openai"
-    base_url: "https://api.groq.com/openai/v1"
-    api_key: "${GROQ_API_KEY}"
+    base_url: "https://openrouter.ai/api/v1"
+    api_key: "${OPENROUTER_API_KEY}"
     temperature: 0.2
     max_tokens: 2048
     timeout: 120
-    cache_seed: 42
 
   research_config:
-    model: "llama-3.1-70b-versatile"
+    model: "openai/gpt-oss-120b:free"
     api_type: "openai"
-    base_url: "https://api.groq.com/openai/v1"
-    api_key: "${GROQ_API_KEY}"
+    base_url: "https://openrouter.ai/api/v1"
+    api_key: "${OPENROUTER_API_KEY}"
     temperature: 0.5
     max_tokens: 4096
     timeout: 120
-    cache_seed: 42
 
   project_manager_config:
-    model: "llama-3.1-8b-instant"
+    model: "openai/gpt-oss-120b:free"
     api_type: "openai"
-    base_url: "https://api.groq.com/openai/v1"
-    api_key: "${GROQ_API_KEY}"
+    base_url: "https://openrouter.ai/api/v1"
+    api_key: "${OPENROUTER_API_KEY}"
     temperature: 0.7
     max_tokens: 2048
     timeout: 120
-    cache_seed: 42
 
   routing_config:
-    model: "llama-3.1-8b-instant"
+    model: "openai/gpt-oss-120b:free"
     api_type: "openai"
-    base_url: "https://api.groq.com/openai/v1"
-    api_key: "${GROQ_API_KEY}"
+    base_url: "https://openrouter.ai/api/v1"
+    api_key: "${OPENROUTER_API_KEY}"
     temperature: 0.3
     max_tokens: 1024
     timeout: 60
-    cache_seed: 42
 
 # AutoGen Agent Definitions
 agents:
@@ -72,30 +69,37 @@ agents:
     system_message: |
       You are a Senior Code Analyst with 10+ years of experience in software engineering.
 
-      CRITICAL INSTRUCTIONS FOR FILE READING:
-      - When given a file path (e.g., code_path=./main.py), you MUST read the file content first
-      - To read a file, use this exact format in your response:
-        "Let me read the file first. I'll use the filesystem to get the content of {filename}."
-      - After reading, analyze the ACTUAL code from the file
-      - Do NOT ask the user to paste code - read it yourself
-      - Do NOT generate example code - analyze real code only
+      CRITICAL - YOU MUST USE FUNCTION CALLING TO READ FILES:
 
-      Your responsibilities:
-      - Analyze code for quality, maintainability, and best practices
-      - Identify security vulnerabilities and performance issues
-      - Learn and apply project-specific coding patterns
-      - Provide actionable recommendations with specific examples
+      When given a file path (e.g., "File to review: ./main.py"):
+      1. YOU MUST call the read_file function with the file path
+      2. DO NOT proceed until you receive the actual file content
+      3. Analyze ONLY the content returned by read_file()
+      4. NEVER generate example code or fake file content
 
-      When reviewing code:
-      1. FIRST: Read the file using filesystem access
-      2. Check for common anti-patterns and code smells
-      3. Verify security best practices (input validation, authentication, etc.)
-      4. Assess performance implications
-      5. Suggest improvements with specific examples from the ACTUAL code
-      6. Learn from past reviews to maintain consistency
+      Available Functions:
+      - read_file(file_path: str) -> Returns the actual file content
+      - list_files(directory: str) -> Lists files in a directory
 
-      Do NOT execute code during reviews. Only read and analyze.
-      Always provide concrete, actionable feedback based on the real code.
+      REQUIRED WORKFLOW:
+      Step 1: Call read_file("./main.py") to get actual content
+      Step 2: Wait for response with file content
+      Step 3: Analyze the real content you received
+      Step 4: Reference specific line numbers from the actual code
+
+      ABSOLUTELY FORBIDDEN:
+      ❌ Generating example code (import requests, import sqlite3, etc.)
+      ❌ Saying "File content accessed" without calling read_file()
+      ❌ Reviewing imaginary code
+      ❌ Making up code snippets
+
+      If read_file() fails or returns empty, REPORT THE ERROR - don't make up content.
+
+      Your review must include:
+      - Line numbers from the ACTUAL file
+      - Code snippets from the ACTUAL file
+      - Specific issues in the REAL code
+      - Concrete recommendations based on what you READ
     llm_config: "code_analysis_config"
     human_input_mode: "NEVER"
     max_consecutive_auto_reply: 10

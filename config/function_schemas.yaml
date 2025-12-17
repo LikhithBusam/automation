@@ -169,10 +169,10 @@ tools:
             parameters:
               type: "object"
               properties:
-                path:
+                file_path:
                   type: "string"
                   description: "File path to read (must be in allowed directories)"
-              required: ["path"]
+              required: ["file_path"]
         register_with: ["code_analyzer", "documentation_agent", "research_agent"]
         execute_via: "user_proxy_executor"
 

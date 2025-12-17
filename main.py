@@ -22,6 +22,10 @@ from rich.table import Table
 # Import AutoGen adapters
 from src.autogen_adapters.conversation_manager import create_conversation_manager
 
+# Import security
+from src.security.input_validator import validate_parameters, validate_workflow_name, ValidationError
+from src.security.log_sanitizer import install_log_filter
+
 console = Console()
 
 # Load environment variables
@@ -44,6 +48,9 @@ BANNER = """
 
 def setup_logging():
     """Setup logging configuration"""
+    # Create logs directory if it doesn't exist
+    Path('logs').mkdir(exist_ok=True)
+
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -53,8 +60,12 @@ def setup_logging():
         ]
     )
 
-    # Create logs directory if it doesn't exist
-    Path('logs').mkdir(exist_ok=True)
+    # Install sensitive data filter to prevent API keys/secrets in logs
+    install_log_filter(
+        logger=None,  # Install on root logger
+        redact_emails=False,
+        redact_ips=False
+    )
 
 
 async def main():
@@ -192,6 +203,19 @@ async def main():
                         if "=" in arg:
                             key, value = arg.split("=", 1)
                             variables[key] = value
+
+                    try:
+                        # Validate workflow name
+                        workflow_name = validate_workflow_name(workflow_name)
+
+                        # Validate parameters
+                        if variables:
+                            variables = validate_parameters(variables)
+
+                    except ValidationError as e:
+                        console.print(f"[red]Validation error: {e}[/red]")
+                        logger.warning(f"Input validation failed: {e}")
+                        continue
 
                     console.print(f"\n[bold]Executing workflow:[/bold] {workflow_name}")
                     if variables:

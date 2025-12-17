@@ -109,11 +109,11 @@ mcp_servers:
   memory:
     enabled: true
     server_url: "http://localhost:3002/mcp/memory"
-    storage_backend: "redis"  # or "sqlite", "postgres"
-    redis_url: "redis://localhost:6379/0"
+    storage_backend: "sqlite"  # Best for local development - simple, fast, reliable
+    sqlite_path: "./data/memory.db"  # Local file storage
     timeout: 5
     retry_attempts: 3
-    fallback_enabled: true
+    fallback_enabled: true  # Falls back to JSON if server unavailable
     # Rate limiting
     rate_limit_minute: 200
     rate_limit_hour: 5000

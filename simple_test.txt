@@ -1,0 +1,144 @@
+﻿python : TeachableAgent not available, creating AssistantAgent instead for code_analyzer
+At line:1 char:59
++ ...  [System.Text.Encoding]::UTF8; python test_mcp_simple.py 2>&1 | Out-F ...
++                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (TeachableAgent ...r code_analyzer:String) [], RemoteExcepti 
+   on
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+TeachableAgent not available, creating AssistantAgent instead for code_analyzer
+Traceback (most recent call last):
+  File "C:\Users\Likith\OneDrive\Desktop\automaton\test_mcp_simple.py", line 126, in test_memory_storage
+    store_result = await memory._store_memory({
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    })
+    ^^
+  File "C:\Users\Likith\OneDrive\Desktop\automaton\src\mcp\memory_tool.py", line 286, in _store_memory
+    "type": params["type"],
+            ~~~~~~^^^^^^^^
+KeyError: 'type'
+TeachableAgent not available, creating AssistantAgent instead for code_analyzer
+
+################################################################################
+#                              MCP TEST SUITE                                  #
+################################################################################
+
+================================================================================
+DIRECT FILE READ TEST
+================================================================================
+
+Reading README.md...
+✓ Successfully read 15191 characters
+✓ First 100 chars: # AutoGen Development Assistant
+
+> **Multi-Agent AI System for Code Analysis, Security Auditing, and...
+
+================================================================================
+MEMORY STORAGE TEST
+================================================================================
+
+Storing test memory...
+✗ Error: 'type'
+
+================================================================================
+SIMPLE MCP INTEGRATION TEST
+================================================================================
+
+Initializing AutoGen system...
+✓ System initialized
+
+Checking MCP servers:
+  ✓ Github server connected
+  ✓ Filesystem server connected
+  ✓ Memory server connected
+  ✓ Slack server connected
+
+✓ Registered 14 functions
+
+Testing quick_code_review workflow...
+--------------------------------------------------------------------------------
+CodeAnalyzer (to Executor):
+
+TASK: Code Review
+
+File to review: {code_path}
+Focus areas: structure, documentation
+
+INSTRUCTIONS FOR CODE ANALYZER:
+1. Read the file at {code_path} to get the actual code content
+2. Analyze the REAL code from that file (not examples)
+3. Provide specific feedback on:
+   - Error handling and edge cases
+   - Security vulnerabilities
+   - Performance issues
+   - Code quality and best practices
+4. Reference specific line numbers and code sections in your review
+5. Do NOT execute the code, only analyze it
+
+Please start by reading the file.
+
+
+--------------------------------------------------------------------------------
+Executor (to CodeAnalyzer):
+
+
+
+--------------------------------------------------------------------------------
+[autogen.oai.client: 12-17 13:50:30] {695} WARNING - Model openai/gpt-oss-120b:free is not found. The cost will be 0. In your config_list, add field {"price" : [prompt_price_per_1k, completion_token_price_per_1k]} for customized pricing.
+CodeAnalyzer (to Executor):
+
+{
+  "name": "read_file",
+  "arguments": {
+    "file_path": "./main.py"
+  }
+}
+
+--------------------------------------------------------------------------------
+Executor (to CodeAnalyzer):
+
+
+
+--------------------------------------------------------------------------------
+[autogen.oai.client: 12-17 13:50:34] {695} WARNING - Model openai/gpt-oss-120b:free is not found. The cost will be 0. In your config_list, add field {"price" : [prompt_price_per_1k, completion_token_price_per_1k]} for customized pricing.
+CodeAnalyzer (to Executor):
+
+{
+  "name": "read_file",
+  "arguments": {
+    "file_path": "./main.py"
+  }
+}
+
+--------------------------------------------------------------------------------
+
+>>>>>>>> TERMINATING RUN (ac6f5900-9a4a-48e6-932b-8d18ea33b0f5): Maximum number of consecutive auto-replies reached
+
+>>>>>>>> TERMINATING RUN (c0c7bd4f-b14f-4720-94f4-fed372f82320): Maximum turns (3) reached
+--------------------------------------------------------------------------------
+
+Workflow Status: success
+Duration: 9.15s
+Messages: 5
+
+✓ TEST PASSED: Function calling is working!
+
+Agent successfully:
+  • Called read_file() to get actual file content
+  • Analyzed the real file (not hallucinated)
+  • Provided specific feedback based on actual content
+
+================================================================================
+TEST SUMMARY
+================================================================================
+✓ PASS: Direct File Read
+✗ FAIL: Memory Storage
+✓ PASS: Code Review Workflow
+
+Total: 3 | Passed: 2 | Failed: 1
+Success Rate: 66.7%
+
+⚠️  1 test(s) failed. Check errors above.
+================================================================================
+

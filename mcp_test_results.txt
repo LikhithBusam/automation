@@ -1,0 +1,249 @@
+﻿┌──────────────────────────────────────────────────────────┐
+│ MCP Function Testing Suite                               │
+│ Testing all MCP servers, tools, and registered functions │
+└──────────────────────────────────────────────────────────┘
+
+═══ Testing MCP Server Connections ═══
+
+python : INFO:src.autogen_adapters.agent_factory:AgentFactory initialized with 8 agent configs
+At line:1 char:59
++ ... m.Text.Encoding]::UTF8; python test_all_mcp_functions.py 2>&1 | Out-F ...
++                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (INFO:src.autoge...8 agent configs:String) [], RemoteExcepti 
+   on
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+INFO:src.autogen_adapters.groupchat_factory:GroupChatFactory initialized with 6 chat configs
+INFO:mcp.registry:Registered tool: github
+INFO:mcp.registry:Registered tool: filesystem
+INFO:mcp.registry:Registered tool: memory
+INFO:mcp.registry:Registered tool: slack
+INFO:src.autogen_adapters.function_registry:FunctionRegistry initialized with 4 tool categories
+INFO:src.autogen_adapters.conversation_manager:ConversationManager initialized with 8 workflows
+INFO:src.autogen_adapters.conversation_manager:Initializing ConversationManager components...
+INFO:mcp.github:Connecting to http://localhost:3000/mcp/github
+INFO:mcp.github:Connected to github MCP server
+INFO:mcp.manager:[OK] Github MCP tool initialized
+INFO:mcp.filesystem:Connecting to http://localhost:3001/mcp/filesystem
+INFO:mcp.filesystem:Connected to filesystem MCP server
+INFO:mcp.manager:[OK] Filesystem MCP tool initialized
+INFO:mcp.memory:Connecting to http://localhost:3002/mcp/memory
+INFO:mcp.memory:Connected to memory MCP server
+INFO:mcp.manager:[OK] Memory MCP tool initialized
+INFO:mcp.slack:Connecting to http://localhost:3003/mcp/slack
+INFO:mcp.slack:Connected to slack MCP server
+INFO:mcp.manager:[OK] Slack MCP tool initialized
+INFO:mcp.manager:Initialized 4 MCP tools
+INFO:src.autogen_adapters.function_registry:MCP tools initialized
+INFO:src.autogen_adapters.function_registry:Registered function: create_pull_request
+INFO:src.autogen_adapters.function_registry:Registered function: get_pull_request
+INFO:src.autogen_adapters.function_registry:Registered function: create_issue
+INFO:src.autogen_adapters.function_registry:Registered function: search_code
+INFO:src.autogen_adapters.function_registry:Registered function: get_file_contents
+INFO:src.autogen_adapters.function_registry:Registered function: read_file
+INFO:src.autogen_adapters.function_registry:Registered function: write_file
+INFO:src.autogen_adapters.function_registry:Registered function: list_directory
+INFO:src.autogen_adapters.function_registry:Registered function: search_files
+INFO:src.autogen_adapters.function_registry:Registered function: store_memory
+INFO:src.autogen_adapters.function_registry:Registered function: retrieve_memory
+INFO:src.autogen_adapters.function_registry:Registered function: search_memory
+INFO:src.autogen_adapters.function_registry:Registered function: send_message
+INFO:src.autogen_adapters.function_registry:Registered function: send_notification
+INFO:src.autogen_adapters.function_registry:Registered 14 functions total
+INFO:src.autogen_adapters.function_registry:Registered 14 MCP tool functions
+INFO:src.autogen_adapters.agent_factory:Creating TeachableAgent: code_analyzer
+WARNING:src.autogen_adapters.agent_factory:TeachableAgent not available, creating AssistantAgent instead 
+for code_analyzer
+INFO:src.autogen_adapters.agent_factory:Created agent: code_analyzer
+INFO:src.autogen_adapters.agent_factory:Added 9 tools to llm_config for code_analyzer
+INFO:src.autogen_adapters.agent_factory:Creating AssistantAgent: security_auditor
+INFO:src.autogen_adapters.agent_factory:Created agent: security_auditor
+INFO:src.autogen_adapters.agent_factory:Added 1 tools to llm_config for security_auditor
+INFO:src.autogen_adapters.agent_factory:Creating AssistantAgent: documentation_agent
+INFO:src.autogen_adapters.agent_factory:Created agent: documentation_agent
+INFO:src.autogen_adapters.agent_factory:Added 4 tools to llm_config for documentation_agent
+INFO:src.autogen_adapters.agent_factory:Creating AssistantAgent: deployment_agent
+INFO:src.autogen_adapters.agent_factory:Created agent: deployment_agent
+INFO:src.autogen_adapters.agent_factory:Added 5 tools to llm_config for deployment_agent
+INFO:src.autogen_adapters.agent_factory:Creating AssistantAgent: research_agent
+INFO:src.autogen_adapters.agent_factory:Created agent: research_agent
+INFO:src.autogen_adapters.agent_factory:Added 6 tools to llm_config for research_agent
+INFO:src.autogen_adapters.agent_factory:Creating AssistantAgent: project_manager
+INFO:src.autogen_adapters.agent_factory:Created agent: project_manager
+INFO:src.autogen_adapters.agent_factory:Added 6 tools to llm_config for project_manager
+INFO:src.autogen_adapters.agent_factory:Creating UserProxyAgent: executor
+INFO:src.autogen_adapters.agent_factory:Created agent: executor
+INFO:src.autogen_adapters.agent_factory:Creating UserProxyAgent: user_proxy_executor
+INFO:src.autogen_adapters.agent_factory:Created agent: user_proxy_executor
+INFO:src.autogen_adapters.agent_factory:Created 8 agents
+INFO:src.autogen_adapters.function_registry:Registered get_pull_request for calling with agent: 
+code_analyzer
+INFO:src.autogen_adapters.function_registry:Registered search_code for calling with agent: code_analyzer
+INFO:src.autogen_adapters.function_registry:Registered get_file_contents for calling with agent: 
+code_analyzer
+INFO:src.autogen_adapters.function_registry:Registered read_file for calling with agent: code_analyzer
+INFO:src.autogen_adapters.function_registry:Registered list_directory for calling with agent: 
+code_analyzer
+INFO:src.autogen_adapters.function_registry:Registered search_files for calling with agent: code_analyzer
+INFO:src.autogen_adapters.function_registry:Registered store_memory for calling with agent: code_analyzer
+INFO:src.autogen_adapters.function_registry:Registered retrieve_memory for calling with agent: 
+code_analyzer
+INFO:src.autogen_adapters.function_registry:Registered search_memory for calling with agent: 
+code_analyzer
+INFO:src.autogen_adapters.conversation_manager:Registered functions with agent: code_analyzer
+INFO:src.autogen_adapters.function_registry:Registered send_notification for calling with agent: 
+security_auditor
+INFO:src.autogen_adapters.conversation_manager:Registered functions with agent: security_auditor
+INFO:src.autogen_adapters.function_registry:Registered get_file_contents for calling with agent: 
+documentation_agent
+INFO:src.autogen_adapters.function_registry:Registered read_file for calling with agent: 
+documentation_agent
+INFO:src.autogen_adapters.function_registry:Registered write_file for calling with agent: 
+documentation_agent
+INFO:src.autogen_adapters.function_registry:Registered list_directory for calling with agent: 
+documentation_agent
+INFO:src.autogen_adapters.conversation_manager:Registered functions with agent: documentation_agent
+INFO:src.autogen_adapters.function_registry:Registered create_pull_request for calling with agent: 
+deployment_agent
+INFO:src.autogen_adapters.function_registry:Registered create_issue for calling with agent: 
+deployment_agent
+INFO:src.autogen_adapters.function_registry:Registered write_file for calling with agent: 
+deployment_agent
+INFO:src.autogen_adapters.function_registry:Registered send_message for calling with agent: 
+deployment_agent
+INFO:src.autogen_adapters.function_registry:Registered send_notification for calling with agent: 
+deployment_agent
+INFO:src.autogen_adapters.conversation_manager:Registered functions with agent: deployment_agent
+INFO:src.autogen_adapters.function_registry:Registered search_code for calling with agent: research_agent
+INFO:src.autogen_adapters.function_registry:Registered read_file for calling with agent: research_agent
+INFO:src.autogen_adapters.function_registry:Registered search_files for calling with agent: 
+research_agent
+INFO:src.autogen_adapters.function_registry:Registered store_memory for calling with agent: 
+research_agent
+INFO:src.autogen_adapters.function_registry:Registered retrieve_memory for calling with agent: 
+research_agent
+INFO:src.autogen_adapters.function_registry:Registered search_memory for calling with agent: 
+research_agent
+INFO:src.autogen_adapters.conversation_manager:Registered functions with agent: research_agent
+INFO:src.autogen_adapters.function_registry:Registered create_pull_request for calling with agent: 
+project_manager
+INFO:src.autogen_adapters.function_registry:Registered get_pull_request for calling with agent: 
+project_manager
+INFO:src.autogen_adapters.function_registry:Registered create_issue for calling with agent: 
+project_manager
+INFO:src.autogen_adapters.function_registry:Registered store_memory for calling with agent: 
+project_manager
+INFO:src.autogen_adapters.function_registry:Registered search_memory for calling with agent: 
+project_manager
+INFO:src.autogen_adapters.function_registry:Registered send_message for calling with agent: 
+project_manager
+INFO:src.autogen_adapters.conversation_manager:Registered functions with agent: project_manager
+INFO:src.autogen_adapters.function_registry:Registered 14 functions for execution with UserProxyAgent: 
+executor
+INFO:src.autogen_adapters.conversation_manager:Registered functions with agent: executor
+INFO:src.autogen_adapters.function_registry:Registered 14 functions for execution with UserProxyAgent: 
+user_proxy_executor
+INFO:src.autogen_adapters.conversation_manager:Registered functions with agent: user_proxy_executor
+INFO:src.autogen_adapters.conversation_manager:ConversationManager initialization complete
+✓ GitHub MCP Server: Connected
+✓ Filesystem MCP Server: Connected
+✓ Memory MCP Server: Connected
+✓ Slack MCP Server: Connected
+
+═══ Testing Filesystem Functions ═══
+
+✗ read_file: 'charmap' codec can't decode byte 0x8f in position
+INFO:httpx:HTTP Request: POST http://localhost:3001/mcp/filesystem/list_directory "HTTP/1.1 404 Not 
+Found"
+✗ search_files: 'FilesystemMCPTool' object has no attribute '_sear
+INFO:httpx:HTTP Request: POST http://localhost:3001/mcp/filesystem/write_file "HTTP/1.1 404 Not Found"
+✓ write_file: Success
+
+═══ Testing Memory Functions ═══
+
+✗ store_memory: 'content'
+INFO:httpx:HTTP Request: POST http://localhost:3002/mcp/memory/search_memory "HTTP/1.1 404 Not Found"
+✓ search_memory: Success
+
+═══ Testing GitHub Functions ═══
+
+✓ search_code: Function available
+✓ create_issue: Function available
+
+═══ Testing Slack Functions ═══
+
+✓ send_message: Function available
+✓ send_notification: Function available
+
+═══ Testing Function Registry ═══
+
+✗ Function registry error: 'FunctionRegistry' object has no attribute 
+'registered_functions'
+✗ Agent error: 'ConversationManager' object has no attribute 'agents'
+
+===============================================================================
+=
+
+TEST RESULTS SUMMARY
+
+                                  MCP Servers                                  
+┌───────────────────────┬─────────────┬───────────────────────────────────────┐
+│ Function/Component    │ Status      │ Details                               │
+├───────────────────────┼─────────────┼───────────────────────────────────────┤
+│ GitHub Server         │ ✓ Connected │ Port 3000                             │
+│ Filesystem Server     │ ✓ Connected │ Port 3001                             │
+│ Memory Server         │ ✓ Connected │ Port 3002                             │
+│ Slack Server          │ ✓ Connected │ Port 3003                             │
+└───────────────────────┴─────────────┴───────────────────────────────────────┘
+
+                             Filesystem Functions                              
+┌───────────────────────┬─────────────┬───────────────────────────────────────┐
+│ Function/Component    │ Status      │ Details                               │
+├───────────────────────┼─────────────┼───────────────────────────────────────┤
+│ read_file             │ ✗ Fail      │ 'charmap' codec can't decode b        │
+│ list_directory        │ ✗ Fail      │ No entries                            │
+│ search_files          │ ✗ Fail      │ 'FilesystemMCPTool' object has        │
+│ write_file            │ ✓ Pass      │ File created                          │
+└───────────────────────┴─────────────┴───────────────────────────────────────┘
+
+                               Memory Functions                                
+┌───────────────────────┬─────────────┬───────────────────────────────────────┐
+│ Function/Component    │ Status      │ Details                               │
+├───────────────────────┼─────────────┼───────────────────────────────────────┤
+│ store_memory          │ ✗ Fail      │ 'content'                             │
+│ retrieve_memory       │ ✗ Fail      │ Not found                             │
+│ search_memory         │ ✓ Pass      │ Search completed                      │
+└───────────────────────┴─────────────┴───────────────────────────────────────┘
+
+                               GitHub Functions                                
+┌───────────────────────┬─────────────┬───────────────────────────────────────┐
+│ Function/Component    │ Status      │ Details                               │
+├───────────────────────┼─────────────┼───────────────────────────────────────┤
+│ search_code           │ ✓ Available │ Function registered                   │
+│ get_file_contents     │ ✗ Missing   │ Not found                             │
+│ create_issue          │ ✓ Available │ Function registered                   │
+│ create_pull_request   │ ✗ Missing   │ Not found                             │
+└───────────────────────┴─────────────┴───────────────────────────────────────┘
+
+                                Slack Functions                                
+┌───────────────────────┬─────────────┬───────────────────────────────────────┐
+│ Function/Component    │ Status      │ Details                               │
+├───────────────────────┼─────────────┼───────────────────────────────────────┤
+│ send_message          │ ✓ Available │ Function registered                   │
+│ send_notification     │ ✓ Available │ Function registered                   │
+└───────────────────────┴─────────────┴───────────────────────────────────────┘
+
+                               Function Registry                               
+┌───────────────────────┬─────────────┬───────────────────────────────────────┐
+│ Function/Component    │ Status      │ Details                               │
+├───────────────────────┼─────────────┼───────────────────────────────────────┤
+│ Function Registry     │ ✗ Fail      │ 'FunctionRegistry' object has         │
+│ Agent Creation        │ ✗ Fail      │ 'ConversationManager' object h        │
+└───────────────────────┴─────────────┴───────────────────────────────────────┘
+
+┌── Overall Results ──┐
+│ Total Tests: 19     │
+│ Passed: 10          │
+│ Failed: 9           │
+│ Success Rate: 52.6% │
+└─────────────────────┘

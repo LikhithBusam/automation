@@ -693,19 +693,24 @@ class FilesystemMCPTool(BaseMCPTool):
     # Synchronous Wrappers for Testing
     # =========================================================================
 
-    def read_file(self, path: str) -> str:
+    def read_file(self, path: str = None, file_path: str = None) -> str:
         """Synchronous wrapper for reading files (for testing)"""
+        # Accept both 'path' and 'file_path' for compatibility
+        actual_path = file_path or path
+        if not actual_path:
+            raise ValueError("Either 'path' or 'file_path' parameter is required")
+            
         import asyncio
         try:
             loop = asyncio.get_event_loop()
             if loop.is_running():
                 # If loop is running, we can't use run_until_complete
                 raise RuntimeError("Cannot use sync wrapper with running event loop")
-            result = loop.run_until_complete(self._read_file({"path": path}))
+            result = loop.run_until_complete(self._read_file({"path": actual_path}))
             return result.get("content", "")
         except RuntimeError:
             # Fallback to direct file read
-            return Path(path).read_text()
+            return Path(actual_path).read_text()
 
     def write_file(self, path: str, content: str) -> bool:
         """Synchronous wrapper for writing files (for testing)"""

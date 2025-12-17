@@ -1,6 +1,7 @@
 # Python
 __pycache__/
 *.py[cod]
+*.pyc
 *$py.class
 *.so
 .Python
@@ -121,6 +122,12 @@ data/local_*
 experiments/
 runs/
 checkpoints/
+reports/
+old_tests/
+
+# Cache directories
+.cache/
+models_cache/
 
 # Security scanning results
 bandit-report.json

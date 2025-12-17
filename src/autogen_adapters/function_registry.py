@@ -91,6 +91,10 @@ class FunctionRegistry:
         """Initialize MCP tool manager and connections"""
         await self.tool_manager.initialize()
         self.logger.info("MCP tools initialized")
+        
+        # Register all MCP tool functions
+        self.register_all_functions()
+        self.logger.info(f"Registered {len(self.functions)} MCP tool functions")
 
     def create_function_wrapper(
         self,
@@ -154,8 +158,13 @@ class FunctionRegistry:
 
                 method = getattr(tool, method_name)
 
-                # Call the method
-                result = await method(**kwargs)
+                # Call the method - handle both sync and async
+                if asyncio.iscoroutinefunction(method):
+                    result = await method(**kwargs)
+                else:
+                    # For sync methods, run in executor to avoid blocking
+                    loop = asyncio.get_event_loop()
+                    result = await loop.run_in_executor(None, lambda: method(**kwargs))
 
                 self.logger.debug(f"Successfully called {tool_name}.{func_name}")
                 return result
@@ -271,12 +280,13 @@ class FunctionRegistry:
     def get_function_schemas_for_agent(self, agent_name: str) -> List[Dict[str, Any]]:
         """
         Get all function schemas for a specific agent (for LLM function calling).
+        Returns schemas in OpenAI tools format compatible with AutoGen 0.10+
 
         Args:
             agent_name: Name of the agent
 
         Returns:
-            List of function schema dicts
+            List of function schema dicts in OpenAI tools format
         """
         schemas = []
 
@@ -289,9 +299,25 @@ class FunctionRegistry:
                 if agent_name in register_with:
                     schema = func_config.get("schema", {})
                     if schema:
+                        # Schema is already in correct format from YAML
+                        # {"type": "function", "function": {"name": ..., "parameters": ...}}
                         schemas.append(schema)
 
+        self.logger.debug(f"Got {len(schemas)} function schemas for agent: {agent_name}")
         return schemas
+    
+    def get_tools_for_llm_config(self, agent_name: str) -> List[Dict[str, Any]]:
+        """
+        Get function schemas in the format required for llm_config['tools'].
+        This is for AutoGen 0.10+ which uses OpenAI tools format.
+
+        Args:
+            agent_name: Name of the agent
+
+        Returns:
+            List of tool definitions for llm_config
+        """
+        return self.get_function_schemas_for_agent(agent_name)
 
     def register_functions_with_agent(self, agent: Any, agent_name: str):
         """
@@ -301,9 +327,26 @@ class FunctionRegistry:
             agent: AutoGen agent instance
             agent_name: Name of the agent
         """
+        try:
+            from autogen import UserProxyAgent, AssistantAgent
+        except ImportError:
+            # Fallback if import fails
+            UserProxyAgent = type(None)
+            AssistantAgent = type(None)
+        
         # Get functions for this agent
         agent_functions = self.get_functions_for_agent(agent_name)
 
+        # For UserProxyAgent, register ALL functions for execution
+        if isinstance(agent, UserProxyAgent) or agent.__class__.__name__ == 'UserProxyAgent':
+            # UserProxyAgent needs all functions to execute them
+            all_functions = self.functions.copy()
+            if all_functions:
+                agent.register_function(function_map=all_functions)
+                self.logger.info(f"Registered {len(all_functions)} functions for execution with UserProxyAgent: {agent_name}")
+            return
+
+        # For AssistantAgent or other types
         if not agent_functions:
             self.logger.debug(f"No functions to register for agent: {agent_name}")
             return
@@ -316,7 +359,7 @@ class FunctionRegistry:
                     agent.register_function(
                         function_map={func_name: func}
                     )
-                    self.logger.info(f"Registered {func_name} with agent {agent_name}")
+                    self.logger.info(f"Registered {func_name} for calling with agent: {agent_name}")
             except Exception as e:
                 self.logger.error(f"Failed to register {func_name} with {agent_name}: {e}")
 

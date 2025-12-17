@@ -118,16 +118,19 @@ class AutoGenAgentFactory:
         llm_cfg = self.llm_configs[config_name]
         api_type = llm_cfg.get("api_type", "openai")
 
-        # For Gemini API, we need to use a custom wrapper
+        # For Gemini API, use gemini/ prefix for LiteLLM routing
         # For Groq and other OpenAI-compatible APIs, use standard config
-        if api_type == "gemini":
-            # Gemini uses Google's API directly
+        if api_type == "google" or api_type == "gemini":
+            # Use LiteLLM with gemini/ prefix for proper routing
+            model_name = llm_cfg.get("model")
+            if not model_name.startswith("gemini/"):
+                model_name = f"gemini/{model_name}"
+            
             autogen_config = {
                 "config_list": [
                     {
-                        "model": llm_cfg.get("model"),
+                        "model": model_name,
                         "api_key": llm_cfg.get("api_key"),
-                        "api_type": "google",  # AutoGen recognizes google API type
                     }
                 ],
                 "temperature": llm_cfg.get("temperature", 0.7),
@@ -210,7 +213,7 @@ class AutoGenAgentFactory:
         return agent
 
     def _create_assistant_agent(self, agent_name: str, agent_cfg: Dict[str, Any]) -> AssistantAgent:
-        """Create an AssistantAgent"""
+        """Create an AssistantAgent with function calling support"""
         # Get LLM config
         llm_config_name = agent_cfg.get("llm_config")
         llm_config = self._create_llm_config(llm_config_name) if llm_config_name else None
@@ -224,6 +227,9 @@ class AutoGenAgentFactory:
             max_consecutive_auto_reply=agent_cfg.get("max_consecutive_auto_reply", 10),
             code_execution_config=agent_cfg.get("code_execution_config", False),
         )
+        
+        # Store agent name for later function schema registration
+        agent._agent_config_name = agent_name
 
         return agent
 
@@ -288,16 +294,26 @@ class AutoGenAgentFactory:
 
         return agent
 
-    def create_all_agents(self) -> Dict[str, Any]:
+    def create_all_agents(self, function_registry=None) -> Dict[str, Any]:
         """
-        Create all configured agents.
+        Create all agents from configuration.
+
+        Args:
+            function_registry: Optional FunctionRegistry for adding tools to llm_config
 
         Returns:
             Dictionary of agent_name -> agent instance
         """
         for agent_name in self.agent_configs.keys():
             try:
-                self.create_agent(agent_name)
+                agent = self.create_agent(agent_name)
+                
+                # Add function/tool schemas to AssistantAgent's llm_config
+                if function_registry and hasattr(agent, 'llm_config') and agent.llm_config:
+                    tools = function_registry.get_tools_for_llm_config(agent_name)
+                    if tools:
+                        agent.llm_config["tools"] = tools
+                        self.logger.info(f"Added {len(tools)} tools to llm_config for {agent_name}")
             except Exception as e:
                 self.logger.error(f"Failed to create agent {agent_name}: {e}")
 

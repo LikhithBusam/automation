@@ -95,8 +95,8 @@ class ConversationManager:
         # Initialize function registry and MCP tools
         await self.function_registry.initialize_tools()
 
-        # Create all agents
-        self.agent_factory.create_all_agents()
+        # Create all agents with function schemas in llm_config
+        self.agent_factory.create_all_agents(function_registry=self.function_registry)
 
         # Register functions with agents
         await self._register_functions_with_agents()

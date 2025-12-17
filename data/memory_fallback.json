@@ -104,6 +104,39 @@
       "timestamp": "2025-12-17T14:04:22.597387",
       "expires_at": "2025-12-17T15:04:22.597405",
       "fallback": true
+    },
+    {
+      "id": "fallback-8-1765968695.848649",
+      "content": {
+        "test": "data"
+      },
+      "type": "short_term",
+      "tier": "short",
+      "tags": [
+        "test"
+      ],
+      "agent": "unknown",
+      "metadata": {},
+      "timestamp": "2025-12-17T16:21:34.961346",
+      "expires_at": "2025-12-17T17:21:34.961365",
+      "fallback": true
+    },
+    {
+      "id": "fallback-9-1765968709.797506",
+      "content": {
+        "test": "data",
+        "type": "pattern"
+      },
+      "type": "short_term",
+      "tier": "short",
+      "tags": [
+        "test"
+      ],
+      "agent": "unknown",
+      "metadata": {},
+      "timestamp": "2025-12-17T16:21:48.297974",
+      "expires_at": "2025-12-17T17:21:48.298028",
+      "fallback": true
     }
   ]
 }

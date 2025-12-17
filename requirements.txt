@@ -50,6 +50,11 @@ loguru>=0.7.2
 requests>=2.31.0
 pyyaml>=6.0
 
+# CodeBaseBuddy - Semantic Code Search (uses existing faiss-cpu)
+# faiss-cpu>=1.7.4 already included above
+# sentence-transformers>=2.2.2 already included above
+# numpy already included via torch
+
 # Testing & Development
 pytest>=7.4.3
 pytest-asyncio>=0.21.1

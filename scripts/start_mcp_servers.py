@@ -90,6 +90,13 @@ SERVERS_CONFIG = [
         "port": 3002,
         "env_vars": [],
         "health_endpoint": "/health"
+    },
+    {
+        "name": "CodeBaseBuddy Server",
+        "script": "mcp_servers/codebasebuddy_server.py",
+        "port": 3004,
+        "env_vars": [],
+        "health_endpoint": "/health"
     }
 ]
 

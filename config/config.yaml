@@ -137,9 +137,44 @@ mcp_servers:
     # Caching
     cache_enabled: false  # Don't cache messages
 
+  codebasebuddy:
+    enabled: true
+    server_url: "http://localhost:3004/mcp/codebasebuddy"
+    timeout: 60
+    retry_attempts: 3
+    fallback_enabled: true
+    # Index configuration
+    index_path: "./data/codebase_index"
+    scan_paths:
+      - "./src"
+      - "./mcp_servers"
+      - "./config"
+    exclude_patterns:
+      - "__pycache__"
+      - "*.pyc"
+      - "venv"
+      - "node_modules"
+      - ".git"
+    file_extensions:
+      - ".py"
+      - ".js"
+      - ".ts"
+      - ".yaml"
+      - ".yml"
+      - ".md"
+    embedding_model: "sentence-transformers"  # Uses all-MiniLM-L6-v2
+    chunk_strategy: "function"  # 'function' for Python AST parsing, 'file' for simple chunking
+    # Rate limiting
+    rate_limit_minute: 100
+    rate_limit_hour: 2000
+    burst_size: 20
+    # Caching
+    cache_enabled: true
+    cache_ttl: 300  # 5 minutes
+
   google_drive:
     enabled: false
-    server_url: "http://localhost:3004/mcp/gdrive"
+    server_url: "http://localhost:3005/mcp/gdrive"
     credentials_file: "./config/google_credentials.json"
     timeout: 30
     retry_attempts: 3

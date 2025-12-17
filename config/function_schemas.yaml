@@ -383,6 +383,139 @@ tools:
         register_with: ["deployment_agent", "security_auditor"]
         execute_via: "user_proxy_executor"
 
+  # CodeBaseBuddy Operations - Semantic Code Search
+  codebasebuddy_operations:
+    mcp_server_url: "http://localhost:3004"
+    description: "Semantic code search and understanding"
+    functions:
+      semantic_code_search:
+        name: "semantic_code_search"
+        description: "Search codebase using natural language queries"
+        wrapper_function: "codebasebuddy_semantic_search_wrapper"
+        schema:
+          type: "function"
+          function:
+            name: "semantic_code_search"
+            description: "Search code with natural language"
+            parameters:
+              type: "object"
+              properties:
+                query:
+                  type: "string"
+                  description: "Natural language search query (e.g., 'How does authentication work?')"
+                top_k:
+                  type: "integer"
+                  description: "Number of results to return (default: 5)"
+                file_filter:
+                  type: "string"
+                  description: "Filter by file path pattern (e.g., '*.py' or 'src/')"
+                chunk_type_filter:
+                  type: "string"
+                  enum: ["function", "class", "file"]
+                  description: "Filter by code chunk type"
+              required: ["query"]
+        register_with: ["code_analyzer", "security_auditor", "documentation_agent", "research_agent"]
+        execute_via: "user_proxy_executor"
+
+      find_similar_code:
+        name: "find_similar_code"
+        description: "Find code similar to a given snippet"
+        wrapper_function: "codebasebuddy_find_similar_wrapper"
+        schema:
+          type: "function"
+          function:
+            name: "find_similar_code"
+            description: "Find similar code patterns"
+            parameters:
+              type: "object"
+              properties:
+                code_snippet:
+                  type: "string"
+                  description: "Code snippet to find similar patterns for"
+                top_k:
+                  type: "integer"
+                  description: "Number of similar results to return (default: 5)"
+                exclude_self:
+                  type: "boolean"
+                  description: "Exclude exact matches (default: true)"
+              required: ["code_snippet"]
+        register_with: ["code_analyzer", "security_auditor"]
+        execute_via: "user_proxy_executor"
+
+      get_code_context:
+        name: "get_code_context"
+        description: "Get code context around a specific line in a file"
+        wrapper_function: "codebasebuddy_get_context_wrapper"
+        schema:
+          type: "function"
+          function:
+            name: "get_code_context"
+            description: "Get surrounding code context"
+            parameters:
+              type: "object"
+              properties:
+                file_path:
+                  type: "string"
+                  description: "Path to the code file"
+                line_number:
+                  type: "integer"
+                  description: "Target line number"
+                context_lines:
+                  type: "integer"
+                  description: "Number of lines before and after (default: 10)"
+              required: ["file_path", "line_number"]
+        register_with: ["code_analyzer", "security_auditor", "documentation_agent"]
+        execute_via: "user_proxy_executor"
+
+      build_code_index:
+        name: "build_code_index"
+        description: "Build or rebuild the semantic code index"
+        wrapper_function: "codebasebuddy_build_index_wrapper"
+        schema:
+          type: "function"
+          function:
+            name: "build_code_index"
+            description: "Build vector index for codebase"
+            parameters:
+              type: "object"
+              properties:
+                root_path:
+                  type: "string"
+                  description: "Root directory to scan"
+                file_extensions:
+                  type: "array"
+                  items:
+                    type: "string"
+                  description: "File extensions to include"
+                rebuild:
+                  type: "boolean"
+                  description: "If true, completely rebuild index"
+              required: ["root_path"]
+        register_with: ["project_manager"]
+        execute_via: "user_proxy_executor"
+
+      find_code_usages:
+        name: "find_code_usages"
+        description: "Find all usages of a symbol across the codebase"
+        wrapper_function: "codebasebuddy_find_usages_wrapper"
+        schema:
+          type: "function"
+          function:
+            name: "find_code_usages"
+            description: "Find symbol usages"
+            parameters:
+              type: "object"
+              properties:
+                symbol_name:
+                  type: "string"
+                  description: "Name of the symbol (function, class, variable)"
+                top_k:
+                  type: "integer"
+                  description: "Maximum number of results (default: 10)"
+              required: ["symbol_name"]
+        register_with: ["code_analyzer", "security_auditor", "research_agent"]
+        execute_via: "user_proxy_executor"
+
 # Function Registration Configuration
 function_registration:
   default_executor: "user_proxy_executor"
@@ -397,6 +530,9 @@ function_registration:
       search_code: 60
       search_files: 45
       search_memory: 20
+      semantic_code_search: 60
+      build_code_index: 300
+      find_similar_code: 60
   validation:
     validate_schemas: true
     validate_parameters: true

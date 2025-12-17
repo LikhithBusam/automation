@@ -155,18 +155,20 @@ class AgentPermissions:
 # Default agent-to-tool mappings with operations
 AGENT_PERMISSIONS: Dict[str, AgentPermissions] = {
     "code_analyzer": AgentPermissions(
-        allowed_tools={"github", "filesystem", "memory"},
+        allowed_tools={"github", "filesystem", "memory", "codebasebuddy"},
         allowed_operations={
             "github": {"get_pr", "review_pr", "search_code", "list_prs", "get_commit"},
             "filesystem": {"read_file", "list_directory", "search_content", "get_code_files", "analyze_structure"},
-            "memory": {"store", "search", "retrieve"}
+            "memory": {"store", "search", "retrieve"},
+            "codebasebuddy": {"semantic_search", "find_similar_code", "get_code_context", "find_usages"}
         }
     ),
     "documentation": AgentPermissions(
-        allowed_tools={"filesystem", "memory"},
+        allowed_tools={"filesystem", "memory", "codebasebuddy"},
         allowed_operations={
             "filesystem": {"read_file", "write_file", "list_directory", "analyze_structure"},
-            "memory": {"store", "search", "retrieve"}
+            "memory": {"store", "search", "retrieve"},
+            "codebasebuddy": {"semantic_search", "get_code_context"}
         }
     ),
     "deployment": AgentPermissions(
@@ -178,9 +180,19 @@ AGENT_PERMISSIONS: Dict[str, AgentPermissions] = {
         }
     ),
     "research": AgentPermissions(
-        allowed_tools={"memory"},
+        allowed_tools={"memory", "codebasebuddy"},
         allowed_operations={
-            "memory": {"*"}  # Full access to memory
+            "memory": {"*"},  # Full access to memory
+            "codebasebuddy": {"semantic_search", "find_similar_code", "find_usages"}
+        }
+    ),
+    "security_auditor": AgentPermissions(
+        allowed_tools={"github", "filesystem", "memory", "codebasebuddy"},
+        allowed_operations={
+            "github": {"get_pr", "search_code", "get_commit"},
+            "filesystem": {"read_file", "list_directory", "search_content"},
+            "memory": {"store", "search", "retrieve"},
+            "codebasebuddy": {"semantic_search", "find_similar_code", "find_usages", "get_code_context"}
         }
     ),
     "project_manager": AgentPermissions(
@@ -239,6 +251,7 @@ class ToolRegistry:
         from src.mcp.filesystem_tool import FilesystemMCPTool
         from src.mcp.memory_tool import MemoryMCPTool
         from src.mcp.slack_tool import SlackMCPTool
+        from src.mcp.codebasebuddy_tool import CodeBaseBuddyMCPTool
         
         # Register discovered tools
         self.register("github", GitHubMCPTool, {
@@ -260,6 +273,11 @@ class ToolRegistry:
             "description": "Slack notifications",
             "server_port": 3003,
             "operations": ["send_message", "send_notification"]
+        })
+        self.register("codebasebuddy", CodeBaseBuddyMCPTool, {
+            "description": "Semantic code search and understanding",
+            "server_port": 3004,
+            "operations": ["semantic_search", "find_similar_code", "get_code_context", "build_index", "find_usages"]
         })
 
 

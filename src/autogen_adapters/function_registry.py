@@ -17,6 +17,7 @@ from src.mcp.github_tool import GitHubMCPTool
 from src.mcp.filesystem_tool import FilesystemMCPTool
 from src.mcp.memory_tool import MemoryMCPTool
 from src.mcp.slack_tool import SlackMCPTool
+from src.mcp.codebasebuddy_tool import CodeBaseBuddyMCPTool
 
 
 class FunctionRegistry:
@@ -149,6 +150,14 @@ class FunctionRegistry:
                     # Slack operations
                     "send_slack_message": "send_message",
                     "send_slack_notification": "send_notification",
+
+                    # CodeBaseBuddy operations
+                    "semantic_code_search": "semantic_search",
+                    "find_similar_code": "find_similar_code",
+                    "get_code_context": "get_code_context",
+                    "build_code_index": "build_index",
+                    "get_index_stats": "get_index_stats",
+                    "find_code_usages": "find_usages",
                 }
 
                 method_name = method_mapping.get(func_name)

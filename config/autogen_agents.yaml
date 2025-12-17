@@ -116,7 +116,7 @@ agents:
       memory_server_url: "http://localhost:3002"
       auto_store_conversations: true
       retrieve_before_response: true
-    tools: ["github", "filesystem"]
+    tools: ["github", "filesystem", "codebasebuddy"]
     is_termination_msg: "lambda x: x.get('content', '').strip().endswith('TERMINATE')"
 
   # Security Auditor - Specialized code analyzer for security
@@ -141,11 +141,17 @@ agents:
       5. Reference security standards (OWASP, CWE)
 
       Be thorough but practical in your recommendations.
+      
+      SEMANTIC SEARCH: Use semantic_code_search() to find:
+      - All SQL query constructions
+      - All user input handling
+      - All authentication mechanisms
+      - All file operations
     llm_config: "code_analysis_config"
     human_input_mode: "NEVER"
     max_consecutive_auto_reply: 8
     code_execution_config: false
-    tools: ["github", "filesystem"]
+    tools: ["github", "filesystem", "codebasebuddy"]
 
   # Documentation Agent - Technical writer
   documentation_agent:
@@ -169,11 +175,16 @@ agents:
       5. Accessibility for target audience
 
       Always ensure documentation is up-to-date and matches the code.
+      
+      SEMANTIC SEARCH: Use semantic_code_search() to:
+      - Find undocumented functions
+      - Discover complex logic needing docs
+      - Locate API endpoints without descriptions
     llm_config: "documentation_config"
     human_input_mode: "NEVER"
     max_consecutive_auto_reply: 8
     code_execution_config: false
-    tools: ["github", "filesystem"]
+    tools: ["github", "filesystem", "codebasebuddy"]
 
   # Deployment Agent - DevOps specialist
   deployment_agent:
@@ -225,11 +236,13 @@ agents:
       5. Provide evidence-based recommendations
 
       Stay objective and evidence-based in your analysis.
+      
+      Use semantic_code_search() to find relevant code patterns and implementations.
     llm_config: "research_config"
     human_input_mode: "NEVER"
     max_consecutive_auto_reply: 10
     code_execution_config: false
-    tools: ["filesystem", "memory"]
+    tools: ["filesystem", "memory", "codebasebuddy"]
 
   # Project Manager - Orchestrator agent
   project_manager:

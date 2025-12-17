@@ -1,0 +1,54 @@
+# Core CrewAI and AI Libraries
+crewai>=0.28.0
+crewai-tools>=0.2.0
+langchain>=0.1.0
+langchain-community>=0.0.20
+
+# Hugging Face Libraries
+transformers>=4.36.0
+torch>=2.1.0
+accelerate>=0.25.0
+# bitsandbytes>=0.41.0  # Optional - may not be needed on Windows
+optimum>=1.16.0
+# auto-gptq>=0.5.0  # Optional - requires CUDA and can be problematic
+
+# MCP Server Integration
+# litemcp>=0.1.0  # May not exist
+mcp>=0.1.0
+httpx>=0.25.0
+websockets>=12.0
+uvicorn>=0.24.0
+
+# GitHub Integration
+PyGithub>=2.1.1
+gitpython>=3.1.40
+
+# Communication & Storage
+slack-sdk>=3.26.0
+google-api-python-client>=2.110.0
+google-auth-httplib2>=0.2.0
+google-auth-oauthlib>=1.2.0
+
+# Database & Memory
+sqlalchemy>=2.0.23
+redis>=5.0.1
+chromadb>=0.4.18
+faiss-cpu>=1.7.4
+sentence-transformers>=2.2.2
+
+# Utilities
+python-dotenv>=1.0.0
+pydantic>=2.5.0
+aiofiles>=23.2.1
+# asyncio>=3.4.3  # This is a built-in module, should not be in requirements
+tenacity>=8.2.3
+rich>=13.7.0
+loguru>=0.7.2
+
+# Testing & Development
+pytest>=7.4.3
+pytest-asyncio>=0.21.1
+pytest-cov>=4.1.0
+black>=23.12.0
+ruff>=0.1.8
+mypy>=1.7.1

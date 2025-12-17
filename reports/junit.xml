@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="3" tests="19" time="68.399" timestamp="2025-12-08T16:32:34.799807+05:30" hostname="DESKTOP-T708078"><testcase classname="tests.test_autogen_agents.TestAgentFactory" name="test_create_assistant_agent" time="25.954"><failure message="RuntimeError: TeachableAgent is not available. Ensure pyautogen is properly installed.">tests\test_autogen_agents.py:20: in test_create_assistant_agent
+    agent = factory.create_agent("code_analyzer")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\autogen_adapters\agent_factory.py:179: in create_agent
+    agent = self._create_teachable_agent(agent_name, agent_cfg)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\autogen_adapters\agent_factory.py:235: in _create_teachable_agent
+    raise RuntimeError("TeachableAgent is not available. Ensure pyautogen is properly installed.")
+E   RuntimeError: TeachableAgent is not available. Ensure pyautogen is properly installed.</failure></testcase><testcase classname="tests.test_autogen_agents.TestAgentFactory" name="test_create_agent_without_autogen" time="0.134" /><testcase classname="tests.test_autogen_agents.TestAgentFactory" name="test_create_user_proxy_agent" time="0.141" /><testcase classname="tests.test_autogen_agents.TestAgentConfiguration" name="test_load_agent_config" time="0.135" /><testcase classname="tests.test_autogen_agents.TestAgentConfiguration" name="test_env_var_replacement" time="0.134" /><testcase classname="tests.test_autogen_agents.TestAgentFunctionCalling" name="test_register_function_with_agent" time="0.663" /><testcase classname="tests.test_autogen_agents.TestAgentFunctionCalling" name="test_function_execution" time="0.384" /><testcase classname="tests.test_integration.TestAgentMCPIntegration" name="test_agent_uses_filesystem_tool" time="1.745" /><testcase classname="tests.test_integration.TestAgentMCPIntegration" name="test_agent_uses_memory_tool" time="5.905"><failure message="AttributeError: 'dict' object has no attribute 'lower'">src\mcp\memory_tool.py:315: in _retrieve_memory
+    "query": params["query"],
+             ^^^^^^^^^^^^^^^
+E   KeyError: 'query'
+
+During handling of the above exception, another exception occurred:
+tests\test_integration.py:51: in test_agent_uses_memory_tool
+    retrieved = tool.retrieve_memory(memory_id)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\mcp\memory_tool.py:693: in retrieve_memory
+    result = loop.run_until_complete(self._retrieve_memory({"id": memory_id}))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\AppData\Local\Programs\Python\Python313\Lib\asyncio\base_events.py:725: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+src\mcp\memory_tool.py:323: in _retrieve_memory
+    return await self._fallback_retrieve(params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\mcp\memory_tool.py:662: in _fallback_retrieve
+    return await self._fallback_search(params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\mcp\memory_tool.py:648: in _fallback_search
+    content = memory.get("content", "").lower()
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'lower'</failure></testcase><testcase classname="tests.test_integration.TestConversationManager" name="test_create_conversation_manager" time="0.011" /><testcase classname="tests.test_integration.TestFunctionRegistry" name="test_register_mcp_tool_functions" time="0.552" /><testcase classname="tests.test_integration.TestFunctionRegistry" name="test_function_error_handling" time="0.429" /><testcase classname="tests.test_mcp_servers.TestMCPServerHealth" name="test_github_server_health" time="4.086"><skipped type="pytest.skip" message="GitHub MCP server not running">C:\Users\Likith\OneDrive\Desktop\automaton\tests\test_mcp_servers.py:23: GitHub MCP server not running</skipped></testcase><testcase classname="tests.test_mcp_servers.TestMCPServerHealth" name="test_filesystem_server_health" time="4.068"><skipped type="pytest.skip" message="Filesystem MCP server not running">C:\Users\Likith\OneDrive\Desktop\automaton\tests\test_mcp_servers.py:35: Filesystem MCP server not running</skipped></testcase><testcase classname="tests.test_mcp_servers.TestMCPServerHealth" name="test_memory_server_health" time="4.076"><skipped type="pytest.skip" message="Memory MCP server not running">C:\Users\Likith\OneDrive\Desktop\automaton\tests\test_mcp_servers.py:47: Memory MCP server not running</skipped></testcase><testcase classname="tests.test_mcp_servers.TestFilesystemMCPOperations" name="test_read_file" time="3.066" /><testcase classname="tests.test_mcp_servers.TestFilesystemMCPOperations" name="test_write_file" time="3.336" /><testcase classname="tests.test_mcp_servers.TestFilesystemMCPOperations" name="test_list_directory" time="3.810" /><testcase classname="tests.test_mcp_servers.TestMemoryMCPOperations" name="test_store_and_retrieve_memory" time="3.988"><failure message="AttributeError: 'dict' object has no attribute 'lower'">src\mcp\memory_tool.py:315: in _retrieve_memory
+    "query": params["query"],
+             ^^^^^^^^^^^^^^^
+E   KeyError: 'query'
+
+During handling of the above exception, another exception occurred:
+tests\test_mcp_servers.py:109: in test_store_and_retrieve_memory
+    retrieved = tool.retrieve_memory(memory_id)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\mcp\memory_tool.py:693: in retrieve_memory
+    result = loop.run_until_complete(self._retrieve_memory({"id": memory_id}))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\AppData\Local\Programs\Python\Python313\Lib\asyncio\base_events.py:725: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+src\mcp\memory_tool.py:323: in _retrieve_memory
+    return await self._fallback_retrieve(params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\mcp\memory_tool.py:662: in _fallback_retrieve
+    return await self._fallback_search(params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\mcp\memory_tool.py:648: in _fallback_search
+    content = memory.get("content", "").lower()
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AttributeError: 'dict' object has no attribute 'lower'</failure></testcase></testsuite></testsuites>

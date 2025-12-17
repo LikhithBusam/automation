@@ -1,0 +1,181 @@
+version: '3.8'
+
+# Production-ready docker-compose configuration
+# Includes: Application, PostgreSQL, Redis, Prometheus, Grafana
+
+services:
+  # ============================================================================
+  # PostgreSQL Database
+  # ============================================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: automaton-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-automaton}
+      POSTGRES_USER: ${POSTGRES_USER:-automaton_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-automaton_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - automaton-network
+    restart: unless-stopped
+
+  # ============================================================================
+  # Redis Cache
+  # ============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: automaton-redis
+    command: redis-server --requirepass ${REDIS_PASSWORD:-changeme} --maxmemory 512mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - automaton-network
+    restart: unless-stopped
+
+  # ============================================================================
+  # Main Application
+  # ============================================================================
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: automaton-app
+    environment:
+      # Database
+      DATABASE_URL: postgresql://${POSTGRES_USER:-automaton_user}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-automaton}
+      # Redis
+      REDIS_URL: redis://:${REDIS_PASSWORD:-changeme}@redis:6379/0
+      # API Tokens (load from .env file)
+      HF_API_TOKEN: ${HF_API_TOKEN}
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
+      SLACK_BOT_TOKEN: ${SLACK_BOT_TOKEN:-}
+      # JWT Secret
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-generate-a-secure-secret-key}
+      # Application settings
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      GPU_ENABLED: ${GPU_ENABLED:-false}
+      MAX_WORKERS: ${MAX_WORKERS:-4}
+      # MCP Server URLs (internal)
+      MCP_GITHUB_URL: http://localhost:3000/mcp/github
+      MCP_FILESYSTEM_URL: http://localhost:3001/mcp/filesystem
+      MCP_MEMORY_URL: http://localhost:3002/mcp/memory
+      MCP_SLACK_URL: http://localhost:3003/mcp/slack
+    volumes:
+      - ./workspace:/app/workspace
+      - ./logs:/app/logs
+      - ./data:/app/data
+      - ./models_cache:/app/models_cache
+      - ./config:/app/config:ro
+    ports:
+      - "${APP_PORT:-8000}:8000"
+      - "3000:3000"  # GitHub MCP
+      - "3001:3001"  # Filesystem MCP
+      - "3002:3002"  # Memory MCP
+      - "3003:3003"  # Slack MCP
+      - "9090:9090"  # Prometheus metrics
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - automaton-network
+    restart: unless-stopped
+    # Resource limits (adjust based on your system)
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 8G
+        reservations:
+          cpus: '2'
+          memory: 4G
+
+  # ============================================================================
+  # Prometheus Monitoring
+  # ============================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: automaton-prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "${PROMETHEUS_PORT:-9091}:9090"
+    depends_on:
+      - app
+    networks:
+      - automaton-network
+    restart: unless-stopped
+
+  # ============================================================================
+  # Grafana Dashboards
+  # ============================================================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: automaton-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_INSTALL_PLUGINS: grafana-clock-panel,grafana-simple-json-datasource
+      GF_SERVER_ROOT_URL: http://localhost:${GRAFANA_PORT:-3030}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    ports:
+      - "${GRAFANA_PORT:-3030}:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - automaton-network
+    restart: unless-stopped
+
+# ============================================================================
+# Volumes
+# ============================================================================
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+# ============================================================================
+# Networks
+# ============================================================================
+networks:
+  automaton-network:
+    driver: bridge

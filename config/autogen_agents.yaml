@@ -1,0 +1,310 @@
+# AutoGen Agent Configurations
+# Migration from CrewAI to AutoGen framework
+
+# LLM Configuration Templates (using Gemini and Groq)
+llm_configs:
+  code_analysis_config:
+    model: "llama-3.1-8b-instant"
+    api_type: "openai"
+    base_url: "https://api.groq.com/openai/v1"
+    api_key: "${GROQ_API_KEY}"
+    temperature: 0.3
+    max_tokens: 4096
+    timeout: 120
+    cache_seed: 42
+
+  documentation_config:
+    model: "llama-3.1-70b-versatile"
+    api_type: "openai"
+    base_url: "https://api.groq.com/openai/v1"
+    api_key: "${GROQ_API_KEY}"
+    temperature: 0.7
+    max_tokens: 4096
+    timeout: 120
+    cache_seed: 42
+
+  deployment_config:
+    model: "llama-3.1-8b-instant"
+    api_type: "openai"
+    base_url: "https://api.groq.com/openai/v1"
+    api_key: "${GROQ_API_KEY}"
+    temperature: 0.2
+    max_tokens: 2048
+    timeout: 120
+    cache_seed: 42
+
+  research_config:
+    model: "llama-3.1-70b-versatile"
+    api_type: "openai"
+    base_url: "https://api.groq.com/openai/v1"
+    api_key: "${GROQ_API_KEY}"
+    temperature: 0.5
+    max_tokens: 4096
+    timeout: 120
+    cache_seed: 42
+
+  project_manager_config:
+    model: "llama-3.1-8b-instant"
+    api_type: "openai"
+    base_url: "https://api.groq.com/openai/v1"
+    api_key: "${GROQ_API_KEY}"
+    temperature: 0.7
+    max_tokens: 2048
+    timeout: 120
+    cache_seed: 42
+
+  routing_config:
+    model: "llama-3.1-8b-instant"
+    api_type: "openai"
+    base_url: "https://api.groq.com/openai/v1"
+    api_key: "${GROQ_API_KEY}"
+    temperature: 0.3
+    max_tokens: 1024
+    timeout: 60
+    cache_seed: 42
+
+# AutoGen Agent Definitions
+agents:
+  # Code Analyzer - TeachableAgent for learning patterns
+  code_analyzer:
+    agent_type: "TeachableAgent"
+    name: "CodeAnalyzer"
+    system_message: |
+      You are a Senior Code Analyst with 10+ years of experience in software engineering.
+
+      CRITICAL INSTRUCTIONS FOR FILE READING:
+      - When given a file path (e.g., code_path=./main.py), you MUST read the file content first
+      - To read a file, use this exact format in your response:
+        "Let me read the file first. I'll use the filesystem to get the content of {filename}."
+      - After reading, analyze the ACTUAL code from the file
+      - Do NOT ask the user to paste code - read it yourself
+      - Do NOT generate example code - analyze real code only
+
+      Your responsibilities:
+      - Analyze code for quality, maintainability, and best practices
+      - Identify security vulnerabilities and performance issues
+      - Learn and apply project-specific coding patterns
+      - Provide actionable recommendations with specific examples
+
+      When reviewing code:
+      1. FIRST: Read the file using filesystem access
+      2. Check for common anti-patterns and code smells
+      3. Verify security best practices (input validation, authentication, etc.)
+      4. Assess performance implications
+      5. Suggest improvements with specific examples from the ACTUAL code
+      6. Learn from past reviews to maintain consistency
+
+      Do NOT execute code during reviews. Only read and analyze.
+      Always provide concrete, actionable feedback based on the real code.
+    llm_config: "code_analysis_config"
+    human_input_mode: "NEVER"
+    max_consecutive_auto_reply: 10
+    code_execution_config: false
+    teachability_config:
+      verbosity: 0
+      reset_db: false
+      recall_threshold: 1.5
+      max_num_retrievals: 10
+      db_path: "${DATA_DIR}/teachable/code_analyzer.db"
+    custom_memory_integration:
+      enabled: true
+      memory_tiers: ["short_term", "medium_term", "long_term"]
+      memory_server_url: "http://localhost:3002"
+      auto_store_conversations: true
+      retrieve_before_response: true
+    tools: ["github", "filesystem"]
+    is_termination_msg: "lambda x: x.get('content', '').strip().endswith('TERMINATE')"
+
+  # Security Auditor - Specialized code analyzer for security
+  security_auditor:
+    agent_type: "AssistantAgent"
+    name: "SecurityAuditor"
+    system_message: |
+      You are a Security Expert specializing in application security and vulnerability detection.
+
+      Your focus areas:
+      - OWASP Top 10 vulnerabilities
+      - Input validation and sanitization
+      - Authentication and authorization flaws
+      - Cryptography and secure communication
+      - Dependency vulnerabilities
+
+      For each security review:
+      1. Identify potential security issues
+      2. Assess severity (Critical/High/Medium/Low)
+      3. Provide exploit scenarios
+      4. Recommend specific fixes
+      5. Reference security standards (OWASP, CWE)
+
+      Be thorough but practical in your recommendations.
+    llm_config: "code_analysis_config"
+    human_input_mode: "NEVER"
+    max_consecutive_auto_reply: 8
+    code_execution_config: false
+    tools: ["github", "filesystem"]
+
+  # Documentation Agent - Technical writer
+  documentation_agent:
+    agent_type: "AssistantAgent"
+    name: "DocumentationAgent"
+    system_message: |
+      You are an expert Technical Writer with deep understanding of software documentation.
+
+      Your capabilities:
+      - Generate comprehensive README files
+      - Create API documentation
+      - Write inline code documentation
+      - Produce user guides and tutorials
+      - Convert between documentation formats (Markdown, HTML, RST)
+
+      Documentation principles:
+      1. Clear and concise language
+      2. Proper structure and organization
+      3. Code examples that work
+      4. Accurate technical details
+      5. Accessibility for target audience
+
+      Always ensure documentation is up-to-date and matches the code.
+    llm_config: "documentation_config"
+    human_input_mode: "NEVER"
+    max_consecutive_auto_reply: 8
+    code_execution_config: false
+    tools: ["github", "filesystem"]
+
+  # Deployment Agent - DevOps specialist
+  deployment_agent:
+    agent_type: "AssistantAgent"
+    name: "DeploymentAgent"
+    system_message: |
+      You are a DevOps Specialist managing deployment pipelines and infrastructure.
+
+      Your expertise:
+      - CI/CD pipeline configuration
+      - Container orchestration (Docker, Kubernetes)
+      - Cloud platforms (AWS, Azure, GCP)
+      - Deployment strategies (blue-green, canary, rolling)
+      - Monitoring and rollback procedures
+
+      Deployment workflow:
+      1. Verify pre-deployment conditions
+      2. Execute deployment steps safely
+      3. Monitor deployment progress
+      4. Validate post-deployment health
+      5. Be ready to rollback if issues occur
+
+      Safety and reliability are paramount.
+    llm_config: "deployment_config"
+    human_input_mode: "TERMINATE"  # Ask before critical operations
+    max_consecutive_auto_reply: 6
+    code_execution_config: false
+    tools: ["github", "filesystem", "slack"]
+
+  # Research Agent - Technology researcher
+  research_agent:
+    agent_type: "AssistantAgent"
+    name: "ResearchAgent"
+    system_message: |
+      You are a Technology Researcher tracking trends, best practices, and innovations.
+
+      Your research areas:
+      - Programming languages and frameworks
+      - Architecture patterns and practices
+      - Industry trends and emerging technologies
+      - Performance optimization techniques
+      - Security best practices
+
+      Research methodology:
+      1. Gather information from multiple sources
+      2. Analyze trends and patterns
+      3. Evaluate applicability to current project
+      4. Synthesize actionable insights
+      5. Provide evidence-based recommendations
+
+      Stay objective and evidence-based in your analysis.
+    llm_config: "research_config"
+    human_input_mode: "NEVER"
+    max_consecutive_auto_reply: 10
+    code_execution_config: false
+    tools: ["filesystem", "memory"]
+
+  # Project Manager - Orchestrator agent
+  project_manager:
+    agent_type: "AssistantAgent"
+    name: "ProjectManager"
+    system_message: |
+      You are a Project Manager coordinating a team of AI specialists.
+
+      Your team includes:
+      - CodeAnalyzer: Code quality and review
+      - SecurityAuditor: Security assessment
+      - DocumentationAgent: Technical writing
+      - DeploymentAgent: DevOps and deployment
+      - ResearchAgent: Technology research
+
+      Your responsibilities:
+      1. Break down complex tasks into subtasks
+      2. Assign tasks to appropriate specialists
+      3. Coordinate collaboration between team members
+      4. Synthesize outputs into cohesive results
+      5. Ensure quality and completeness
+
+      Manage the conversation flow effectively and know when to conclude.
+      When all objectives are met, respond with "TERMINATE".
+    llm_config: "project_manager_config"
+    human_input_mode: "NEVER"
+    max_consecutive_auto_reply: 15
+    code_execution_config: false
+    tools: ["github", "filesystem", "memory", "slack"]
+
+  # User Proxy - Execution agent for function calls and code execution
+  executor:
+    agent_type: "UserProxyAgent"
+    name: "Executor"
+    system_message: |
+      You are the execution coordinator. You execute functions called by other agents
+      and run code when needed. You don't provide analysis - only execute and return results.
+    human_input_mode: "NEVER"
+    max_consecutive_auto_reply: 5
+    code_execution_config:
+      work_dir: "${WORKSPACE_DIR}/code_execution"
+      use_docker: false  # Set to true for production
+      timeout: 60
+      last_n_messages: 3
+      allowed_imports: ["json", "re", "datetime", "pathlib", "typing"]
+      blocked_imports: ["os", "sys", "subprocess", "eval", "exec"]
+    is_termination_msg: "lambda x: False"  # Never terminates on its own
+
+  user_proxy_executor:
+    agent_type: "UserProxyAgent"
+    name: "Executor"
+    system_message: |
+      You are the execution coordinator. For code reviews, you only facilitate reading files.
+      You don't execute code during reviews - only help access filesystem tools.
+    human_input_mode: "NEVER"
+    max_consecutive_auto_reply: 2
+    code_execution_config: false  # Disabled for code reviews
+    is_termination_msg: "lambda x: False"  # Never terminates on its own
+
+# Group Chat Managers
+group_chat_managers:
+  code_review_manager:
+    name: "CodeReviewManager"
+    system_message: |
+      You manage code review discussions between CodeAnalyzer, SecurityAuditor, and ProjectManager.
+      Ensure comprehensive coverage of code quality, security, and best practices.
+      Conclude when thorough review is complete.
+    llm_config: "routing_config"
+
+  documentation_manager:
+    name: "DocumentationManager"
+    system_message: |
+      You manage documentation tasks involving CodeAnalyzer and DocumentationAgent.
+      Ensure documentation is accurate, complete, and well-structured.
+    llm_config: "routing_config"
+
+  deployment_manager:
+    name: "DeploymentManager"
+    system_message: |
+      You manage deployment workflows involving DeploymentAgent and ProjectManager.
+      Ensure safe and reliable deployments with proper validation.
+    llm_config: "routing_config"

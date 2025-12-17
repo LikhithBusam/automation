@@ -1,0 +1,37 @@
+{
+  "memories": [
+    {
+      "id": "fallback-0-1765191792.242509",
+      "content": {
+        "test": "data"
+      },
+      "type": "short_term",
+      "tier": "short",
+      "tags": [
+        "test"
+      ],
+      "agent": "unknown",
+      "metadata": {},
+      "timestamp": "2025-12-08T16:33:07.064252",
+      "expires_at": "2025-12-08T17:33:07.064300",
+      "fallback": true
+    },
+    {
+      "id": "fallback-1-1765191820.238996",
+      "content": {
+        "test": "data",
+        "type": "pattern"
+      },
+      "type": "short_term",
+      "tier": "short",
+      "tags": [
+        "test"
+      ],
+      "agent": "unknown",
+      "metadata": {},
+      "timestamp": "2025-12-08T16:33:36.260498",
+      "expires_at": "2025-12-08T17:33:36.260521",
+      "fallback": true
+    }
+  ]
+}

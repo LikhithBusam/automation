@@ -1,0 +1,100 @@
+# Prometheus configuration for Automaton monitoring
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'automaton'
+    environment: 'production'
+
+# Alertmanager configuration (optional)
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - alertmanager:9093
+
+# Load rules once and periodically evaluate them
+rule_files:
+  # - "alerts/*.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Main application metrics
+  - job_name: 'automaton-app'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['app:9090']
+    metrics_path: '/metrics'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'automaton-app'
+
+  # GitHub MCP Server
+  - job_name: 'mcp-github'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['app:3000']
+    metrics_path: '/metrics'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'mcp-github'
+
+  # Filesystem MCP Server
+  - job_name: 'mcp-filesystem'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['app:3001']
+    metrics_path: '/metrics'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'mcp-filesystem'
+
+  # Memory MCP Server
+  - job_name: 'mcp-memory'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['app:3002']
+    metrics_path: '/metrics'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'mcp-memory'
+
+  # PostgreSQL metrics (if using postgres_exporter)
+  - job_name: 'postgres'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'postgres'
+
+  # Redis metrics (if using redis_exporter)
+  - job_name: 'redis'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'redis'
+
+  # Node exporter for host metrics (optional)
+  - job_name: 'node'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['node-exporter:9100']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'host'

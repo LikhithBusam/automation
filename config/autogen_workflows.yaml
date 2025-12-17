@@ -1,0 +1,284 @@
+# AutoGen Workflow Configurations
+# Conversation-based workflow patterns
+
+workflows:
+  # Code Analysis Workflow
+  code_analysis:
+    type: "group_chat"
+    group_chat_config: "code_review_chat"
+    description: "Comprehensive code quality and security analysis"
+    initial_message_template: |
+      Please analyze the code at: {code_path}
+
+      Analysis requirements:
+      - Code quality and maintainability
+      - Security vulnerabilities
+      - Performance considerations
+      - Best practices compliance
+      {additional_requirements}
+
+      Provide a comprehensive review with specific recommendations.
+    message_variables:
+      code_path: "${CODE_PATH}"
+      additional_requirements: "${ADDITIONAL_REQUIREMENTS}"
+    max_turns: 20
+    termination_keywords: ["TERMINATE", "CODE_REVIEW_COMPLETE"]
+    human_input_required: false
+    summary_method: "reflection_with_llm"
+    summary_prompt: |
+      Summarize the code review findings:
+      - Key issues identified
+      - Security concerns
+      - Recommendations
+      - Priority actions
+
+  # Security Audit Workflow
+  security_audit:
+    type: "group_chat"
+    group_chat_config: "security_audit_chat"
+    description: "Deep security vulnerability assessment"
+    initial_message_template: |
+      Perform a comprehensive security audit on: {code_path}
+
+      Focus areas:
+      - OWASP Top 10 vulnerabilities
+      - Authentication and authorization
+      - Input validation
+      - Data protection
+      - Dependency vulnerabilities
+
+      Provide severity ratings and remediation guidance.
+    message_variables:
+      code_path: "${CODE_PATH}"
+    max_turns: 15
+    termination_keywords: ["TERMINATE", "SECURITY_AUDIT_COMPLETE"]
+    human_input_required: false
+    summary_method: "reflection_with_llm"
+    summary_prompt: |
+      Provide a security audit summary:
+      - Vulnerabilities found (by severity)
+      - Exploitability assessment
+      - Remediation recommendations
+      - Compliance considerations
+
+  # Documentation Generation Workflow
+  documentation_generation:
+    type: "group_chat"
+    group_chat_config: "documentation_chat"
+    description: "Generate comprehensive project documentation"
+    initial_message_template: |
+      Generate {doc_type} documentation for: {code_path}
+
+      Requirements:
+      - Format: {format}
+      - Audience: {audience}
+      - Include: {sections}
+
+      Ensure documentation is accurate, complete, and well-structured.
+    message_variables:
+      code_path: "${CODE_PATH}"
+      doc_type: "${DOC_TYPE}"  # readme, api, user_guide
+      format: "${FORMAT}"  # markdown, html, rst
+      audience: "${AUDIENCE}"  # developers, users, admins
+      sections: "${SECTIONS}"
+    max_turns: 15
+    termination_keywords: ["TERMINATE", "DOCUMENTATION_COMPLETE"]
+    human_input_required: false
+    summary_method: "last"
+
+  # Deployment Workflow
+  deployment:
+    type: "group_chat"
+    group_chat_config: "deployment_chat"
+    description: "Execute deployment to target environment"
+    initial_message_template: |
+      Deploy application to {environment}
+
+      Configuration:
+      - Version: {version}
+      - Strategy: {strategy}
+      - Tests required: {run_tests}
+      - Notifications: {notify}
+
+      Pre-deployment checklist:
+      1. Verify tests pass
+      2. Check environment readiness
+      3. Review deployment plan
+      4. Execute deployment
+      5. Validate post-deployment
+
+      Proceed with caution. Rollback if issues detected.
+    message_variables:
+      environment: "${ENVIRONMENT}"
+      version: "${VERSION}"
+      strategy: "${STRATEGY}"  # blue-green, canary, rolling
+      run_tests: "${RUN_TESTS}"
+      notify: "${NOTIFY}"
+    max_turns: 12
+    termination_keywords: ["TERMINATE", "DEPLOYMENT_COMPLETE", "DEPLOYMENT_FAILED"]
+    human_input_required: true  # Require approval for production
+    human_approval_points:
+      - step: "pre_deployment_check"
+        prompt: "Approve deployment to {environment}?"
+        timeout_seconds: 300
+        default_response: "REJECT"
+    summary_method: "reflection_with_llm"
+    summary_prompt: |
+      Deployment summary:
+      - Environment: {environment}
+      - Status: {status}
+      - Duration: {duration}
+      - Issues encountered: {issues}
+      - Rollback status: {rollback_status}
+
+  # Research Workflow
+  research:
+    type: "group_chat"
+    group_chat_config: "research_chat"
+    description: "Research technology topics and best practices"
+    initial_message_template: |
+      Research topic: {topic}
+
+      Depth: {depth}
+      Focus areas:
+      - Current trends and adoption
+      - Best practices and patterns
+      - Pros and cons
+      - Applicability to our project
+      - Implementation recommendations
+
+      Compile comprehensive, evidence-based findings.
+    message_variables:
+      topic: "${TOPIC}"
+      depth: "${DEPTH}"  # quick, standard, comprehensive
+    max_turns: 15
+    termination_keywords: ["TERMINATE", "RESEARCH_COMPLETE"]
+    human_input_required: false
+    summary_method: "reflection_with_llm"
+    summary_prompt: |
+      Research findings summary:
+      - Key insights
+      - Recommendations
+      - Implementation suggestions
+      - Further research needed
+
+  # Simple Two-Agent Workflows
+  quick_code_review:
+    type: "two_agent"
+    agents: ["code_analyzer", "user_proxy_executor"]
+    initiator: "user_proxy_executor"
+    description: "Quick code review for small changes"
+    initial_message_template: |
+      TASK: Code Review
+
+      File to review: {code_path}
+      Focus areas: {focus_areas}
+
+      INSTRUCTIONS FOR CODE ANALYZER:
+      1. Read the file at {code_path} to get the actual code content
+      2. Analyze the REAL code from that file (not examples)
+      3. Provide specific feedback on:
+         - Error handling and edge cases
+         - Security vulnerabilities
+         - Performance issues
+         - Code quality and best practices
+      4. Reference specific line numbers and code sections in your review
+      5. Do NOT execute the code, only analyze it
+
+      Please start by reading the file.
+    message_variables:
+      code_path: "${CODE_PATH}"
+      focus_areas: "${FOCUS_AREAS}"
+    max_turns: 3
+    termination_keywords: ["TERMINATE", "REVIEW_COMPLETE"]
+    human_input_required: false
+
+  quick_documentation:
+    type: "two_agent"
+    agents: ["documentation_agent", "user_proxy_executor"]
+    initiator: "user_proxy_executor"
+    description: "Quick documentation update"
+    initial_message_template: |
+      Update documentation for: {code_path}
+      Type: {doc_type}
+    message_variables:
+      code_path: "${CODE_PATH}"
+      doc_type: "${DOC_TYPE}"
+    max_turns: 8
+    termination_keywords: ["TERMINATE", "DOCS_UPDATED"]
+    human_input_required: false
+
+  # Nested Conversation Workflows
+  comprehensive_feature_review:
+    type: "nested_chat"
+    parent_agent: "project_manager"
+    description: "Multi-perspective feature review with sub-tasks"
+    child_conversations:
+      - name: "code_quality_check"
+        type: "two_agent"
+        agents: ["code_analyzer", "user_proxy_executor"]
+        initial_message: "Analyze code quality for {feature_path}"
+        max_turns: 8
+
+      - name: "security_check"
+        type: "two_agent"
+        agents: ["security_auditor", "user_proxy_executor"]
+        initial_message: "Security audit for {feature_path}"
+        max_turns: 8
+
+      - name: "documentation_check"
+        type: "two_agent"
+        agents: ["documentation_agent", "user_proxy_executor"]
+        initial_message: "Verify documentation for {feature_path}"
+        max_turns: 6
+
+    aggregation_agent: "project_manager"
+    aggregation_prompt: |
+      Compile comprehensive feature review from:
+      - Code quality analysis
+      - Security audit
+      - Documentation review
+
+      Provide final recommendation: APPROVE, NEEDS_WORK, or REJECT
+    message_variables:
+      feature_path: "${FEATURE_PATH}"
+    termination_keywords: ["TERMINATE", "FEATURE_REVIEW_COMPLETE"]
+
+# Conversation Patterns
+conversation_patterns:
+  sequential_review:
+    description: "Sequential speaker pattern for thorough review"
+    pattern: "round_robin"
+    order: ["code_analyzer", "security_auditor", "project_manager"]
+    repeat: false
+
+  parallel_analysis:
+    description: "Multiple concurrent two-agent conversations"
+    pattern: "parallel_two_agent"
+    conversations:
+      - agents: ["code_analyzer", "user_proxy_executor"]
+      - agents: ["security_auditor", "user_proxy_executor"]
+      - agents: ["documentation_agent", "user_proxy_executor"]
+    aggregator: "project_manager"
+
+  dynamic_selection:
+    description: "AI selects next speaker based on context"
+    pattern: "auto"
+    fallback: "round_robin"
+    max_consecutive_same_speaker: 2
+
+# Conversation Persistence
+conversation_persistence:
+  enabled: true
+  storage_backend: "sqlite"  # sqlite, postgresql, mongodb
+  storage_path: "${DATA_DIR}/conversations"
+  auto_save: true
+  save_interval_messages: 5
+  compression: true
+  retention_days: 90
+
+conversation_resume:
+  enabled: true
+  resume_checkpoint_file: "${DATA_DIR}/checkpoints/latest.json"
+  resume_on_failure: true
+  clear_on_success: false

@@ -1,0 +1,59 @@
+# Core AutoGen and AI Libraries
+pyautogen>=0.2.0
+pyautogen[teachable]>=0.2.0
+pyautogen[retrievechat]>=0.2.0
+langchain>=0.1.0
+langchain-core>=0.1.0
+langchain-community>=0.0.20
+openai>=1.0.0  # For Groq API compatibility (OpenAI-compatible)
+
+# AI Provider SDKs
+google-generativeai>=0.3.0  # For Gemini API
+groq>=0.4.0  # For Groq API (optional, uses OpenAI SDK)
+
+# Hugging Face Libraries (Optional - for local models if needed)
+transformers>=4.36.0
+torch>=2.1.0
+accelerate>=0.25.0
+bitsandbytes>=0.41.0
+sentence-transformers>=2.2.2
+
+# MCP Server Integration (Keep - independent of agent framework)
+fastmcp>=0.1.0
+httpx>=0.25.0
+websockets>=12.0
+uvicorn>=0.24.0
+
+# GitHub Integration (Keep)
+PyGithub>=2.1.1
+gitpython>=3.1.40
+
+# Communication & Storage (Keep)
+slack-sdk>=3.26.0
+google-api-python-client>=2.110.0
+google-auth-httplib2>=0.2.0
+google-auth-oauthlib>=1.2.0
+
+# Database & Memory (Keep)
+sqlalchemy>=2.0.23
+redis>=5.0.1
+chromadb>=0.4.18
+faiss-cpu>=1.7.4
+
+# Utilities (Keep)
+python-dotenv>=1.0.0
+pydantic>=2.5.0
+aiofiles>=23.2.1
+tenacity>=8.2.3
+rich>=13.7.0
+loguru>=0.7.2
+requests>=2.31.0
+pyyaml>=6.0
+
+# Testing & Development
+pytest>=7.4.3
+pytest-asyncio>=0.21.1
+pytest-cov>=4.1.0
+black>=23.12.0
+ruff>=0.1.8
+mypy>=1.7.1

@@ -1,0 +1,403 @@
+# AutoGen Function Schemas for MCP Tools
+# Maps MCP server operations to AutoGen function calling
+
+tools:
+  # GitHub Operations
+  github_operations:
+    mcp_server_url: "http://localhost:3000"
+    description: "GitHub repository operations"
+    functions:
+      create_pull_request:
+        name: "create_pull_request"
+        description: "Create a new pull request in a GitHub repository"
+        wrapper_function: "github_create_pr_wrapper"
+        schema:
+          type: "function"
+          function:
+            name: "create_pull_request"
+            description: "Create a new pull request"
+            parameters:
+              type: "object"
+              properties:
+                owner:
+                  type: "string"
+                  description: "Repository owner (username or organization)"
+                repo:
+                  type: "string"
+                  description: "Repository name"
+                title:
+                  type: "string"
+                  description: "Pull request title"
+                body:
+                  type: "string"
+                  description: "Pull request description"
+                head:
+                  type: "string"
+                  description: "Source branch name"
+                base:
+                  type: "string"
+                  description: "Target branch name (e.g., 'main')"
+              required: ["owner", "repo", "title", "head", "base"]
+        register_with: ["deployment_agent", "project_manager"]
+        execute_via: "user_proxy_executor"
+
+      get_pull_request:
+        name: "get_pull_request"
+        description: "Get details of a pull request"
+        wrapper_function: "github_get_pr_wrapper"
+        schema:
+          type: "function"
+          function:
+            name: "get_pull_request"
+            description: "Retrieve pull request information"
+            parameters:
+              type: "object"
+              properties:
+                owner:
+                  type: "string"
+                  description: "Repository owner"
+                repo:
+                  type: "string"
+                  description: "Repository name"
+                pr_number:
+                  type: "integer"
+                  description: "Pull request number"
+              required: ["owner", "repo", "pr_number"]
+        register_with: ["code_analyzer", "project_manager"]
+        execute_via: "user_proxy_executor"
+
+      create_issue:
+        name: "create_issue"
+        description: "Create a new GitHub issue"
+        wrapper_function: "github_create_issue_wrapper"
+        schema:
+          type: "function"
+          function:
+            name: "create_issue"
+            description: "Create a GitHub issue"
+            parameters:
+              type: "object"
+              properties:
+                owner:
+                  type: "string"
+                  description: "Repository owner"
+                repo:
+                  type: "string"
+                  description: "Repository name"
+                title:
+                  type: "string"
+                  description: "Issue title"
+                body:
+                  type: "string"
+                  description: "Issue description"
+                labels:
+                  type: "array"
+                  items:
+                    type: "string"
+                  description: "Issue labels"
+              required: ["owner", "repo", "title"]
+        register_with: ["project_manager", "deployment_agent"]
+        execute_via: "user_proxy_executor"
+
+      search_code:
+        name: "search_code"
+        description: "Search for code in GitHub repository"
+        wrapper_function: "github_search_code_wrapper"
+        schema:
+          type: "function"
+          function:
+            name: "search_code"
+            description: "Search repository code"
+            parameters:
+              type: "object"
+              properties:
+                query:
+                  type: "string"
+                  description: "Search query"
+                owner:
+                  type: "string"
+                  description: "Repository owner (optional)"
+                repo:
+                  type: "string"
+                  description: "Repository name (optional)"
+              required: ["query"]
+        register_with: ["code_analyzer", "research_agent"]
+        execute_via: "user_proxy_executor"
+
+      get_file_contents:
+        name: "get_file_contents"
+        description: "Get contents of a file from GitHub"
+        wrapper_function: "github_get_file_wrapper"
+        schema:
+          type: "function"
+          function:
+            name: "get_file_contents"
+            description: "Retrieve file contents from GitHub repository"
+            parameters:
+              type: "object"
+              properties:
+                owner:
+                  type: "string"
+                  description: "Repository owner"
+                repo:
+                  type: "string"
+                  description: "Repository name"
+                path:
+                  type: "string"
+                  description: "File path in repository"
+                ref:
+                  type: "string"
+                  description: "Branch, tag, or commit SHA (optional)"
+              required: ["owner", "repo", "path"]
+        register_with: ["code_analyzer", "documentation_agent"]
+        execute_via: "user_proxy_executor"
+
+  # Filesystem Operations
+  filesystem_operations:
+    mcp_server_url: "http://localhost:3001"
+    description: "File system operations with security restrictions"
+    functions:
+      read_file:
+        name: "read_file"
+        description: "Read contents of a file"
+        wrapper_function: "filesystem_read_wrapper"
+        schema:
+          type: "function"
+          function:
+            name: "read_file"
+            description: "Read file contents from allowed paths"
+            parameters:
+              type: "object"
+              properties:
+                path:
+                  type: "string"
+                  description: "File path to read (must be in allowed directories)"
+              required: ["path"]
+        register_with: ["code_analyzer", "documentation_agent", "research_agent"]
+        execute_via: "user_proxy_executor"
+
+      write_file:
+        name: "write_file"
+        description: "Write content to a file"
+        wrapper_function: "filesystem_write_wrapper"
+        schema:
+          type: "function"
+          function:
+            name: "write_file"
+            description: "Write content to file in allowed paths"
+            parameters:
+              type: "object"
+              properties:
+                path:
+                  type: "string"
+                  description: "File path to write"
+                content:
+                  type: "string"
+                  description: "Content to write"
+              required: ["path", "content"]
+        register_with: ["documentation_agent", "deployment_agent"]
+        execute_via: "user_proxy_executor"
+
+      list_directory:
+        name: "list_directory"
+        description: "List files and directories"
+        wrapper_function: "filesystem_list_wrapper"
+        schema:
+          type: "function"
+          function:
+            name: "list_directory"
+            description: "List directory contents"
+            parameters:
+              type: "object"
+              properties:
+                path:
+                  type: "string"
+                  description: "Directory path to list"
+                recursive:
+                  type: "boolean"
+                  description: "Recursively list subdirectories"
+                  default: false
+              required: ["path"]
+        register_with: ["code_analyzer", "documentation_agent"]
+        execute_via: "user_proxy_executor"
+
+      search_files:
+        name: "search_files"
+        description: "Search for files matching pattern"
+        wrapper_function: "filesystem_search_wrapper"
+        schema:
+          type: "function"
+          function:
+            name: "search_files"
+            description: "Search files by name pattern"
+            parameters:
+              type: "object"
+              properties:
+                path:
+                  type: "string"
+                  description: "Directory to search"
+                pattern:
+                  type: "string"
+                  description: "File name pattern (glob or regex)"
+              required: ["path", "pattern"]
+        register_with: ["code_analyzer", "research_agent"]
+        execute_via: "user_proxy_executor"
+
+  # Memory Operations
+  memory_operations:
+    mcp_server_url: "http://localhost:3002"
+    description: "Memory storage and retrieval operations"
+    functions:
+      store_memory:
+        name: "store_memory"
+        description: "Store information in memory system"
+        wrapper_function: "memory_store_wrapper"
+        schema:
+          type: "function"
+          function:
+            name: "store_memory"
+            description: "Store memory with type and tags"
+            parameters:
+              type: "object"
+              properties:
+                content:
+                  type: "string"
+                  description: "Content to store"
+                memory_type:
+                  type: "string"
+                  enum: ["pattern", "preference", "solution", "context", "error"]
+                  description: "Type of memory"
+                tags:
+                  type: "array"
+                  items:
+                    type: "string"
+                  description: "Tags for categorization"
+                metadata:
+                  type: "object"
+                  description: "Additional metadata"
+              required: ["content", "memory_type"]
+        register_with: ["code_analyzer", "research_agent", "project_manager"]
+        execute_via: "user_proxy_executor"
+
+      retrieve_memory:
+        name: "retrieve_memory"
+        description: "Retrieve specific memory by ID"
+        wrapper_function: "memory_retrieve_wrapper"
+        schema:
+          type: "function"
+          function:
+            name: "retrieve_memory"
+            description: "Get memory by ID"
+            parameters:
+              type: "object"
+              properties:
+                memory_id:
+                  type: "string"
+                  description: "Memory identifier"
+              required: ["memory_id"]
+        register_with: ["code_analyzer", "research_agent"]
+        execute_via: "user_proxy_executor"
+
+      search_memory:
+        name: "search_memory"
+        description: "Search memories by query"
+        wrapper_function: "memory_search_wrapper"
+        schema:
+          type: "function"
+          function:
+            name: "search_memory"
+            description: "Semantic search in memory"
+            parameters:
+              type: "object"
+              properties:
+                query:
+                  type: "string"
+                  description: "Search query"
+                limit:
+                  type: "integer"
+                  description: "Maximum results to return"
+                  default: 10
+                memory_type:
+                  type: "string"
+                  description: "Filter by memory type (optional)"
+              required: ["query"]
+        register_with: ["code_analyzer", "research_agent", "project_manager"]
+        execute_via: "user_proxy_executor"
+
+  # Slack Operations
+  slack_operations:
+    mcp_server_url: "http://localhost:3003"
+    description: "Slack messaging and notifications"
+    functions:
+      send_message:
+        name: "send_slack_message"
+        description: "Send message to Slack channel"
+        wrapper_function: "slack_send_message_wrapper"
+        schema:
+          type: "function"
+          function:
+            name: "send_slack_message"
+            description: "Post message to Slack"
+            parameters:
+              type: "object"
+              properties:
+                channel:
+                  type: "string"
+                  description: "Channel name or ID"
+                text:
+                  type: "string"
+                  description: "Message text"
+                blocks:
+                  type: "array"
+                  description: "Rich message blocks (optional)"
+              required: ["channel", "text"]
+        register_with: ["deployment_agent", "project_manager"]
+        execute_via: "user_proxy_executor"
+
+      send_notification:
+        name: "send_slack_notification"
+        description: "Send formatted notification to Slack"
+        wrapper_function: "slack_send_notification_wrapper"
+        schema:
+          type: "function"
+          function:
+            name: "send_slack_notification"
+            description: "Send notification with severity"
+            parameters:
+              type: "object"
+              properties:
+                channel:
+                  type: "string"
+                  description: "Channel name or ID"
+                title:
+                  type: "string"
+                  description: "Notification title"
+                message:
+                  type: "string"
+                  description: "Notification message"
+                severity:
+                  type: "string"
+                  enum: ["info", "warning", "error", "success"]
+                  description: "Notification severity level"
+              required: ["channel", "title", "message", "severity"]
+        register_with: ["deployment_agent", "security_auditor"]
+        execute_via: "user_proxy_executor"
+
+# Function Registration Configuration
+function_registration:
+  default_executor: "user_proxy_executor"
+  error_handling:
+    retry_attempts: 3
+    retry_delay: 1
+    exponential_backoff: true
+    fallback_enabled: true
+  timeout:
+    default_seconds: 30
+    per_function:
+      search_code: 60
+      search_files: 45
+      search_memory: 20
+  validation:
+    validate_schemas: true
+    validate_parameters: true
+    sanitize_inputs: true

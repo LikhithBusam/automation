@@ -1,0 +1,213 @@
+# Production-Optimized Configuration
+# This config uses lightweight models and API deployment for fast startup
+
+# Model Configuration - OPTIMIZED FOR PRODUCTION
+models:
+  code_analyzer:
+    primary: "Salesforce/codegen-350M-mono"  # Lightweight 350M model
+    alternative: "microsoft/phi-2"
+    quantization: "4bit"
+    max_tokens: 2048
+    temperature: 0.3
+    deployment: "hf_api"  # Use API to avoid local loading
+
+  documentation:
+    primary: "google/flan-t5-base"  # Small and fast
+    alternative: "google/flan-t5-small"
+    quantization: "none"
+    max_tokens: 1024
+    temperature: 0.7
+    deployment: "hf_api"
+
+  deployment:
+    primary: "google/flan-t5-base"
+    alternative: "google/flan-t5-small"
+    quantization: "none"
+    max_tokens: 1024
+    temperature: 0.5
+    deployment: "hf_api"
+
+  research:
+    primary: "google/flan-t5-base"
+    alternative: "google/flan-t5-small"
+    quantization: "none"
+    max_tokens: 2048
+    temperature: 0.5
+    deployment: "hf_api"
+
+  project_manager:
+    primary: "google/flan-t5-base"
+    alternative: "google/flan-t5-small"
+    quantization: "none"
+    max_tokens: 1024
+    temperature: 0.7
+    deployment: "hf_api"
+
+# Hugging Face API Configuration
+huggingface:
+  api_token: "${HF_API_TOKEN}"
+  cache_dir: "./models_cache"
+  use_auth_token: true
+  trust_remote_code: false
+
+# MCP Server Configuration - EXTERNAL SERVERS (not started by app)
+mcp_servers:
+  github:
+    enabled: false  # Disable until needed
+    server_url: "http://localhost:3000/mcp/github"
+    auth_token: "${GITHUB_TOKEN}"
+    timeout: 10
+    retry_attempts: 2
+    fallback_enabled: true
+
+  filesystem:
+    enabled: true
+    server_url: "http://localhost:3001/mcp/filesystem"
+    timeout: 5
+    retry_attempts: 1
+    fallback_enabled: true
+    allowed_paths:
+      - "./workspace"
+      - "./projects"
+      - "./src"
+
+  memory:
+    enabled: true
+    server_url: "http://localhost:3002/mcp/memory"
+    storage_backend: "sqlite"  # Lighter than Redis
+    timeout: 5
+    retry_attempts: 2
+    fallback_enabled: true
+
+  slack:
+    enabled: false  # Disable by default
+    server_url: "http://localhost:3003/mcp/slack"
+    bot_token: "${SLACK_BOT_TOKEN}"
+    default_channel: "#dev-assistant"
+    timeout: 15
+    retry_attempts: 1
+    fallback_enabled: true
+
+  google_drive:
+    enabled: false
+    server_url: "http://localhost:3004/mcp/gdrive"
+    credentials_file: "./config/google_credentials.json"
+    timeout: 30
+    retry_attempts: 2
+    fallback_enabled: true
+
+# Agent Configuration
+agents:
+  code_analyzer:
+    enabled: true
+    max_concurrent_tasks: 2
+    priority: 1
+    tools: ["filesystem"]
+    memory_enabled: true
+
+  documentation:
+    enabled: true
+    max_concurrent_tasks: 2
+    priority: 2
+    tools: ["filesystem"]
+    memory_enabled: true
+
+  deployment:
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 1
+    tools: ["filesystem"]
+    memory_enabled: true
+
+  research:
+    enabled: true
+    max_concurrent_tasks: 2
+    priority: 2
+    tools: ["memory"]
+    memory_enabled: true
+
+  project_manager:
+    enabled: true
+    max_concurrent_tasks: 3
+    priority: 0
+    tools: ["memory", "filesystem"]
+    memory_enabled: true
+
+# Workflow Configuration
+workflows:
+  execution_mode: "hybrid"
+  max_parallel_tasks: 3
+  task_timeout: 120  # Reduced timeout
+  enable_task_queue: true
+  priority_queue_enabled: true
+
+# Memory Configuration
+memory:
+  short_term:
+    ttl: 1800  # 30 minutes
+    max_entries: 500
+
+  medium_term:
+    ttl: 86400  # 1 day
+    max_entries: 2000
+
+  long_term:
+    ttl: null
+    max_entries: 10000
+
+  embedding_model: "sentence-transformers/all-MiniLM-L6-v2"
+  similarity_threshold: 0.7
+  context_window_size: 2048
+  max_context_entries: 3
+
+# Performance Configuration - OPTIMIZED
+performance:
+  gpu_enabled: false  # Use CPU to avoid GPU setup time
+  cpu_threads: 4
+  batch_size: 2
+  max_concurrent_inferences: 2
+  max_loaded_models: 1  # Keep only 1 model loaded
+
+  caching:
+    enabled: true
+    cache_backend: "memory"  # In-memory cache, no Redis needed
+    prompt_cache_ttl: 1800
+    result_cache_ttl: 900
+
+  optimization:
+    use_flash_attention: false
+    gradient_checkpointing: false
+    mixed_precision: "fp32"  # No mixed precision for CPU
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  format: "json"
+  file: "./logs/dev_assistant.log"
+  max_file_size: "50MB"
+  backup_count: 3
+
+  components:
+    agents: "INFO"
+    mcp: "WARNING"  # Reduce MCP logging
+    models: "INFO"
+    workflows: "INFO"
+    memory: "INFO"
+
+# Error Handling
+error_handling:
+  retry_strategy: "exponential_backoff"
+  max_retries: 2
+  initial_retry_delay: 1
+  max_retry_delay: 30
+  enable_fallbacks: true
+  graceful_degradation: true
+  alert_on_failure: false
+
+# Feature Flags
+features:
+  auto_fix_enabled: false
+  learning_enabled: false  # Disable to speed up
+  proactive_suggestions: false
+  batch_processing: true
+  async_execution: true

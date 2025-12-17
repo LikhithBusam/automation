@@ -1,0 +1,29 @@
+{
+  "github_server": {
+    "name": "github_server",
+    "pid": 18856,
+    "port": 3000,
+    "status": "running",
+    "start_time": "2025-12-16T13:12:25.261850",
+    "restart_count": 0,
+    "last_crash": null
+  },
+  "filesystem_server": {
+    "name": "filesystem_server",
+    "pid": 13984,
+    "port": 3001,
+    "status": "running",
+    "start_time": "2025-12-16T13:12:27.168364",
+    "restart_count": 0,
+    "last_crash": null
+  },
+  "memory_server": {
+    "name": "memory_server",
+    "pid": 13356,
+    "port": 3002,
+    "status": "running",
+    "start_time": "2025-12-16T13:12:28.956546",
+    "restart_count": 0,
+    "last_crash": null
+  }
+}

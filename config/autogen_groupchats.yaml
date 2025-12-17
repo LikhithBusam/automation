@@ -1,0 +1,139 @@
+# AutoGen GroupChat Configurations
+# Define multi-agent conversation patterns
+
+group_chats:
+  # Code Review Group Chat
+  code_review_chat:
+    name: "Code Review Discussion"
+    description: "Comprehensive code review with multiple specialists"
+    agents: ["code_analyzer", "security_auditor", "project_manager"]
+    max_round: 20
+    speaker_selection_method: "auto"  # auto, manual, round_robin, random
+    allow_repeat_speaker: false
+    admin_name: "project_manager"
+    messages: []
+    speaker_selection_function: null  # Use custom function if defined
+    termination_condition: "check_code_review_complete"
+    manager: "code_review_manager"
+
+  # Security Audit Group Chat
+  security_audit_chat:
+    name: "Security Audit"
+    description: "Deep security analysis of codebase"
+    agents: ["security_auditor", "code_analyzer", "project_manager"]
+    max_round: 15
+    speaker_selection_method: "auto"
+    allow_repeat_speaker: true
+    admin_name: "project_manager"
+    termination_condition: "check_security_audit_complete"
+    manager: "code_review_manager"
+
+  # Documentation Generation Group Chat
+  documentation_chat:
+    name: "Documentation Generation"
+    description: "Create comprehensive documentation"
+    agents: ["documentation_agent", "code_analyzer", "project_manager"]
+    max_round: 15
+    speaker_selection_method: "round_robin"
+    allow_repeat_speaker: true
+    admin_name: "project_manager"
+    termination_condition: "check_documentation_complete"
+    manager: "documentation_manager"
+
+  # Deployment Workflow Group Chat
+  deployment_chat:
+    name: "Deployment Workflow"
+    description: "Safe deployment execution with validation"
+    agents: ["deployment_agent", "project_manager", "user_proxy_executor"]
+    max_round: 12
+    speaker_selection_method: "auto"
+    allow_repeat_speaker: false
+    admin_name: "project_manager"
+    termination_condition: "check_deployment_complete"
+    manager: "deployment_manager"
+
+  # Research and Analysis Group Chat
+  research_chat:
+    name: "Technology Research"
+    description: "Research technologies and best practices"
+    agents: ["research_agent", "code_analyzer", "project_manager"]
+    max_round: 15
+    speaker_selection_method: "auto"
+    allow_repeat_speaker: true
+    admin_name: "project_manager"
+    termination_condition: "check_research_complete"
+    manager: "code_review_manager"
+
+  # Full Team Discussion
+  full_team_chat:
+    name: "Full Team Discussion"
+    description: "All specialists collaborate on complex tasks"
+    agents:
+      - "code_analyzer"
+      - "security_auditor"
+      - "documentation_agent"
+      - "deployment_agent"
+      - "research_agent"
+      - "project_manager"
+    max_round: 30
+    speaker_selection_method: "auto"
+    allow_repeat_speaker: true
+    admin_name: "project_manager"
+    termination_condition: "check_full_team_complete"
+    manager: "code_review_manager"
+
+# Termination Conditions
+termination_conditions:
+  check_code_review_complete:
+    keywords: ["TERMINATE", "CODE_REVIEW_COMPLETE", "REVIEW_FINISHED"]
+    check_function: "is_code_review_complete"
+    max_rounds_fallback: 20
+
+  check_security_audit_complete:
+    keywords: ["TERMINATE", "SECURITY_AUDIT_COMPLETE", "NO_VULNERABILITIES_FOUND"]
+    check_function: "is_security_audit_complete"
+    max_rounds_fallback: 15
+
+  check_documentation_complete:
+    keywords: ["TERMINATE", "DOCUMENTATION_COMPLETE", "DOCS_GENERATED"]
+    check_function: "is_documentation_complete"
+    max_rounds_fallback: 15
+
+  check_deployment_complete:
+    keywords: ["TERMINATE", "DEPLOYMENT_COMPLETE", "DEPLOYMENT_SUCCESS", "DEPLOYMENT_FAILED"]
+    check_function: "is_deployment_complete"
+    max_rounds_fallback: 12
+
+  check_research_complete:
+    keywords: ["TERMINATE", "RESEARCH_COMPLETE", "FINDINGS_COMPILED"]
+    check_function: "is_research_complete"
+    max_rounds_fallback: 15
+
+  check_full_team_complete:
+    keywords: ["TERMINATE", "TASK_COMPLETE", "ALL_OBJECTIVES_MET"]
+    check_function: "is_full_team_complete"
+    max_rounds_fallback: 30
+
+# Speaker Selection Functions (custom logic)
+speaker_selection_functions:
+  code_review_speaker_selector:
+    description: "Select next speaker based on conversation context in code review"
+    priority_order:
+      - condition: "security_issue_mentioned"
+        speaker: "security_auditor"
+      - condition: "code_pattern_discussed"
+        speaker: "code_analyzer"
+      - condition: "summary_needed"
+        speaker: "project_manager"
+    default_speaker: "code_analyzer"
+
+  deployment_speaker_selector:
+    description: "Select next speaker for deployment workflow"
+    priority_order:
+      - condition: "deployment_action_needed"
+        speaker: "deployment_agent"
+      - condition: "execution_required"
+        speaker: "user_proxy_executor"
+      - condition: "decision_needed"
+        speaker: "project_manager"
+    default_speaker: "deployment_agent"

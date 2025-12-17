@@ -1,0 +1,314 @@
+# Intelligent Development Assistant Configuration
+
+# Model Configuration
+models:
+  code_analyzer:
+    primary: "codellama/CodeLlama-13b-Instruct-hf"
+    alternative: "bigcode/starcoder2-15b"
+    quantization: "4bit"
+    max_tokens: 4096
+    temperature: 0.3
+    deployment: "local"  # or "hf_api"
+
+  documentation:
+    primary: "meta-llama/Meta-Llama-3-8B-Instruct"
+    alternative: "mistralai/Mistral-7B-Instruct-v0.2"
+    quantization: "4bit"
+    max_tokens: 2048
+    temperature: 0.7
+    deployment: "local"
+
+  dev_workflow:
+    primary: "mistralai/Mistral-7B-Instruct-v0.2"
+    alternative: "microsoft/Phi-3-medium-4k-instruct"
+    quantization: "4bit"
+    max_tokens: 2048
+    temperature: 0.5
+    deployment: "local"
+
+  communication:
+    primary: "meta-llama/Meta-Llama-3-8B-Instruct"
+    alternative: "microsoft/Phi-3-medium-4k-instruct"
+    quantization: "4bit"
+    max_tokens: 1024
+    temperature: 0.8
+    deployment: "local"
+
+  code_generation:
+    primary: "deepseek-ai/deepseek-coder-33b-instruct"
+    alternative: "codellama/CodeLlama-34b-Instruct-hf"
+    quantization: "4bit"
+    max_tokens: 4096
+    temperature: 0.2
+    deployment: "hf_api"  # Use API for large models
+
+  memory:
+    primary: "meta-llama/Meta-Llama-3-8B-Instruct"
+    alternative: "mistralai/Mistral-7B-Instruct-v0.2"
+    quantization: "4bit"
+    max_tokens: 2048
+    temperature: 0.4
+    deployment: "local"
+
+# Hugging Face API Configuration
+huggingface:
+  api_token: "${HF_API_TOKEN}"
+  cache_dir: "./models_cache"
+  use_auth_token: true
+  trust_remote_code: false
+
+# MCP Server Configuration
+mcp_servers:
+  github:
+    enabled: true
+    server_url: "http://localhost:3000/mcp/github"
+    auth_token: "${GITHUB_TOKEN}"
+    timeout: 30
+    retry_attempts: 3
+    fallback_enabled: true
+    # Rate limiting
+    rate_limit_minute: 60
+    rate_limit_hour: 1000
+    burst_size: 10
+    # Caching
+    cache_enabled: true
+    cache_ttl: 300  # 5 minutes
+    # Security
+    blocked_patterns:
+      - "force_push"
+      - "delete_repository"
+
+  filesystem:
+    enabled: true
+    server_url: "http://localhost:3001/mcp/filesystem"
+    timeout: 10
+    retry_attempts: 2
+    fallback_enabled: true
+    # Security - allowed paths
+    allowed_paths:
+      - "./workspace"
+      - "./projects"
+      - "./src"
+      - "./config"
+      - "./examples"
+    # Blocked patterns (regex)
+    blocked_patterns:
+      - "\\.\\.\/"  # Directory traversal
+      - "\/etc\/"   # System files
+      - "\/root\/"  # Root directory
+      - "\\.ssh\/"  # SSH keys
+      - "\\.env$"   # Environment files (exact match)
+    # Rate limiting
+    rate_limit_minute: 100
+    rate_limit_hour: 2000
+    burst_size: 20
+    # Caching
+    cache_enabled: true
+    cache_ttl: 60  # 1 minute for file operations
+
+  memory:
+    enabled: true
+    server_url: "http://localhost:3002/mcp/memory"
+    storage_backend: "redis"  # or "sqlite", "postgres"
+    redis_url: "redis://localhost:6379/0"
+    timeout: 5
+    retry_attempts: 3
+    fallback_enabled: true
+    # Rate limiting
+    rate_limit_minute: 200
+    rate_limit_hour: 5000
+    burst_size: 50
+    # Caching
+    cache_enabled: true
+    cache_ttl: 300  # 5 minutes
+
+  slack:
+    enabled: true
+    server_url: "http://localhost:3003/mcp/slack"
+    bot_token: "${SLACK_BOT_TOKEN}"
+    default_channel: "#dev-assistant"
+    timeout: 15
+    retry_attempts: 2
+    fallback_enabled: true
+    # Rate limiting (Slack has strict limits)
+    rate_limit_minute: 20
+    rate_limit_hour: 100
+    burst_size: 5
+    # Caching
+    cache_enabled: false  # Don't cache messages
+
+  google_drive:
+    enabled: false
+    server_url: "http://localhost:3004/mcp/gdrive"
+    credentials_file: "./config/google_credentials.json"
+    timeout: 30
+    retry_attempts: 3
+    fallback_enabled: true
+    # Rate limiting
+    rate_limit_minute: 30
+    rate_limit_hour: 500
+    burst_size: 10
+    # Caching
+    cache_enabled: true
+    cache_ttl: 600  # 10 minutes
+
+  duckduckgo_search:
+    enabled: false  # disabled: research agent now uses built-in duckduckgo_search library
+    timeout: 10
+    retry_attempts: 2
+    fallback_enabled: true
+    # Caching (aggressive for search results)
+    cache_enabled: true
+    cache_ttl: 3600  # 1 hour
+
+# Agent Configuration
+agents:
+  code_analyzer:
+    enabled: true
+    max_concurrent_tasks: 3
+    priority: 1
+    tools: ["github", "filesystem"]
+    memory_enabled: true
+
+  documentation:
+    enabled: true
+    max_concurrent_tasks: 2
+    priority: 2
+    tools: ["github", "filesystem", "google_drive"]
+    memory_enabled: true
+
+  deployment:
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 1
+    tools: ["github", "filesystem", "slack"]
+    memory_enabled: true
+
+  research:
+    enabled: true
+    max_concurrent_tasks: 2
+    priority: 2
+    tools: ["github", "filesystem"]
+    memory_enabled: true
+
+  project_manager:
+    enabled: true
+    max_concurrent_tasks: 1
+    priority: 0  # Highest priority (orchestrator)
+    tools: ["github", "filesystem", "memory"]
+    memory_enabled: true
+
+  dev_workflow:
+    enabled: false  # No factory exists for this agent
+    max_concurrent_tasks: 2
+    priority: 1
+    tools: ["github", "filesystem"]
+    memory_enabled: true
+
+  communication:
+    enabled: false  # No factory exists for this agent
+    max_concurrent_tasks: 5
+    priority: 3
+    tools: ["slack", "google_drive", "memory"]
+    memory_enabled: true
+
+  code_generation:
+    enabled: false  # No factory exists for this agent
+    max_concurrent_tasks: 2
+    priority: 1
+    tools: ["github", "filesystem"]
+    memory_enabled: true
+
+  memory:
+    enabled: false  # No factory exists for this agent
+    max_concurrent_tasks: 10
+    priority: 0  # Highest priority
+    tools: ["memory", "filesystem"]
+    memory_enabled: false  # Doesn't query itself
+
+# Workflow Configuration
+workflows:
+  execution_mode: "hybrid"  # "sequential", "parallel", or "hybrid"
+  max_parallel_tasks: 5
+  task_timeout: 300  # seconds
+  enable_task_queue: true
+  priority_queue_enabled: true
+
+  priorities:
+    critical_fix: 0
+    feature_development: 1
+    documentation: 2
+    maintenance: 3
+
+# Memory Configuration
+memory:
+  short_term:
+    ttl: 3600  # 1 hour
+    max_entries: 1000
+
+  medium_term:
+    ttl: 2592000  # 30 days
+    max_entries: 10000
+
+  long_term:
+    ttl: null  # permanent
+    max_entries: 100000
+
+  embedding_model: "sentence-transformers/all-MiniLM-L6-v2"
+  similarity_threshold: 0.7
+  context_window_size: 4096
+  max_context_entries: 5
+
+# Performance Configuration
+performance:
+  gpu_enabled: true
+  gpu_memory_fraction: 0.8
+  cpu_threads: 8
+  batch_size: 4
+  max_concurrent_inferences: 3
+
+  caching:
+    enabled: true
+    cache_backend: "redis"
+    prompt_cache_ttl: 3600
+    result_cache_ttl: 1800
+
+  optimization:
+    use_flash_attention: true
+    gradient_checkpointing: true
+    mixed_precision: "fp16"
+
+# Logging Configuration
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  format: "json"
+  file: "./logs/dev_assistant.log"
+  max_file_size: "100MB"
+  backup_count: 5
+
+  components:
+    agents: "INFO"
+    mcp: "DEBUG"
+    models: "INFO"
+    workflows: "INFO"
+    memory: "DEBUG"
+
+# Error Handling
+error_handling:
+  retry_strategy: "exponential_backoff"
+  max_retries: 3
+  initial_retry_delay: 1  # seconds
+  max_retry_delay: 60
+  enable_fallbacks: true
+  graceful_degradation: true
+
+  alert_on_failure: true
+  alert_channels: ["slack"]
+
+# Feature Flags
+features:
+  auto_fix_enabled: false  # Automatically apply code fixes
+  learning_enabled: true   # Learn from interactions
+  proactive_suggestions: true
+  batch_processing: true
+  async_execution: true

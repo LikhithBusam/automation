@@ -189,7 +189,7 @@ workflows:
     message_variables:
       code_path: "${CODE_PATH}"
       focus_areas: "${FOCUS_AREAS}"
-    max_turns: 3
+    max_turns: 10
     termination_keywords: ["TERMINATE", "REVIEW_COMPLETE"]
     human_input_required: false
 

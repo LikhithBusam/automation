@@ -56,6 +56,12 @@ SERVERS_CONFIG = [
         "display_name": "Memory Server",
         "script": "mcp_servers/memory_server.py",
         "port": 3002,
+    },
+    {
+        "name": "codebasebuddy_server",
+        "display_name": "CodeBaseBuddy Server",
+        "script": "mcp_servers/codebasebuddy_server.py",
+        "port": 3004,
     }
 ]
 

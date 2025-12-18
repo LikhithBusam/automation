@@ -3,20 +3,19 @@
 > **Multi-Agent AI System for Code Analysis, Security Auditing, and Development Automation**
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![AutoGen](https://img.shields.io/badge/AutoGen-0.10.0-green.svg)](https://microsoft.github.io/autogen/)
+[![AutoGen](https://img.shields.io/badge/AutoGen-0.9.9+-green.svg)](https://microsoft.github.io/autogen/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ## 🚀 Overview
 
-**AutoGen Development Assistant** is a production-ready, multi-agent AI system built on Microsoft's AutoGen framework. It provides intelligent code analysis, security auditing, documentation generation, and deployment automation through collaborative AI agents powered by OpenRouter and function calling capabilities.
+**AutoGen Development Assistant** is a production-ready, multi-agent AI system built on Microsoft's AutoGen framework. It provides intelligent code analysis, security auditing, documentation generation, and deployment automation through collaborative AI agents powered by Groq and Google Gemini.
 
 ### Key Features
 
 - ✅ **Multi-Agent Collaboration** - 8 specialized AI agents working together
 - ✅ **Fast Code Reviews** - Complete code analysis in 3-5 seconds
 - ✅ **Security Auditing** - Deep vulnerability assessment and OWASP compliance
-- ✅ **Semantic Code Search** - AI-powered codebase understanding with CodeBaseBuddy
-- ✅ **MCP Integration** - 4 FastMCP servers for GitHub, Filesystem, Memory, and CodeBaseBuddy
+- ✅ **MCP Integration** - FastMCP servers for GitHub, Filesystem, Memory, and Slack
 - ✅ **Workflow Orchestration** - 8 pre-configured workflows for common tasks
 - ✅ **Production Ready** - Docker support, monitoring, and comprehensive logging
 
@@ -69,6 +68,22 @@ cp .env.example .env
 # Edit .env with your API keys
 ```
 
+### Start MCP Servers
+
+Before running the system, start the MCP servers:
+
+**Windows:**
+```bash
+scripts\windows\start_servers.bat
+```
+
+**Unix/macOS:**
+```bash
+python scripts/mcp_server_daemon.py start
+```
+
+This will start all 4 MCP servers in the background (GitHub, Filesystem, Memory, CodeBaseBuddy).
+
 ### Run the System
 
 **Windows:**
@@ -119,17 +134,17 @@ python tests/diagnostics/simple_code_review.py ./main.py "error handling, securi
                          │
 ┌────────────────────────▼────────────────────────────────────┐
 │                  MCP Tool Manager                           │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌───────────────┐ │
-│  │  GitHub  │ │Filesystem│ │  Memory  │ │ CodeBaseBuddy │ │
-│  │  :3000   │ │  :3001   │ │  :3002   │ │    :3004      │ │
-│  └──────────┘ └──────────┘ └──────────┘ └───────────────┘ │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐   │
+│  │  GitHub  │  │Filesystem│  │  Memory  │  │  Slack   │   │
+│  │   MCP    │  │   MCP    │  │   MCP    │  │   MCP    │   │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘   │
 └────────────────────────┬────────────────────────────────────┘
                          │
 ┌────────────────────────▼────────────────────────────────────┐
 │                   LLM Providers                             │
 │  ┌──────────────────┐           ┌──────────────────┐       │
-│  │  OpenRouter API  │           │  Google Gemini   │       │
-│  │  gpt-oss-120b    │           │  gemini-2.5      │       │
+│  │  Groq API        │           │  Google Gemini   │       │
+│  │  llama-3.1-8b    │           │  gemini-2.5      │       │
 │  └──────────────────┘           └──────────────────┘       │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -138,46 +153,14 @@ python tests/diagnostics/simple_code_review.py ./main.py "error handling, securi
 
 | Agent | Purpose | Model |
 |-------|---------|-------|
-| **Code Analyzer** | Code review, quality analysis, best practices | gpt-oss-120b:free |
-| **Security Auditor** | Vulnerability scanning, OWASP compliance | gpt-oss-120b:free |
-| **Documentation Agent** | Generate/update documentation | gpt-oss-120b:free |
-| **Deployment Agent** | Deployment automation, CI/CD | gpt-oss-120b:free |
-| **Research Agent** | Technology research, best practices | gpt-oss-120b:free |
-| **Project Manager** | Orchestration, task planning | gpt-oss-120b:free |
+| **Code Analyzer** | Code review, quality analysis, best practices | llama-3.1-8b-instant |
+| **Security Auditor** | Vulnerability scanning, OWASP compliance | llama-3.1-8b-instant |
+| **Documentation Agent** | Generate/update documentation | llama-3.1-70b-versatile |
+| **Deployment Agent** | Deployment automation, CI/CD | llama-3.1-8b-instant |
+| **Research Agent** | Technology research, best practices | llama-3.1-70b-versatile |
+| **Project Manager** | Orchestration, task planning | llama-3.1-8b-instant |
 | **Executor** | Code execution, testing | N/A (UserProxyAgent) |
 | **User Proxy** | User interaction, human-in-the-loop | N/A (UserProxyAgent) |
-
-### MCP Servers
-
-The system runs 4 FastMCP servers providing specialized capabilities:
-
-| Server | Port | Purpose | Features |
-|--------|------|---------|----------|
-| **GitHub** | 3000 | Repository operations | Clone, PR, issues, search, commit history |
-| **Filesystem** | 3001 | File operations | Read, write, list, search files securely |
-| **Memory** | 3002 | Persistent storage | SQLite-backed semantic memory with embeddings |
-| **CodeBaseBuddy** | 3004 | Semantic code search | FAISS vector search, AST parsing, code understanding |
-
-#### CodeBaseBuddy - Semantic Code Search
-
-CodeBaseBuddy provides AI-powered code understanding:
-
-```python
-# Natural language code search
-results = await semantic_code_search("authentication middleware")
-
-# Find similar code patterns
-similar = await find_similar_code("async def handle_request(self, ctx):")
-
-# Get code context with line ranges
-context = await get_code_context("./src/api/routes.py", 100, 150)
-```
-
-**Features:**
-- 🔍 **Semantic Search** - Query code using natural language
-- 🧠 **384-dim Embeddings** - all-MiniLM-L6-v2 sentence-transformers
-- ⚡ **FAISS Index** - Fast similarity search across codebase
-- 🌳 **AST Parsing** - Function/class level indexing for Python
 
 ---
 
@@ -220,15 +203,6 @@ pip install -r requirements.txt
 # Verify installation
 python -c "import autogen; print('AutoGen:', autogen.__version__)"
 ```
-
-**Key Dependencies:**
-| Package | Version | Purpose |
-|---------|---------|---------|
-| `pyautogen` | 0.10.0+ | Multi-agent framework |
-| `fastmcp` | 2.13+ | MCP server framework |
-| `sentence-transformers` | 5.1+ | Text embeddings |
-| `faiss-cpu` | 1.11+ | Vector similarity search |
-| `uvicorn` | 0.34+ | ASGI server |
 
 ### 5. Environment Configuration
 
@@ -395,35 +369,20 @@ quick_code_review:
 
 ### MCP Server Configuration
 
-Start all MCP servers:
+Start MCP servers:
 
 ```bash
-# Windows - Start all 4 servers
-python scripts/start_mcp_servers.py
+# Windows
+scripts\windows\start_servers.bat
 
-# Or start individually
-python mcp_servers/github_server.py      # Port 3000
-python mcp_servers/filesystem_server.py  # Port 3001
-python mcp_servers/memory_server.py      # Port 3002
-python mcp_servers/codebasebuddy_server.py  # Port 3004
+# Unix/macOS
+bash scripts/unix/start_servers.sh
 ```
 
 Check server status:
 
 ```bash
-# Windows
 scripts\windows\check_servers.bat
-
-# Or use netstat
-netstat -ano | findstr ":300"
-```
-
-**Expected output (all 4 servers running):**
-```
-TCP    0.0.0.0:3000    LISTENING    # GitHub
-TCP    0.0.0.0:3001    LISTENING    # Filesystem
-TCP    0.0.0.0:3002    LISTENING    # Memory
-TCP    0.0.0.0:3004    LISTENING    # CodeBaseBuddy
 ```
 
 ---
@@ -434,51 +393,25 @@ TCP    0.0.0.0:3004    LISTENING    # CodeBaseBuddy
 
 ```
 automaton/
-├── config/                     # Configuration files (YAML)
-│   ├── autogen_agents.yaml     # Agent definitions and LLM configs
-│   ├── autogen_workflows.yaml  # Workflow orchestration
-│   ├── autogen_groupchats.yaml # GroupChat configurations
-│   ├── config.yaml             # Main configuration
-│   └── function_schemas.yaml   # Function calling schemas
-├── src/                        # Source code
-│   ├── autogen_adapters/       # AutoGen framework integration
-│   │   └── function_registry.py
-│   ├── mcp/                    # MCP tool implementations
-│   │   ├── base_tool.py        # Base MCP tool class
-│   │   ├── tool_manager.py     # Central tool orchestrator
-│   │   ├── github_tool.py      # GitHub operations
-│   │   ├── filesystem_tool.py  # File operations
-│   │   ├── memory_tool.py      # Memory storage
-│   │   └── codebasebuddy_tool.py # Semantic search
-│   ├── models/                 # LLM provider integrations
-│   ├── memory/                 # Memory management
-│   └── security/               # Security utilities
-├── mcp_servers/                # FastMCP server implementations
-│   ├── github_server.py        # Port 3000
-│   ├── filesystem_server.py    # Port 3001
-│   ├── memory_server.py        # Port 3002
-│   └── codebasebuddy_server.py # Port 3004
-├── tests/                      # Test suite
-│   ├── conftest.py             # Pytest configuration
-│   ├── test_autogen_agents.py  # Agent tests
-│   ├── test_integration.py     # Integration tests
-│   ├── test_mcp_servers.py     # MCP server tests
-│   └── diagnostics/            # Diagnostic tools
-├── scripts/                    # Management scripts
-│   ├── start_mcp_servers.py    # Server launcher
-│   ├── windows/                # Windows batch scripts
-│   └── unix/                   # Unix shell scripts
-├── docs/                       # Documentation
-│   ├── CODEBASEBUDDY_INTEGRATION.md  # CodeBaseBuddy guide
-│   ├── guides/                 # Technical guides
-│   └── archive/                # Historical documentation
-├── data/                       # Data storage
-│   ├── memory.db               # SQLite memory storage
-│   ├── memory_fallback.json    # JSON fallback
-│   └── codebase_index/         # FAISS vector index
-├── examples/                   # Usage examples
-├── main.py                     # Main entry point
-└── README.md                   # This file
+├── config/                 # Configuration files (YAML)
+├── src/                    # Source code
+│   ├── autogen_adapters/   # AutoGen framework integration
+│   ├── mcp/                # MCP tool implementations
+│   ├── models/             # LLM provider integrations
+│   ├── memory/             # Memory management
+│   └── security/           # Security utilities
+├── tests/                  # Test suite
+│   └── diagnostics/        # Diagnostic tools
+├── scripts/                # Management scripts
+│   ├── windows/            # Windows batch scripts
+│   └── unix/               # Unix shell scripts
+├── docs/                   # Documentation
+│   ├── guides/             # Technical guides
+│   └── archive/            # Historical documentation
+├── mcp_servers/            # MCP server implementations
+├── examples/               # Usage examples
+├── main.py                 # Main entry point
+└── README.md               # This file
 ```
 
 ### Running Tests
@@ -549,7 +482,6 @@ my_workflow:
 - **[Quick Start Guide](docs/QUICK_START.md)** - Get started in 5 minutes
 - **[Security Guide](docs/SECURITY.md)** - Security best practices
 - **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions
-- **[CodeBaseBuddy Integration](docs/CODEBASEBUDDY_INTEGRATION.md)** - Semantic code search guide
 
 ### Technical Guides
 
@@ -596,13 +528,28 @@ Update `config/autogen_agents.yaml` to use available models:
 
 #### 4. MCP Servers Not Responding
 
+**Current Status:**
+- All 4 servers (GitHub, Filesystem, Memory, CodeBaseBuddy) are automatically started by the daemon
+
 **Solution:**
 ```bash
 # Check server status
 scripts\windows\check_servers.bat
 
+# Or use daemon
+python scripts/mcp_server_daemon.py status
+
 # Restart servers
 scripts\windows\restart_servers.bat
+
+# Or use daemon
+python scripts/mcp_server_daemon.py restart
+
+# Expected output (4 servers):
+# GitHub Server         - PID: XXXX - Port: 3000 - Status: running
+# Filesystem Server     - PID: XXXX - Port: 3001 - Status: running
+# Memory Server         - PID: XXXX - Port: 3002 - Status: running
+# CodeBaseBuddy Server  - PID: XXXX - Port: 3004 - Status: running
 ```
 
 ### Debug Mode
@@ -670,7 +617,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🚀 What's Next?
 
-- [x] ~~Add semantic code search (CodeBaseBuddy)~~
 - [ ] Add support for more LLM providers (Anthropic, OpenAI)
 - [ ] Implement web UI interface
 - [ ] Add more specialized agents (DevOps, Database, Frontend)
@@ -679,16 +625,22 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-## 🙏 Acknowledgments
-
-- **Microsoft AutoGen** - Multi-agent conversation framework
-- **OpenRouter** - LLM API gateway
-- **FastMCP** - Model Context Protocol implementation
-- **FAISS** - Facebook AI Similarity Search
-- **sentence-transformers** - Text embeddings
+**Built with ❤️ using Microsoft AutoGen**
 
 ---
 
-**Built with ❤️ using Microsoft AutoGen**
+## 📝 Recent Updates
 
-*Last Updated: December 17, 2025*
+**December 18, 2025 (v2):**
+- ✅ **Added CodeBaseBuddy to auto-start** - All 4 MCP servers now start automatically via daemon
+- ✅ Updated daemon configuration to include CodeBaseBuddy server (Port 3004)
+- ✅ Verified all 4 servers running: GitHub, Filesystem, Memory, CodeBaseBuddy
+- ✅ Updated documentation throughout to reflect 4-server auto-start configuration
+
+**December 18, 2025 (v1):**
+- ✅ Clarified MCP server configuration: 3 core servers (GitHub, Filesystem, Memory) auto-start via daemon
+- ✅ Updated documentation to reflect CodeBaseBuddy as optional manual-start server
+- ✅ Added comprehensive server management instructions
+- ✅ Corrected architecture diagram and server status indicators
+
+*Last Updated: December 18, 2025*

@@ -157,7 +157,7 @@ class TestGroupChatManager:
                 MockManager.return_value = mock_manager
 
                 agents_list = [Mock() for _ in range(3)]
-                groupchat = factory.create_groupchat("test", agents)
+                groupchat = factory.create_groupchat("test", agents_list)
                 manager = factory.create_manager_from_config(groupchat, "default_manager")
 
                 MockManager.assert_called_once()

@@ -8,7 +8,7 @@ and Prometheus metrics endpoints.
 import time
 import psutil
 import asyncio
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from datetime import datetime
 from dataclasses import dataclass, asdict
 from enum import Enum

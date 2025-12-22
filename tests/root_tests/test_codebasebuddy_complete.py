@@ -3,9 +3,9 @@ Complete CodeBaseBuddy Test Script
 Tests the full workflow: index building and semantic search
 """
 
-import sys
-import io
 import asyncio
+import io
+import sys
 from pathlib import Path
 
 # Fix encoding for Windows console

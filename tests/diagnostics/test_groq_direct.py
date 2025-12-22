@@ -3,6 +3,7 @@ Direct test of Groq API to verify the model works
 """
 
 import os
+
 from dotenv import load_dotenv
 from openai import OpenAI
 

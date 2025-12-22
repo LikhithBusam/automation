@@ -3,9 +3,10 @@ Tests for GroupChatFactory
 Tests group chat creation, speaker selection, and agent coordination
 """
 
-import pytest
-from unittest.mock import Mock, patch, MagicMock
 from pathlib import Path
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
 
 from src.autogen_adapters.groupchat_factory import GroupChatFactory
 

@@ -5,22 +5,22 @@ Provides health checks for Kubernetes liveness/readiness probes
 and Prometheus metrics endpoints.
 """
 
-import time
-import psutil
 import asyncio
-from typing import Dict, Any, List, Optional
-from datetime import datetime
-from dataclasses import dataclass, asdict
-from enum import Enum
 import logging
+import time
+from dataclasses import asdict, dataclass
+from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional
 
+import psutil
 from prometheus_client import (
+    CONTENT_TYPE_LATEST,
     Counter,
     Gauge,
     Histogram,
     Summary,
     generate_latest,
-    CONTENT_TYPE_LATEST,
 )
 
 logger = logging.getLogger(__name__)
@@ -193,8 +193,9 @@ class HealthChecker:
         start_time = time.time()
 
         try:
-            from sqlalchemy import create_engine, text
             import os
+
+            from sqlalchemy import create_engine, text
 
             db_url = os.getenv("DATABASE_URL", "sqlite:///./dev_assistant.db")
             engine = create_engine(db_url)
@@ -227,8 +228,9 @@ class HealthChecker:
         start_time = time.time()
 
         try:
-            import redis.asyncio as redis
             import os
+
+            import redis.asyncio as redis
 
             redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
             r = redis.from_url(redis_url)

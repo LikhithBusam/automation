@@ -4,10 +4,10 @@ Verify Memory Storage Setup
 Checks which storage backend is being used
 """
 
-import sqlite3
 import json
-from pathlib import Path
+import sqlite3
 from datetime import datetime
+from pathlib import Path
 
 print("\n" + "=" * 80)
 print("MEMORY STORAGE VERIFICATION")

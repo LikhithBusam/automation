@@ -3,16 +3,17 @@ Tests for ConversationManager
 Tests workflow execution, conversation handling, and result processing
 """
 
-import pytest
 import asyncio
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
-from src.autogen_adapters.conversation_manager import ConversationManager, ConversationResult
+import pytest
+
 from src.autogen_adapters.agent_factory import AutoGenAgentFactory
-from src.autogen_adapters.groupchat_factory import GroupChatFactory
+from src.autogen_adapters.conversation_manager import ConversationManager, ConversationResult
 from src.autogen_adapters.function_registry import FunctionRegistry
+from src.autogen_adapters.groupchat_factory import GroupChatFactory
 
 
 @pytest.fixture

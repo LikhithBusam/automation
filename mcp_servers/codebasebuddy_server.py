@@ -22,18 +22,19 @@ import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
 
-from fastmcp import FastMCP
-from typing import List, Optional, Dict, Any
-import logging
-import json
-import asyncio
 import ast
-import re
-import yaml
-from pathlib import Path
-from datetime import datetime
-from dataclasses import dataclass
+import asyncio
 import hashlib
+import json
+import logging
+import re
+from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+import yaml
+from fastmcp import FastMCP
 
 # Lazy loading for heavy libraries
 EMBEDDINGS_AVAILABLE = False
@@ -74,12 +75,12 @@ def _lazy_load_faiss():
     return FAISS_AVAILABLE
 
 
-import numpy as np
 import asyncio
-from threading import RLock
-from contextlib import asynccontextmanager
 import shutil
+from contextlib import asynccontextmanager
+from threading import RLock
 
+import numpy as np
 
 # =========================================================================
 # Concurrency Safety - Read/Write Lock Manager

@@ -15,24 +15,24 @@ This test suite validates:
 10. Connection pooling and caching
 """
 
-import pytest
 import asyncio
+import json
 import os
 import tempfile
-import json
 from pathlib import Path
-from unittest.mock import Mock, patch, AsyncMock, MagicMock
-from typing import Dict, Any
+from typing import Any, Dict
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
+
+import pytest
 
 # Import all components to test
 from src.autogen_adapters.agent_factory import AutoGenAgentFactory
 from src.autogen_adapters.conversation_manager import ConversationManager
-from src.autogen_adapters.groupchat_factory import GroupChatFactory
 from src.autogen_adapters.function_registry import FunctionRegistry
+from src.autogen_adapters.groupchat_factory import GroupChatFactory
+from src.exceptions import *
 from src.mcp.tool_manager import MCPToolManager
 from src.security.input_validator import InputValidator, validator
-from src.exceptions import *
-
 
 # =============================================================================
 # TEST 1: MCP Server Testing

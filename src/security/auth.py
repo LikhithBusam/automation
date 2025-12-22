@@ -4,16 +4,17 @@ Authentication and Authorization Module
 Provides JWT-based authentication, API key management, and RBAC for the application.
 """
 
-import os
-import jwt
 import hashlib
-import secrets
-from datetime import datetime, timedelta
-from typing import Optional, Dict, List, Any
-from dataclasses import dataclass
-from enum import Enum
 import logging
+import os
+import secrets
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+from enum import Enum
 from functools import wraps
+from typing import Any, Dict, List, Optional
+
+import jwt
 
 logger = logging.getLogger(__name__)
 

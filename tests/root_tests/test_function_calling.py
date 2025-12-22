@@ -4,6 +4,7 @@ Test script to verify function calling fix
 """
 import asyncio
 import logging
+
 from src.autogen_adapters.conversation_manager import create_conversation_manager
 
 logging.basicConfig(level=logging.INFO)

@@ -3,10 +3,10 @@ Simple test for CodeBaseBuddy server
 Tests basic connectivity and SSE endpoint
 """
 
-import sys
 import io
-import urllib.request
+import sys
 import urllib.error
+import urllib.request
 
 # Fix encoding for Windows console
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")

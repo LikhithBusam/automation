@@ -7,16 +7,16 @@ Configuration loaded from:
 3. Fallback to sensible defaults
 """
 
-from fastmcp import FastMCP
-from typing import List, Optional, Dict, Any
+import asyncio
 import logging
 import os
-import asyncio
-import yaml
-from pathlib import Path
 from datetime import datetime
-import httpx
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
+import httpx
+import yaml
+from fastmcp import FastMCP
 
 # =============================================================================
 # Configuration Loading

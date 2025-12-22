@@ -17,8 +17,8 @@ Usage:
     pytest tests/industrial/test_stress.py -v
 """
 
-from .test_load import LoadTester, LoadTestResult, ConcurrencyTestResult
 from .test_benchmarks import Benchmarker, BenchmarkResult, SLARequirements
+from .test_load import ConcurrencyTestResult, LoadTester, LoadTestResult
 from .test_stress import StressTester, StressTestResult
 
 __all__ = [

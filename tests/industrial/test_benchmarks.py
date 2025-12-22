@@ -11,13 +11,14 @@ Benchmarks:
 """
 
 import asyncio
-import time
 import gc
-import statistics
-from typing import Dict, Any, List, Callable, Optional
-from dataclasses import dataclass, field, asdict
-from datetime import datetime
 import json
+import statistics
+import time
+from dataclasses import asdict, dataclass, field
+from datetime import datetime
+from typing import Any, Callable, Dict, List, Optional
+
 import psutil
 import pytest
 

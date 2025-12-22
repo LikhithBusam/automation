@@ -9,17 +9,17 @@ Performance Targets:
 - Real implementation testing
 """
 
-import pytest
 import asyncio
 import time
-from pathlib import Path
 from datetime import datetime, timedelta
+from pathlib import Path
+
+import pytest
 
 # Import actual implementations
 from src.autogen_adapters.groupchat_factory import GroupChatFactory
-from src.mcp.base_tool import TokenBucket, TTLCache, CacheEntry
+from src.mcp.base_tool import CacheEntry, TokenBucket, TTLCache
 from src.security.input_validator import InputValidator
-
 
 # ============================================================================
 # PERFORMANCE-OPTIMIZED GROUPCHAT FACTORY TESTS

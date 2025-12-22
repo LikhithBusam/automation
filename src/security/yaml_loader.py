@@ -3,10 +3,11 @@ Secure YAML Loading Utilities
 Provides safe YAML loading with size limits and validation
 """
 
-import yaml
+import logging
 from pathlib import Path
 from typing import Any, Dict, Optional
-import logging
+
+import yaml
 
 logger = logging.getLogger(__name__)
 

@@ -3,21 +3,22 @@ Memory MCP Server using FastMCP
 Provides persistent memory storage with semantic search using embeddings
 """
 
-from fastmcp import FastMCP
-from typing import List, Optional, Dict, Any
-import logging
-import json
-import time
 import hashlib
-import sqlite3
-import numpy as np
+import json
+import logging
 import os
 import re
-import yaml
-from pathlib import Path
-from dataclasses import dataclass, asdict
-from datetime import datetime, timedelta
+import sqlite3
+import time
 from contextlib import contextmanager
+from dataclasses import asdict, dataclass
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+import numpy as np
+import yaml
+from fastmcp import FastMCP
 
 # Conditional import for sentence-transformers
 try:

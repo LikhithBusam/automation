@@ -3,9 +3,10 @@ Extended tests for FunctionRegistry
 Increases coverage from 35% to 80%+
 """
 
-import pytest
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
 import asyncio
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
+
+import pytest
 
 from src.autogen_adapters.function_registry import FunctionRegistry
 

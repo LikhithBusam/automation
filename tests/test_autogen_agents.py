@@ -1,7 +1,8 @@
 """AutoGen Agent Tests"""
 
+from unittest.mock import MagicMock, Mock, patch
+
 import pytest
-from unittest.mock import Mock, patch, MagicMock
 
 pytestmark = pytest.mark.agent
 

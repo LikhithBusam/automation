@@ -3,11 +3,11 @@ Log Sanitization - Filter Sensitive Data from Logs
 Prevents API keys, tokens, passwords, and PII from appearing in logs
 """
 
-import re
 import logging
-from typing import Any, Dict, List, Pattern
-from functools import wraps
+import re
 from dataclasses import dataclass
+from functools import wraps
+from typing import Any, Dict, List, Pattern
 
 
 class SensitiveDataFilter(logging.Filter):

@@ -5,9 +5,11 @@ This test verifies that the GroupChatManager properly terminates
 conversations when termination keywords are detected.
 """
 
-import pytest
 import logging
 from pathlib import Path
+
+import pytest
+
 from src.autogen_adapters.groupchat_factory import GroupChatFactory
 
 

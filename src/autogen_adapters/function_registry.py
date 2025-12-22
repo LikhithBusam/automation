@@ -3,21 +3,23 @@ AutoGen Function Registry
 Registers MCP tool operations as AutoGen functions for function calling
 """
 
-import os
-import yaml
-import logging
 import asyncio
+import logging
+import os
 from pathlib import Path
-from typing import Dict, Any, Optional, List, Callable
+from typing import Any, Callable, Dict, List, Optional
+
+import yaml
 from dotenv import load_dotenv
+
+from src.mcp.codebasebuddy_tool import CodeBaseBuddyMCPTool
+from src.mcp.filesystem_tool import FilesystemMCPTool
+from src.mcp.github_tool import GitHubMCPTool
+from src.mcp.memory_tool import MemoryMCPTool
+from src.mcp.slack_tool import SlackMCPTool
 
 # Import MCP tools
 from src.mcp.tool_manager import MCPToolManager
-from src.mcp.github_tool import GitHubMCPTool
-from src.mcp.filesystem_tool import FilesystemMCPTool
-from src.mcp.memory_tool import MemoryMCPTool
-from src.mcp.slack_tool import SlackMCPTool
-from src.mcp.codebasebuddy_tool import CodeBaseBuddyMCPTool
 
 
 class FunctionRegistry:
@@ -329,7 +331,7 @@ class FunctionRegistry:
             agent_name: Name of the agent
         """
         try:
-            from autogen import UserProxyAgent, AssistantAgent
+            from autogen import AssistantAgent, UserProxyAgent
         except ImportError:
             # Fallback if import fails
             UserProxyAgent = type(None)

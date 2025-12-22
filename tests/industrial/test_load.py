@@ -11,13 +11,14 @@ Tests:
 """
 
 import asyncio
-import time
 import statistics
-from typing import List, Dict, Any
-from dataclasses import dataclass, field
+import time
 from concurrent.futures import ThreadPoolExecutor
-import pytest
+from dataclasses import dataclass, field
+from typing import Any, Dict, List
+
 import psutil
+import pytest
 
 
 @dataclass
@@ -300,8 +301,8 @@ class TestCircuitBreakerLoad:
         """Test circuit breaker opens under repeated failures"""
         from src.security.circuit_breaker import (
             CircuitBreaker,
-            CircuitState,
             CircuitBreakerOpenError,
+            CircuitState,
         )
 
         cb = CircuitBreaker(failure_threshold=5, success_threshold=2, timeout_seconds=1)
@@ -324,8 +325,8 @@ class TestCircuitBreakerLoad:
         """Test circuit breaker recovers after timeout"""
         from src.security.circuit_breaker import (
             CircuitBreaker,
-            CircuitState,
             CircuitBreakerOpenError,
+            CircuitState,
         )
 
         cb = CircuitBreaker(failure_threshold=3, success_threshold=2, timeout_seconds=0.5)

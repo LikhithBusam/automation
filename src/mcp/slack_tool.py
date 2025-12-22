@@ -3,9 +3,11 @@ Slack MCP Tool Wrapper
 Wraps Slack MCP server functions for CrewAI agents
 """
 
-from typing import Dict, Any, List, Optional
-import httpx
 from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+import httpx
+
 from src.mcp.base_tool import BaseMCPTool
 
 

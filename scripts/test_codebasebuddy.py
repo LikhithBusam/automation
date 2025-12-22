@@ -14,11 +14,11 @@ Features tested:
 """
 
 import asyncio
-import sys
 import json
 import os
-from pathlib import Path
+import sys
 from datetime import datetime
+from pathlib import Path
 
 # Fix Windows console encoding
 if sys.platform == "win32":

@@ -3,8 +3,8 @@ Manual CodeBaseBuddy Test - Step by Step Guide
 This script shows you how to manually test CodeBaseBuddy functionality
 """
 
-import sys
 import io
+import sys
 
 # Fix encoding for Windows console
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")

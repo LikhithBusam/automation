@@ -9,23 +9,23 @@ Tiers:
 - LONG_TERM: Knowledge base (permanent, no TTL)
 """
 
-from typing import Dict, Any, List, Optional, Set, Tuple
 import asyncio
-from datetime import datetime, timedelta
-from collections import OrderedDict
-import json
 import hashlib
-from enum import Enum
+import json
 import logging
 import threading
+from collections import OrderedDict
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import Any, Dict, List, Optional, Set, Tuple
 
-from sentence_transformers import SentenceTransformer
 import numpy as np
-from sqlalchemy import create_engine, Column, String, Integer, Float, DateTime, Text, JSON, desc
+import redis.asyncio as redis
+from sentence_transformers import SentenceTransformer
+from sqlalchemy import JSON, Column, DateTime, Float, Integer, String, Text, create_engine, desc
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-import redis.asyncio as redis
 
 # Optional: Import Memory MCP tool for persistence
 try:

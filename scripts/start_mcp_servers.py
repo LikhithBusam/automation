@@ -8,28 +8,29 @@ Starts all MCP servers with:
 - Real-time status dashboard
 """
 
-import subprocess
-import time
-import sys
+import asyncio
+import json
 import os
 import signal
+import subprocess
+import sys
 import threading
-import asyncio
-from pathlib import Path
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any
+import time
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 from enum import Enum
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
 import httpx
-import json
 
 # Try to import rich for better terminal output
 try:
     from rich.console import Console
-    from rich.table import Table
+    from rich.layout import Layout
     from rich.live import Live
     from rich.panel import Panel
-    from rich.layout import Layout
+    from rich.table import Table
 
     RICH_AVAILABLE = True
 except ImportError:

@@ -11,12 +11,13 @@ Tests:
 """
 
 import asyncio
-import time
 import gc
-from typing import List, Dict, Any
+import time
 from dataclasses import dataclass
-import pytest
+from typing import Any, Dict, List
+
 import psutil
+import pytest
 
 
 @dataclass
@@ -182,8 +183,8 @@ class TestErrorCascade:
         """Test circuit breaker prevents error cascades"""
         from src.security.circuit_breaker import (
             CircuitBreaker,
-            CircuitState,
             CircuitBreakerOpenError,
+            CircuitState,
         )
 
         cb = CircuitBreaker(failure_threshold=3, success_threshold=2, timeout_seconds=0.5)
@@ -307,8 +308,8 @@ class TestRecovery:
         """Test circuit breaker recovers properly"""
         from src.security.circuit_breaker import (
             CircuitBreaker,
-            CircuitState,
             CircuitBreakerOpenError,
+            CircuitState,
         )
 
         cb = CircuitBreaker(failure_threshold=2, success_threshold=2, timeout_seconds=0.3)

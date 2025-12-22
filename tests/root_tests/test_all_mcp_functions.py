@@ -7,9 +7,10 @@ Tests all MCP servers, tools, and registered functions
 import asyncio
 import logging
 from pathlib import Path
+
 from rich.console import Console
-from rich.table import Table
 from rich.panel import Panel
+from rich.table import Table
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)

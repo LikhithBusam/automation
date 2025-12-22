@@ -4,6 +4,7 @@ Test script to verify the api_base fix
 """
 import asyncio
 import sys
+
 from src.autogen_adapters.conversation_manager import create_conversation_manager
 
 

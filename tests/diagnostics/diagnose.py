@@ -2,8 +2,8 @@
 Diagnostic script to check AutoGen installation
 """
 
-import sys
 import os
+import sys
 
 print("=" * 70)
 print("AUTOGEN INSTALLATION DIAGNOSTIC")

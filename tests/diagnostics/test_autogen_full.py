@@ -19,8 +19,8 @@ def test_autogen_integration():
     print("Test 1: Importing AutoGen adapters...")
     try:
         from src.autogen_adapters.agent_factory import AutoGenAgentFactory
-        from src.autogen_adapters.groupchat_factory import GroupChatFactory
         from src.autogen_adapters.conversation_manager import ConversationManager
+        from src.autogen_adapters.groupchat_factory import GroupChatFactory
 
         print("  [OK] All imports successful")
     except Exception as e:
@@ -59,9 +59,10 @@ def test_autogen_integration():
     # Test 4: Create ConversationManager
     print("Test 4: Initializing ConversationManager...")
     try:
-        from src.autogen_adapters.function_registry import FunctionRegistry
-        from mcp.manager import MCPManager
         from dotenv import load_dotenv
+
+        from mcp.manager import MCPManager
+        from src.autogen_adapters.function_registry import FunctionRegistry
 
         load_dotenv()
 

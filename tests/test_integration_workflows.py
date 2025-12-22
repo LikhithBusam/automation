@@ -3,8 +3,9 @@ Integration tests for complete workflows
 Tests end-to-end execution of workflows with mock servers
 """
 
+from unittest.mock import AsyncMock, Mock, patch
+
 import pytest
-from unittest.mock import Mock, patch, AsyncMock
 
 from tests.mocks.mock_mcp_servers import MockMCPServerManager
 

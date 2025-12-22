@@ -3,8 +3,8 @@
 Test Runner for AutoGen Development Assistant
 Simple, efficient test execution script
 """
-import sys
 import subprocess
+import sys
 
 
 def run_tests(test_type="all", verbose=False):

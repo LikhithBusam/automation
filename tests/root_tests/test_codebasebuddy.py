@@ -3,11 +3,12 @@ Test script for CodeBaseBuddy MCP Server
 Tests semantic code search functionality
 """
 
-import sys
-import io
 import asyncio
-import httpx
+import io
 import json
+import sys
+
+import httpx
 
 # Fix encoding for Windows console
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")

@@ -5,10 +5,10 @@ Prevents cascading failures in distributed systems
 
 import asyncio
 import time
-from enum import Enum
-from typing import Optional, Callable, Any
-from datetime import datetime, timedelta
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import Any, Callable, Optional
 
 
 class CircuitState(Enum):

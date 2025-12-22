@@ -1,8 +1,9 @@
 """MCP Server Health Check and Basic Operation Tests"""
 
+from unittest.mock import Mock, patch
+
 import pytest
 import requests
-from unittest.mock import Mock, patch
 
 pytestmark = pytest.mark.mcp
 

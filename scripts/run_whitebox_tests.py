@@ -3,12 +3,12 @@ White-Box Test Runner
 Runs all comprehensive white-box tests and generates detailed reports
 """
 
+import argparse
+import json
 import subprocess
 import sys
-import json
-from pathlib import Path
 from datetime import datetime
-import argparse
+from pathlib import Path
 
 
 class WhiteBoxTestRunner:

@@ -3,6 +3,7 @@ Test script to verify updated Groq models work correctly
 """
 
 import os
+
 from dotenv import load_dotenv
 
 # Load environment

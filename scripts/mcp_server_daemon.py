@@ -12,19 +12,19 @@ Features:
 - Safe start/stop/restart operations
 """
 
-import subprocess
-import time
-import sys
+import atexit
+import json
+import logging
 import os
 import signal
-import json
-import atexit
-from pathlib import Path
-from datetime import datetime
-from typing import Dict, List, Optional, Any
-from dataclasses import dataclass, asdict
+import subprocess
+import sys
 import threading
-import logging
+import time
+from dataclasses import asdict, dataclass
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 # Configuration
 # Determine project root (parent of scripts directory)

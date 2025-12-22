@@ -3,10 +3,11 @@ AutoGen GroupChat Factory
 Creates GroupChat instances from YAML configuration
 """
 
-import yaml
 import logging
 from pathlib import Path
-from typing import Dict, Any, Optional, List, Callable
+from typing import Any, Callable, Dict, List, Optional
+
+import yaml
 
 # AutoGen imports
 try:

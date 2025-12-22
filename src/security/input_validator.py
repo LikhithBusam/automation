@@ -4,9 +4,9 @@ Protects against injection attacks and malicious input
 """
 
 import re
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Set
-from dataclasses import dataclass
 
 
 class ValidationError(Exception):

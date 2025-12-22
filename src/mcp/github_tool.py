@@ -12,13 +12,13 @@ Features:
 7. Fallback to direct PyGithub if MCP server down
 """
 
-from typing import Dict, Any, List, Optional
-import httpx
 import os
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from src.mcp.base_tool import BaseMCPTool, MCPConnectionError, MCPValidationError, MCPToolError
+import httpx
 
+from src.mcp.base_tool import BaseMCPTool, MCPConnectionError, MCPToolError, MCPValidationError
 
 # =============================================================================
 # GitHub MCP Tool

@@ -3,17 +3,18 @@ AutoGen Conversation Manager
 Manages conversation lifecycle and workflow execution
 """
 
-import yaml
-import logging
 import asyncio
-from pathlib import Path
-from typing import Dict, Any, Optional, List
-from datetime import datetime
+import logging
 from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+import yaml
 
 from src.autogen_adapters.agent_factory import AutoGenAgentFactory
-from src.autogen_adapters.groupchat_factory import GroupChatFactory
 from src.autogen_adapters.function_registry import FunctionRegistry
+from src.autogen_adapters.groupchat_factory import GroupChatFactory
 
 
 @dataclass

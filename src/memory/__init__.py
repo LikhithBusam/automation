@@ -14,15 +14,15 @@ Features:
 - Statistics tracking
 """
 
+from src.memory.memory_manager import MemoryLayer  # Backward compatibility alias
 from src.memory.memory_manager import (
-    MemoryManager,
-    MemoryTier,
-    MemoryLayer,  # Backward compatibility alias
-    MemoryType,
-    MemoryStats,
-    LRUMemoryCache,
-    TierConfig,
     TIER_CONFIGS,
+    LRUMemoryCache,
+    MemoryManager,
+    MemoryStats,
+    MemoryTier,
+    MemoryType,
+    TierConfig,
 )
 
 __all__ = [

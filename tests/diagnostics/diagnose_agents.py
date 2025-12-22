@@ -3,10 +3,11 @@ Comprehensive Agent Diagnostic Script
 Identifies exactly why agents are not being created or retrieved
 """
 
+import asyncio
 import os
 import sys
-import asyncio
 from pathlib import Path
+
 from dotenv import load_dotenv
 
 # Add src to path

@@ -13,17 +13,17 @@ Features:
 8. Connection pooling for MCP servers
 """
 
-from typing import Dict, Any, List, Optional, Set
-from pathlib import Path
-import logging
 import asyncio
-import yaml
+import logging
+from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
-from contextlib import asynccontextmanager
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Set
+
+import yaml
 
 from src.mcp.base_tool import BaseMCPTool, MCPToolError
-
 
 # =============================================================================
 # Connection Pool
@@ -262,11 +262,11 @@ class ToolRegistry:
     def discover_tools(self):
         """Auto-discover tool classes"""
         # Import tool classes
-        from src.mcp.github_tool import GitHubMCPTool
+        from src.mcp.codebasebuddy_tool import CodeBaseBuddyMCPTool
         from src.mcp.filesystem_tool import FilesystemMCPTool
+        from src.mcp.github_tool import GitHubMCPTool
         from src.mcp.memory_tool import MemoryMCPTool
         from src.mcp.slack_tool import SlackMCPTool
-        from src.mcp.codebasebuddy_tool import CodeBaseBuddyMCPTool
 
         # Register discovered tools
         self.register(

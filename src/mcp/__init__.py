@@ -9,10 +9,10 @@ This module provides:
 """
 
 from src.mcp.base_tool import BaseMCPTool, TokenBucket
-from src.mcp.tool_manager import MCPToolManager, MCPConnectionPool
-from src.mcp.github_tool import GitHubMCPTool
 from src.mcp.filesystem_tool import FilesystemMCPTool
+from src.mcp.github_tool import GitHubMCPTool
 from src.mcp.memory_tool import MemoryMCPTool
+from src.mcp.tool_manager import MCPConnectionPool, MCPToolManager
 
 __all__ = [
     # Base classes

@@ -1,8 +1,9 @@
-import pytest
 import os
 import sys
 from pathlib import Path
-from unittest.mock import Mock, MagicMock
+from unittest.mock import MagicMock, Mock
+
+import pytest
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -57,8 +58,9 @@ class Calculator:
     return code_file
 
 
+from unittest.mock import AsyncMock, Mock
+
 import pytest
-from unittest.mock import Mock, AsyncMock
 
 
 @pytest.fixture

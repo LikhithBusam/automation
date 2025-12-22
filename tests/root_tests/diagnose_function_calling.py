@@ -3,10 +3,10 @@ Diagnostic Script - Check Function Calling Setup
 Verifies that agents have proper access to MCP tools
 """
 
-import sys
-import io
 import asyncio
+import io
 import logging
+import sys
 from pathlib import Path
 
 # Fix encoding for Windows console

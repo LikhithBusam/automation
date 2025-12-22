@@ -1,17 +1,16 @@
 """Security module for authentication, authorization, and input validation"""
 
 from .auth import (
+    ROLE_PERMISSIONS,
     AuthManager,
-    User,
-    Role,
     Permission,
+    Role,
+    User,
     get_auth_manager,
     require_auth,
     require_permission,
     require_role,
-    ROLE_PERMISSIONS,
 )
-
 from .validation import InputValidator, ValidationResult, get_validator, validate_and_raise
 
 __all__ = [

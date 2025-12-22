@@ -5,6 +5,7 @@ Tests the actual API call to identify where the validation error occurs
 """
 import os
 import sys
+
 from dotenv import load_dotenv
 
 # Load environment variables

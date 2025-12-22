@@ -4,8 +4,9 @@ import asyncio
 import sys
 
 sys.path.insert(0, ".")
-from src.mcp.codebasebuddy_tool import CodeBaseBuddyMCPTool
 from pathlib import Path
+
+from src.mcp.codebasebuddy_tool import CodeBaseBuddyMCPTool
 
 
 async def test():

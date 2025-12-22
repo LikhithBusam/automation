@@ -19,7 +19,7 @@ def test_groupchat_compatibility():
     # Test 1: Check AutoGen import
     print("Test 1: Checking AutoGen availability...")
     try:
-        from autogen import GroupChat, AssistantAgent
+        from autogen import AssistantAgent, GroupChat
 
         print("  [OK] AutoGen imported successfully")
     except ImportError as e:

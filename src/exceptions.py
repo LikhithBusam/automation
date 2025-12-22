@@ -5,8 +5,7 @@ This module provides a unified exception hierarchy for consistent error handling
 across the entire application.
 """
 
-from typing import Optional, Dict, Any
-
+from typing import Any, Dict, Optional
 
 # =============================================================================
 # Base Exception

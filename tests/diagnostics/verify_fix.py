@@ -6,6 +6,7 @@ Run this to verify the system is working correctly
 import os
 import sys
 from pathlib import Path
+
 from dotenv import load_dotenv
 
 # Add src to path
@@ -71,7 +72,7 @@ except Exception as e:
 # Test 3: AutoGen imports
 print("\n3. AutoGen Imports")
 try:
-    from autogen import AssistantAgent, UserProxyAgent, GroupChatManager
+    from autogen import AssistantAgent, GroupChatManager, UserProxyAgent
 
     all_passed &= print_test("Core AutoGen classes", True)
 except Exception as e:

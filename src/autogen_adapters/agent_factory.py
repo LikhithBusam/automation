@@ -3,16 +3,17 @@ AutoGen Agent Factory
 Creates AutoGen agents from YAML configuration with Gemini and Groq LLM integration
 """
 
-import os
-import yaml
 import logging
+import os
 from pathlib import Path
-from typing import Dict, Any, Optional, List
+from typing import Any, Dict, List, Optional
+
+import yaml
 from dotenv import load_dotenv
 
 # AutoGen imports
 try:
-    from autogen import AssistantAgent, UserProxyAgent, GroupChatManager
+    from autogen import AssistantAgent, GroupChatManager, UserProxyAgent
 
     HAS_AUTOGEN = True
 except ImportError:

@@ -6,6 +6,7 @@ Works without complex MCP function calling - just reads files and analyzes them
 import os
 import sys
 from pathlib import Path
+
 from dotenv import load_dotenv
 from openai import OpenAI
 

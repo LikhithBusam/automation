@@ -25,40 +25,18 @@ from contextlib import asynccontextmanager
 
 
 # =============================================================================
-# Exception Classes
+# Exception Classes (Importing from standardized hierarchy)
 # =============================================================================
 
-class MCPToolError(Exception):
-    """Base exception for MCP tool errors"""
-    def __init__(self, message: str, operation: str = None, details: Dict = None):
-        super().__init__(message)
-        self.operation = operation
-        self.details = details or {}
-
-
-class MCPConnectionError(MCPToolError):
-    """Connection to MCP server failed"""
-    pass
-
-
-class MCPRateLimitError(MCPToolError):
-    """Rate limit exceeded"""
-    pass
-
-
-class MCPAuthenticationError(MCPToolError):
-    """Authentication failed"""
-    pass
-
-
-class MCPValidationError(MCPToolError):
-    """Parameter validation failed"""
-    pass
-
-
-class MCPTimeoutError(MCPToolError):
-    """Operation timed out"""
-    pass
+from src.exceptions import (
+    MCPToolError,
+    MCPConnectionError,
+    MCPTimeoutError,
+    MCPAuthenticationError,
+    MCPOperationError,
+    RateLimitError as MCPRateLimitError,
+    ValidationError as MCPValidationError
+)
 
 
 # =============================================================================
@@ -657,15 +635,35 @@ class BaseMCPTool(ABC):
     ) -> Any:
         """
         Execute the actual operation (implemented by subclasses).
-        
+
         Args:
             operation: Operation name
             params: Operation parameters
-            
+
         Returns:
             Operation result
         """
         pass
+
+    async def call_mcp_server(
+        self,
+        operation: str,
+        params: Dict[str, Any]
+    ) -> Any:
+        """
+        Alias for _execute_operation for backward compatibility.
+
+        This method allows tools to use call_mcp_server() instead of
+        _execute_operation() for better clarity.
+
+        Args:
+            operation: Operation name
+            params: Operation parameters
+
+        Returns:
+            Operation result
+        """
+        return await self._execute_operation(operation, params)
 
     @abstractmethod
     def validate_params(self, operation: str, params: Dict[str, Any]):

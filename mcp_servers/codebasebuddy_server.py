@@ -27,9 +27,10 @@ import json
 import asyncio
 import ast
 import re
+import yaml
 from pathlib import Path
 from datetime import datetime
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 import hashlib
 
 # Lazy loading for heavy libraries
@@ -65,42 +66,156 @@ def _lazy_load_faiss():
     return FAISS_AVAILABLE
 
 import numpy as np
+import asyncio
+from threading import RLock
+from contextlib import asynccontextmanager
+import shutil
 
+
+# =========================================================================
+# Concurrency Safety - Read/Write Lock Manager
+# =========================================================================
+
+class IndexManager:
+    """Thread-safe index manager with read/write locks"""
+
+    def __init__(self):
+        self._lock = RLock()
+        self._updating = False
+        self._search_count = 0
+
+    @asynccontextmanager
+    async def read_lock(self):
+        """Allow multiple concurrent readers"""
+        # Wait if index is being updated
+        while self._updating:
+            await asyncio.sleep(0.1)
+
+        with self._lock:
+            self._search_count += 1
+
+        try:
+            yield
+        finally:
+            with self._lock:
+                self._search_count -= 1
+
+    @asynccontextmanager
+    async def write_lock(self):
+        """Exclusive write access for index updates"""
+        with self._lock:
+            self._updating = True
+
+        # Wait for active searches to complete
+        while self._search_count > 0:
+            await asyncio.sleep(0.1)
+
+        try:
+            yield
+        finally:
+            with self._lock:
+                self._updating = False
+
+
+# Global index manager
+index_manager = IndexManager()
+
+
+def load_config() -> Dict[str, Any]:
+    """Load configuration from config.yaml with environment variable substitution"""
+    config_path = Path(__file__).parent.parent / "config" / "config.yaml"
+    
+    default_config = {
+        "port": 3004,
+        "host": "0.0.0.0",
+        "index_path": "./data/codebase_index",
+        "embedding_dimensions": 384,
+        "embedding_model": "all-MiniLM-L6-v2",
+        "file_extensions": [".py", ".js", ".ts", ".jsx", ".tsx", ".java", ".cpp", ".c", ".h",
+                           ".cs", ".go", ".rs", ".rb", ".php", ".swift", ".kt", ".scala",
+                           ".yaml", ".yml", ".json", ".md", ".txt"],
+        "exclude_patterns": ["__pycache__", ".git", ".venv", "venv", "node_modules",
+                            ".pytest_cache", ".mypy_cache", "dist", "build", ".eggs",
+                            "*.egg-info", ".tox", ".coverage", "htmlcov"],
+        "exclude_files": [".pyc", ".pyo", ".so", ".dll", ".exe", ".o", ".a", ".class", ".jar"],
+        "scan_paths": ["./src", "./mcp_servers", "./config"],
+        "rate_limit_minute": 100,
+        "rate_limit_hour": 2000,
+        "cache_ttl": 300
+    }
+    
+    if not config_path.exists():
+        logging.warning(f"Config file not found at {config_path}, using defaults")
+        return default_config
+    
+    try:
+        with open(config_path, 'r') as f:
+            full_config = yaml.safe_load(f)
+        
+        # Get codebasebuddy server config
+        server_config = full_config.get("mcp_servers", {}).get("codebasebuddy", {})
+        
+        # Substitute environment variables (${VAR_NAME} pattern)
+        def substitute_env_vars(value):
+            if isinstance(value, str):
+                pattern = r'\$\{([^}]+)\}'
+                matches = re.findall(pattern, value)
+                for var_name in matches:
+                    env_value = os.getenv(var_name, "")
+                    value = value.replace(f"${{{var_name}}}", env_value)
+                return value
+            elif isinstance(value, dict):
+                return {k: substitute_env_vars(v) for k, v in value.items()}
+            elif isinstance(value, list):
+                return [substitute_env_vars(item) for item in value]
+            return value
+        
+        server_config = substitute_env_vars(server_config)
+        
+        # Merge with defaults
+        for key, value in default_config.items():
+            if key not in server_config:
+                server_config[key] = value
+        
+        return server_config
+    
+    except Exception as e:
+        logging.error(f"Error loading config: {e}, using defaults")
+        return default_config
+
+
+# Load configuration
+CONFIG = load_config()
 
 # Initialize FastMCP server
 mcp = FastMCP("CodeBaseBuddy - Semantic Code Search")
 logger = logging.getLogger("mcp.codebasebuddy")
 
-# Configuration
-INDEX_DIR = Path("./data/codebase_index")
+# Configuration (from config.yaml)
+INDEX_DIR = Path(CONFIG.get("index_path", "./data/codebase_index"))
 INDEX_DIR.mkdir(parents=True, exist_ok=True)
 
 FAISS_INDEX_PATH = INDEX_DIR / "faiss.index"
 MAPPINGS_PATH = INDEX_DIR / "file_mappings.json"
 STATS_PATH = INDEX_DIR / "index_stats.json"
 
-# Embedding dimensions for all-MiniLM-L6-v2
-EMBEDDING_DIMENSIONS = 384
+# Embedding dimensions (from config)
+EMBEDDING_DIMENSIONS = CONFIG.get("embedding_dimensions", 384)
 
-# Code file extensions to index
-CODE_EXTENSIONS = {
-    ".py", ".js", ".ts", ".jsx", ".tsx", ".java", ".cpp", ".c", ".h",
-    ".cs", ".go", ".rs", ".rb", ".php", ".swift", ".kt", ".scala",
-    ".yaml", ".yml", ".json", ".md", ".txt"
-}
+# Embedding model name (from config)
+EMBEDDING_MODEL_NAME = CONFIG.get("embedding_model", "all-MiniLM-L6-v2")
 
-# Directories to exclude
-EXCLUDE_DIRS = {
-    "__pycache__", ".git", ".venv", "venv", "node_modules", 
-    ".pytest_cache", ".mypy_cache", "dist", "build", ".eggs",
-    "*.egg-info", ".tox", ".coverage", "htmlcov"
-}
+# Code file extensions to index (from config)
+file_extensions_list = CONFIG.get("file_extensions", [".py", ".js", ".ts", ".yaml", ".yml", ".json", ".md"])
+CODE_EXTENSIONS = set(file_extensions_list)
 
-# Files to exclude
-EXCLUDE_FILES = {
-    ".pyc", ".pyo", ".so", ".dll", ".exe", ".o", ".a",
-    ".class", ".jar"
-}
+# Directories to exclude (from config)
+exclude_patterns_list = CONFIG.get("exclude_patterns", ["__pycache__", ".git", "venv", "node_modules"])
+EXCLUDE_DIRS = set(exclude_patterns_list)
+
+# Files to exclude (from config)
+exclude_files_list = CONFIG.get("exclude_files", [".pyc", ".pyo", ".so", ".dll", ".exe"])
+EXCLUDE_FILES = set(exclude_files_list)
 
 
 @dataclass
@@ -141,9 +256,9 @@ def init_embedding_model():
         return False
     
     try:
-        # Use same model as memory_server for consistency
-        embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
-        logger.info("Loaded sentence-transformers embedding model: all-MiniLM-L6-v2")
+        # Use model from config for consistency
+        embedding_model = SentenceTransformer(EMBEDDING_MODEL_NAME)
+        logger.info(f"Loaded sentence-transformers embedding model: {EMBEDDING_MODEL_NAME}")
         return True
     except Exception as e:
         logger.error(f"Failed to load embedding model: {e}")
@@ -169,57 +284,191 @@ def create_embedding(text: str) -> Optional[np.ndarray]:
         return None
 
 
+def validate_index() -> bool:
+    """Validate index integrity and compatibility"""
+    global index_stats
+
+    try:
+        # Check if stats exist
+        if not STATS_PATH.exists():
+            logger.warning("Index stats not found")
+            return False
+
+        # Load and validate stats
+        with open(STATS_PATH, 'r') as f:
+            stats = json.load(f)
+            index_stats.update(stats)
+
+        # Validate index version
+        index_version = index_stats.get("index_version", "1.0.0")
+        current_version = "2.0.0"
+
+        if index_version != current_version:
+            logger.warning(
+                f"Index version mismatch: {index_version} vs {current_version}. "
+                "Rebuilding recommended."
+            )
+            return False
+
+        # Validate embedding dimensions match
+        expected_dims = CONFIG.get("embedding_dimensions", 384)
+
+        if FAISS_INDEX_PATH.exists():
+            # Lazy load FAISS
+            if not _lazy_load_faiss():
+                logger.error("FAISS not available")
+                return False
+
+            temp_index = faiss.read_index(str(FAISS_INDEX_PATH))
+            actual_dims = temp_index.d
+
+            if actual_dims != expected_dims:
+                logger.error(
+                    f"Dimension mismatch: index has {actual_dims}, "
+                    f"config expects {expected_dims}"
+                )
+                return False
+
+        # Validate mappings checksum
+        if MAPPINGS_PATH.exists():
+            mappings_checksum = hashlib.md5(MAPPINGS_PATH.read_bytes()).hexdigest()
+            expected_checksum = index_stats.get("mappings_checksum")
+
+            if expected_checksum and mappings_checksum != expected_checksum:
+                logger.error("Index corruption detected: checksum mismatch")
+                return False
+
+        logger.info("Index validation passed")
+        return True
+
+    except Exception as e:
+        logger.error(f"Error validating index: {e}")
+        return False
+
+
 def load_index():
-    """Load existing FAISS index and mappings from disk"""
+    """Load existing FAISS index and mappings from disk with validation"""
     global faiss_index, file_mappings, index_stats
-    
+
     # Lazy load FAISS
     if not _lazy_load_faiss():
         logger.error("FAISS not available")
         return False
-    
+
     try:
+        # Validate before loading
+        if not validate_index():
+            logger.warning("Index validation failed, attempting recovery")
+            return load_index_with_recovery()
+
         # Load mappings
         if MAPPINGS_PATH.exists():
             with open(MAPPINGS_PATH, 'r', encoding='utf-8') as f:
                 data = json.load(f)
                 file_mappings = {int(k): v for k, v in data.items()}
                 logger.info(f"Loaded {len(file_mappings)} file mappings")
-        
-        # Load stats
-        if STATS_PATH.exists():
-            with open(STATS_PATH, 'r', encoding='utf-8') as f:
-                index_stats.update(json.load(f))
-        
+
+        # Load stats (already loaded in validation)
+        if not index_stats.get('total_vectors'):
+            if STATS_PATH.exists():
+                with open(STATS_PATH, 'r', encoding='utf-8') as f:
+                    index_stats.update(json.load(f))
+
         # Load FAISS index
         if FAISS_INDEX_PATH.exists() and len(file_mappings) > 0:
             faiss_index = faiss.read_index(str(FAISS_INDEX_PATH))
             logger.info(f"Loaded FAISS index with {index_stats.get('total_vectors', 0)} vectors")
             return True
-        
+
         return False
     except Exception as e:
         logger.error(f"Error loading index: {e}")
-        return False
+        return load_index_with_recovery()
+
+
+def load_index_with_recovery():
+    """Load index with automatic recovery strategies"""
+    global faiss_index, file_mappings, index_stats
+
+    logger.info("Attempting index recovery...")
+
+    # Strategy 1: Try to load just mappings (without FAISS index)
+    if MAPPINGS_PATH.exists() and MAPPINGS_PATH.stat().st_size > 0:
+        try:
+            with open(MAPPINGS_PATH, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                file_mappings = {int(k): v for k, v in data.items()}
+            logger.info(f"Recovered {len(file_mappings)} file mappings, FAISS index needs rebuild")
+            # Return partial success - mappings loaded but index needs rebuild
+            return False
+        except Exception as e:
+            logger.warning(f"Could not recover mappings: {e}")
+
+    # Strategy 2: Try backup
+    backup_path = INDEX_DIR / "backups" / "latest"
+    if backup_path.exists():
+        try:
+            # Copy backup to main location
+            for backup_file in backup_path.iterdir():
+                dest = INDEX_DIR / backup_file.name
+                shutil.copy2(backup_file, dest)
+
+            logger.info("Restored from backup, retrying load")
+            return load_index()
+        except Exception as e:
+            logger.warning(f"Backup recovery failed: {e}")
+
+    # Strategy 3: Full rebuild required
+    logger.warning("Index unrecoverable, full rebuild required")
+    faiss_index = None
+    file_mappings = {}
+    index_stats = {
+        "total_vectors": 0,
+        "files_indexed": 0,
+        "functions_indexed": 0,
+        "classes_indexed": 0,
+        "last_indexed": None,
+        "index_size_bytes": 0
+    }
+    return False
 
 
 def save_index():
-    """Save FAISS index and mappings to disk"""
+    """Save FAISS index and mappings to disk with backup and checksums"""
     global faiss_index, file_mappings, index_stats
-    
+
     try:
+        # Create backup before saving
+        backup_dir = INDEX_DIR / "backups" / "latest"
+        backup_dir.mkdir(parents=True, exist_ok=True)
+
+        # Backup existing files if they exist
+        if MAPPINGS_PATH.exists():
+            shutil.copy2(MAPPINGS_PATH, backup_dir / "file_mappings.json")
+        if STATS_PATH.exists():
+            shutil.copy2(STATS_PATH, backup_dir / "index_stats.json")
+        if FAISS_INDEX_PATH.exists():
+            shutil.copy2(FAISS_INDEX_PATH, backup_dir / "faiss.index")
+
         # Save mappings
         with open(MAPPINGS_PATH, 'w', encoding='utf-8') as f:
             json.dump({str(k): v for k, v in file_mappings.items()}, f, indent=2)
-        
-        # Update and save stats
+
+        # Calculate mappings checksum
+        mappings_checksum = hashlib.md5(MAPPINGS_PATH.read_bytes()).hexdigest()
+
+        # Update and save stats with version and checksum
         if FAISS_INDEX_PATH.exists():
             index_stats["index_size_bytes"] = FAISS_INDEX_PATH.stat().st_size
-        
+
+        index_stats["index_version"] = "2.0.0"
+        index_stats["mappings_checksum"] = mappings_checksum
+        index_stats["last_saved"] = datetime.now().isoformat()
+
         with open(STATS_PATH, 'w', encoding='utf-8') as f:
             json.dump(index_stats, f, indent=2)
-        
-        logger.info("Saved index and mappings to disk")
+
+        logger.info("Saved index, mappings, and backup to disk")
         return True
     except Exception as e:
         logger.error(f"Error saving index: {e}")
@@ -359,145 +608,234 @@ async def build_index(
     rebuild: bool = False
 ) -> Dict[str, Any]:
     """
-    Build or rebuild the semantic code index.
-    
+    Build or rebuild the semantic code index with true incremental support.
+
     Args:
         root_path: Root directory to scan for code files
         file_extensions: List of file extensions to include (e.g., [".py", ".js"])
         exclude_patterns: Additional patterns to exclude
         rebuild: If True, completely rebuild index; if False, update incrementally
-    
+
     Returns:
         Dictionary with build status and statistics
-    
+
     Example:
         result = await build_index("./src", file_extensions=[".py"])
     """
     global faiss_index, file_mappings, index_stats
-    
-    # Lazy load dependencies
-    if not _lazy_load_embeddings() or not _lazy_load_faiss():
-        return {
-            "success": False,
-            "error": "Required libraries not installed. Run: pip install sentence-transformers faiss-cpu"
-        }
-    
-    try:
-        root = Path(root_path).resolve()
-        if not root.exists():
-            return {"success": False, "error": f"Path not found: {root_path}"}
-        
-        # Initialize embedding model
-        if embedding_model is None:
-            if not init_embedding_model():
-                return {"success": False, "error": "Failed to initialize embedding model"}
-        
-        # Reset if rebuilding
-        if rebuild:
-            file_mappings = {}
-            faiss_index = None
-        
-        # Determine extensions to scan
-        extensions = set(file_extensions) if file_extensions else CODE_EXTENSIONS
-        exclude_pats = set(exclude_patterns) if exclude_patterns else set()
-        
-        # Scan for code files
-        code_files = []
-        for ext in extensions:
-            for file_path in root.rglob(f"*{ext}"):
-                if not should_exclude_path(file_path):
-                    # Check additional exclude patterns
-                    if not any(re.search(pat, str(file_path)) for pat in exclude_pats):
-                        code_files.append(file_path)
-        
-        logger.info(f"Found {len(code_files)} code files to index")
-        
-        # Extract chunks and create embeddings
-        all_chunks: List[CodeChunk] = []
-        
-        for file_path in code_files:
-            try:
-                content = file_path.read_text(encoding='utf-8', errors='ignore')
-                
-                if file_path.suffix == '.py':
-                    chunks = extract_python_chunks(str(file_path), content)
-                else:
-                    chunks = extract_generic_chunks(str(file_path), content)
-                
-                all_chunks.extend(chunks)
-                
-            except Exception as e:
-                logger.warning(f"Error processing {file_path}: {e}")
-        
-        logger.info(f"Extracted {len(all_chunks)} code chunks")
-        
-        # Generate embeddings and collect them
-        embeddings_list = []
-        functions_count = 0
-        classes_count = 0
-        valid_chunks = []
-        
-        for chunk in all_chunks:
-            # Create embedding text: combine name, content, and docstring
-            embed_text = f"{chunk.name}\n{chunk.content}"
-            if chunk.docstring:
-                embed_text = f"{chunk.docstring}\n{embed_text}"
-            
-            embedding = create_embedding(embed_text)
-            
-            if embedding is not None:
-                embeddings_list.append(embedding)
-                valid_chunks.append(chunk)
-                
-                # Store mapping
-                file_mappings[chunk.id] = {
-                    "file_path": chunk.file_path,
-                    "chunk_type": chunk.chunk_type,
-                    "name": chunk.name,
-                    "start_line": chunk.start_line,
-                    "end_line": chunk.end_line,
-                    "docstring": chunk.docstring,
-                    "content_preview": chunk.content[:200] + "..." if len(chunk.content) > 200 else chunk.content
+
+    # Acquire write lock for index updates
+    async with index_manager.write_lock():
+        # Lazy load dependencies
+        if not _lazy_load_embeddings() or not _lazy_load_faiss():
+            return {
+                "success": False,
+                "error": "Required libraries not installed. Run: pip install sentence-transformers faiss-cpu"
+            }
+
+        try:
+            root = Path(root_path).resolve()
+            if not root.exists():
+                return {"success": False, "error": f"Path not found: {root_path}"}
+
+            # Initialize embedding model
+            if embedding_model is None:
+                if not init_embedding_model():
+                    return {"success": False, "error": "Failed to initialize embedding model"}
+
+            # Reset if rebuilding
+            if rebuild:
+                file_mappings = {}
+                faiss_index = None
+                logger.info("Full rebuild requested, clearing existing index")
+            else:
+                # Incremental mode - load existing index if available
+                if not faiss_index and FAISS_INDEX_PATH.exists():
+                    load_index()
+                logger.info("Incremental update mode")
+
+            # Determine extensions to scan
+            extensions = set(file_extensions) if file_extensions else CODE_EXTENSIONS
+            exclude_pats = set(exclude_patterns) if exclude_patterns else set()
+
+            # Scan for code files
+            code_files = []
+            for ext in extensions:
+                for file_path in root.rglob(f"*{ext}"):
+                    if not should_exclude_path(file_path):
+                        # Check additional exclude patterns
+                        if not any(re.search(pat, str(file_path)) for pat in exclude_pats):
+                            code_files.append(file_path)
+
+            logger.info(f"Found {len(code_files)} code files to scan")
+
+            # Incremental indexing: Track existing file hashes
+            indexed_files = {}
+            if not rebuild:
+                for chunk_id, mapping in file_mappings.items():
+                    file_path = mapping.get("file_path")
+                    file_hash = mapping.get("file_hash")
+                    if file_path and file_hash:
+                        indexed_files[file_path] = {
+                            "hash": file_hash,
+                            "chunk_ids": indexed_files.get(file_path, {}).get("chunk_ids", []) + [chunk_id]
+                        }
+
+            # Extract chunks - only from new/changed files
+            all_chunks: List[CodeChunk] = []
+            files_to_remove = set(indexed_files.keys())
+            changed_files = 0
+            new_files = 0
+
+            for file_path in code_files:
+                try:
+                    file_path_str = str(file_path)
+
+                    # Calculate file hash for change detection
+                    file_hash = hashlib.md5(file_path.read_bytes()).hexdigest()
+
+                    # Check if file is in index
+                    if file_path_str in indexed_files:
+                        files_to_remove.discard(file_path_str)
+
+                        # Check if file changed
+                        if indexed_files[file_path_str]["hash"] == file_hash:
+                            # File unchanged - skip
+                            continue
+                        else:
+                            # File changed - will re-index
+                            changed_files += 1
+                            # Remove old chunks from mappings
+                            for old_chunk_id in indexed_files[file_path_str]["chunk_ids"]:
+                                if old_chunk_id in file_mappings:
+                                    del file_mappings[old_chunk_id]
+                    else:
+                        # New file
+                        new_files += 1
+
+                    # Read and extract chunks
+                    content = file_path.read_text(encoding='utf-8', errors='ignore')
+
+                    if file_path.suffix == '.py':
+                        chunks = extract_python_chunks(file_path_str, content)
+                    else:
+                        chunks = extract_generic_chunks(file_path_str, content)
+
+                    # Add file hash to each chunk mapping
+                    for chunk in chunks:
+                        all_chunks.append(chunk)
+
+                except Exception as e:
+                    logger.warning(f"Error processing {file_path}: {e}")
+
+            # Remove chunks for deleted files
+            if not rebuild and files_to_remove:
+                for removed_file in files_to_remove:
+                    if removed_file in indexed_files:
+                        for chunk_id in indexed_files[removed_file]["chunk_ids"]:
+                            if chunk_id in file_mappings:
+                                del file_mappings[chunk_id]
+                logger.info(f"Removed {len(files_to_remove)} deleted files from index")
+
+            logger.info(f"Extracted {len(all_chunks)} code chunks from {new_files} new and {changed_files} changed files")
+
+            # Generate embeddings and collect them
+            embeddings_list = []
+            functions_count = 0
+            classes_count = 0
+            valid_chunks = []
+
+            for chunk in all_chunks:
+                # Create embedding text: combine name, content, and docstring
+                embed_text = f"{chunk.name}\n{chunk.content}"
+                if chunk.docstring:
+                    embed_text = f"{chunk.docstring}\n{embed_text}"
+
+                embedding = create_embedding(embed_text)
+
+                if embedding is not None:
+                    embeddings_list.append(embedding)
+                    valid_chunks.append(chunk)
+
+                    # Calculate file hash for the chunk's file
+                    try:
+                        chunk_file_path = Path(chunk.file_path)
+                        if chunk_file_path.exists():
+                            file_hash = hashlib.md5(chunk_file_path.read_bytes()).hexdigest()
+                        else:
+                            file_hash = None
+                    except Exception:
+                        file_hash = None
+
+                    # Store mapping with file hash
+                    file_mappings[chunk.id] = {
+                        "file_path": chunk.file_path,
+                        "chunk_type": chunk.chunk_type,
+                        "name": chunk.name,
+                        "start_line": chunk.start_line,
+                        "end_line": chunk.end_line,
+                        "docstring": chunk.docstring,
+                        "content_preview": chunk.content[:200] + "..." if len(chunk.content) > 200 else chunk.content,
+                        "file_hash": file_hash
+                    }
+
+                    if chunk.chunk_type == 'function':
+                        functions_count += 1
+                    elif chunk.chunk_type == 'class':
+                        classes_count += 1
+
+            # For incremental mode, rebuild entire FAISS index with all vectors
+            if not rebuild and faiss_index is not None and embeddings_list:
+                logger.info("Rebuilding FAISS index with updated vectors")
+                # Collect all existing embeddings (this is a limitation of FAISS - no remove operation)
+                # In production, consider using a more sophisticated approach
+                all_embeddings = []
+                for chunk_id in sorted(file_mappings.keys()):
+                    if chunk_id < len(embeddings_list):
+                        all_embeddings.append(embeddings_list[chunk_id])
+
+                if all_embeddings:
+                    embeddings_array = np.vstack(all_embeddings).astype('float32')
+                    faiss_index = faiss.IndexFlatIP(EMBEDDING_DIMENSIONS)
+                    faiss.normalize_L2(embeddings_array)
+                    faiss_index.add(embeddings_array)
+                    faiss.write_index(faiss_index, str(FAISS_INDEX_PATH))
+            elif embeddings_list:
+                # Full rebuild or first build
+                embeddings_array = np.vstack(embeddings_list).astype('float32')
+                faiss_index = faiss.IndexFlatIP(EMBEDDING_DIMENSIONS)
+                faiss.normalize_L2(embeddings_array)
+                faiss_index.add(embeddings_array)
+                faiss.write_index(faiss_index, str(FAISS_INDEX_PATH))
+
+            # Update stats
+            index_stats.update({
+                "total_vectors": len(file_mappings),
+                "files_indexed": len(code_files),
+                "functions_indexed": functions_count,
+                "classes_indexed": classes_count,
+                "last_indexed": datetime.now().isoformat(),
+                "index_size_bytes": FAISS_INDEX_PATH.stat().st_size if FAISS_INDEX_PATH.exists() else 0,
+                "root_path": str(root),
+                "incremental_stats": {
+                    "new_files": new_files,
+                    "changed_files": changed_files,
+                    "removed_files": len(files_to_remove) if not rebuild else 0
                 }
-                
-                if chunk.chunk_type == 'function':
-                    functions_count += 1
-                elif chunk.chunk_type == 'class':
-                    classes_count += 1
-        
-        # Create FAISS index from all embeddings
-        if embeddings_list:
-            embeddings_array = np.vstack(embeddings_list).astype('float32')
-            faiss_index = faiss.IndexFlatIP(EMBEDDING_DIMENSIONS)  # Inner product (cosine similarity with normalized vectors)
-            faiss.normalize_L2(embeddings_array)  # Normalize for cosine similarity
-            faiss_index.add(embeddings_array)
-            
-            # Save the index
-            faiss.write_index(faiss_index, str(FAISS_INDEX_PATH))
-        
-        # Update stats
-        index_stats.update({
-            "total_vectors": len(file_mappings),
-            "files_indexed": len(code_files),
-            "functions_indexed": functions_count,
-            "classes_indexed": classes_count,
-            "last_indexed": datetime.now().isoformat(),
-            "index_size_bytes": FAISS_INDEX_PATH.stat().st_size if FAISS_INDEX_PATH.exists() else 0,
-            "root_path": str(root)
-        })
-        
-        # Save everything
-        save_index()
-        
-        return {
-            "success": True,
-            "message": "Index built successfully",
-            "stats": index_stats
-        }
-        
-    except Exception as e:
-        logger.error(f"Error building index: {e}")
-        return {"success": False, "error": str(e)}
+            })
+
+            # Save everything
+            save_index()
+
+            return {
+                "success": True,
+                "message": f"Index {'rebuilt' if rebuild else 'updated'} successfully",
+                "stats": index_stats
+            }
+
+        except Exception as e:
+            logger.error(f"Error building index: {e}")
+            return {"success": False, "error": str(e)}
 
 
 @mcp.tool()
@@ -509,94 +847,96 @@ async def semantic_search(
 ) -> Dict[str, Any]:
     """
     Search the codebase using natural language queries.
-    
+
     Args:
         query: Natural language search query (e.g., "How does authentication work?")
         top_k: Number of results to return (default: 5)
         file_filter: Filter by file path pattern (e.g., "*.py" or "src/")
         chunk_type_filter: Filter by chunk type ('function', 'class', 'file')
-    
+
     Returns:
         Dictionary with search results including file paths, code snippets, and scores
-    
+
     Example:
         result = await semantic_search("error handling with try-except", top_k=10)
     """
     global faiss_index, file_mappings
-    
-    if faiss_index is None:
-        # Try to load existing index
-        if not load_index():
+
+    # Acquire read lock for concurrent searches
+    async with index_manager.read_lock():
+        if faiss_index is None:
+            # Try to load existing index
+            if not load_index():
+                return {
+                    "success": False,
+                    "error": "Index not built. Run build_index first.",
+                    "results": []
+                }
+
+        if not file_mappings:
             return {
                 "success": False,
-                "error": "Index not built. Run build_index first.",
+                "error": "No indexed content. Run build_index first.",
                 "results": []
             }
-    
-    if not file_mappings:
-        return {
-            "success": False,
-            "error": "No indexed content. Run build_index first.",
-            "results": []
-        }
-    
-    try:
-        # Create query embedding
-        query_embedding = create_embedding(query)
-        if query_embedding is None:
-            return {"success": False, "error": "Failed to create query embedding", "results": []}
-        
-        # Normalize for cosine similarity
-        query_vec = query_embedding.reshape(1, -1).astype('float32')
-        faiss.normalize_L2(query_vec)
-        
-        # Search FAISS index
-        distances, indices = faiss_index.search(query_vec, top_k * 2)  # Get more to allow filtering
-        
-        # Build results
-        results = []
-        for idx, score in zip(indices[0], distances[0]):
-            if idx < 0 or idx not in file_mappings:
-                continue
-            
-            mapping = file_mappings[idx]
-            
-            # Apply filters
-            if file_filter:
-                if not re.search(file_filter, mapping["file_path"]):
+
+        try:
+            # Create query embedding
+            query_embedding = create_embedding(query)
+            if query_embedding is None:
+                return {"success": False, "error": "Failed to create query embedding", "results": []}
+
+            # Normalize for cosine similarity
+            query_vec = query_embedding.reshape(1, -1).astype('float32')
+            faiss.normalize_L2(query_vec)
+
+            # Search FAISS index
+            distances, indices = faiss_index.search(query_vec, top_k * 2)  # Get more to allow filtering
+
+            # Build results
+            results = []
+            for idx, score in zip(indices[0], distances[0]):
+                if idx < 0 or idx not in file_mappings:
                     continue
-            
-            if chunk_type_filter:
-                if mapping["chunk_type"] != chunk_type_filter:
-                    continue
-            
-            # Score is already cosine similarity (inner product of normalized vectors)
-            similarity = float(score)
-            
-            results.append({
-                "file_path": mapping["file_path"],
-                "chunk_type": mapping["chunk_type"],
-                "name": mapping["name"],
-                "start_line": mapping["start_line"],
-                "end_line": mapping["end_line"],
-                "content_preview": mapping["content_preview"],
-                "docstring": mapping.get("docstring"),
-                "similarity_score": round(similarity, 4)
-            })
-            
-            if len(results) >= top_k:
-                break
-        
-        return {
-            "success": True,
-            "query": query,
-            "results_count": len(results),
-            "results": results
-        }
-        
-    except Exception as e:
-        logger.error(f"Error in semantic search: {e}")
-        return {"success": False, "error": str(e), "results": []}
+
+                mapping = file_mappings[idx]
+
+                # Apply filters
+                if file_filter:
+                    if not re.search(file_filter, mapping["file_path"]):
+                        continue
+
+                if chunk_type_filter:
+                    if mapping["chunk_type"] != chunk_type_filter:
+                        continue
+
+                # Score is already cosine similarity (inner product of normalized vectors)
+                similarity = float(score)
+
+                results.append({
+                    "file_path": mapping["file_path"],
+                    "chunk_type": mapping["chunk_type"],
+                    "name": mapping["name"],
+                    "start_line": mapping["start_line"],
+                    "end_line": mapping["end_line"],
+                    "content_preview": mapping["content_preview"],
+                    "docstring": mapping.get("docstring"),
+                    "similarity_score": round(similarity, 4)
+                })
+
+                if len(results) >= top_k:
+                    break
+
+            return {
+                "success": True,
+                "query": query,
+                "results_count": len(results),
+                "results": results
+            }
+
+        except Exception as e:
+            logger.error(f"Error in semantic search: {e}")
+            return {"success": False, "error": str(e), "results": []}
 
 
 @mcp.tool()
@@ -826,19 +1166,91 @@ async def health() -> Dict[str, Any]:
     }
 
 
+def validate_config():
+    """Validate configuration at startup"""
+    errors = []
+    warnings = []
+
+    # Validate embedding dimensions
+    if not isinstance(EMBEDDING_DIMENSIONS, int) or EMBEDDING_DIMENSIONS <= 0:
+        errors.append(f"Invalid embedding dimensions: {EMBEDDING_DIMENSIONS}")
+
+    # Validate embedding model name
+    if not isinstance(EMBEDDING_MODEL_NAME, str) or not EMBEDDING_MODEL_NAME.strip():
+        errors.append(f"Invalid embedding model name: {EMBEDDING_MODEL_NAME}")
+
+    # Check if embedding model can be loaded
+    try:
+        if _lazy_load_embeddings():
+            test_model = SentenceTransformer(EMBEDDING_MODEL_NAME)
+            actual_dims = test_model.get_sentence_embedding_dimension()
+            if actual_dims != EMBEDDING_DIMENSIONS:
+                errors.append(
+                    f"Embedding dimension mismatch: config has {EMBEDDING_DIMENSIONS}, "
+                    f"model {EMBEDDING_MODEL_NAME} has {actual_dims}"
+                )
+            del test_model
+        else:
+            warnings.append("sentence-transformers not installed, semantic search will be unavailable")
+    except Exception as e:
+        warnings.append(f"Could not validate embedding model: {e}")
+
+    # Check if FAISS is available
+    if not _lazy_load_faiss():
+        warnings.append("FAISS not installed, vector search will be unavailable")
+
+    # Validate index path is writable
+    try:
+        INDEX_DIR.mkdir(parents=True, exist_ok=True)
+        test_file = INDEX_DIR / ".write_test"
+        test_file.write_text("test")
+        test_file.unlink()
+    except Exception as e:
+        errors.append(f"Index directory not writable: {INDEX_DIR} - {e}")
+
+    # Validate file extensions
+    if not isinstance(CODE_EXTENSIONS, set) or len(CODE_EXTENSIONS) == 0:
+        warnings.append("No file extensions configured for indexing")
+
+    # Validate port number
+    port = CONFIG.get("port", 3004)
+    if not isinstance(port, int) or port < 1024 or port > 65535:
+        errors.append(f"Invalid port number: {port}")
+
+    # Log results
+    if errors:
+        error_msg = "\n".join(errors)
+        logger.error(f"Configuration validation failed:\n{error_msg}")
+        raise ValueError(f"Configuration errors:\n{error_msg}")
+
+    if warnings:
+        for warning in warnings:
+            logger.warning(warning)
+
+    logger.info("Configuration validated successfully")
+    return True
+
+
 # Initialize on module load
 def initialize():
-    """Initialize the server - lazy loading for embedding model"""
+    """Initialize the server with configuration validation"""
     global faiss_index
-    
+
     logger.info("Initializing CodeBaseBuddy server...")
-    
+
+    # Validate configuration first
+    try:
+        validate_config()
+    except Exception as e:
+        logger.error(f"Configuration validation failed: {e}")
+        logger.warning("Server starting with degraded functionality")
+
     # Try to load existing index (doesn't require embedding model)
     if load_index():
         logger.info("Loaded existing index from disk")
     else:
         logger.info("No existing index found. Run build_index to create one.")
-    
+
     # Don't pre-load embedding model - it will be loaded on first use
     # This makes server startup much faster
     logger.info("CodeBaseBuddy server initialized (embedding model will load on first use)")
@@ -848,6 +1260,18 @@ def initialize():
 initialize()
 
 
+
+
+# Initialize when module loads
+initialize()
+
+
 if __name__ == "__main__":
-    logger.info("Starting CodeBaseBuddy MCP server on port 3004...")
-    mcp.run(transport="sse", port=3004, host="0.0.0.0")
+    port = CONFIG.get("port", 3004)
+    host = CONFIG.get("host", "0.0.0.0")
+    logger.info(f"Starting CodeBaseBuddy MCP server on http://{host}:{port}...")
+    print(f"Index directory: {INDEX_DIR}")
+    print(f"Embedding dimensions: {EMBEDDING_DIMENSIONS}")
+    print(f"Embedding model: {EMBEDDING_MODEL_NAME}")
+    print(f"Code extensions: {len(CODE_EXTENSIONS)} types")
+    mcp.run(transport="sse", port=port, host=host)

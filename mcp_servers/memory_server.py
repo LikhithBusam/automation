@@ -11,6 +11,9 @@ import time
 import hashlib
 import sqlite3
 import numpy as np
+import os
+import re
+import yaml
 from pathlib import Path
 from dataclasses import dataclass, asdict
 from datetime import datetime, timedelta
@@ -25,23 +28,84 @@ except ImportError:
     logging.warning("sentence-transformers not installed. Semantic search will use keyword matching.")
 
 
+def load_config() -> Dict[str, Any]:
+    """Load configuration from config.yaml with environment variable substitution"""
+    config_path = Path(__file__).parent.parent / "config" / "config.yaml"
+    
+    default_config = {
+        "port": 3002,
+        "host": "0.0.0.0",
+        "sqlite_path": "./data/memory.db",
+        "valid_memory_types": ["pattern", "preference", "solution", "context", "error"],
+        "embedding_model": "all-MiniLM-L6-v2",
+        "rate_limit_minute": 200,
+        "rate_limit_hour": 5000,
+        "cache_ttl": 300
+    }
+    
+    if not config_path.exists():
+        logging.warning(f"Config file not found at {config_path}, using defaults")
+        return default_config
+    
+    try:
+        with open(config_path, 'r') as f:
+            full_config = yaml.safe_load(f)
+        
+        # Get memory server config
+        server_config = full_config.get("mcp_servers", {}).get("memory", {})
+        
+        # Substitute environment variables (${VAR_NAME} pattern)
+        def substitute_env_vars(value):
+            if isinstance(value, str):
+                pattern = r'\$\{([^}]+)\}'
+                matches = re.findall(pattern, value)
+                for var_name in matches:
+                    env_value = os.getenv(var_name, "")
+                    value = value.replace(f"${{{var_name}}}", env_value)
+                return value
+            elif isinstance(value, dict):
+                return {k: substitute_env_vars(v) for k, v in value.items()}
+            elif isinstance(value, list):
+                return [substitute_env_vars(item) for item in value]
+            return value
+        
+        server_config = substitute_env_vars(server_config)
+        
+        # Merge with defaults
+        for key, value in default_config.items():
+            if key not in server_config:
+                server_config[key] = value
+        
+        return server_config
+    
+    except Exception as e:
+        logging.error(f"Error loading config: {e}, using defaults")
+        return default_config
+
+
+# Load configuration
+CONFIG = load_config()
+
 # Initialize LiteMCP server
 mcp = FastMCP("Memory & Context Storage")
 logger = logging.getLogger("mcp.memory")
 
-# Database configuration
-MEMORY_DB_PATH = Path("./data/memory.db")
+# Database configuration (from config)
+MEMORY_DB_PATH = Path(CONFIG.get("sqlite_path", "./data/memory.db"))
 MEMORY_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 
-# Valid memory types
-VALID_MEMORY_TYPES = ["pattern", "preference", "solution", "context", "error"]
+# Valid memory types (from config)
+VALID_MEMORY_TYPES = CONFIG.get("valid_memory_types", ["pattern", "preference", "solution", "context", "error"])
+
+# Embedding model name (from config)
+EMBEDDING_MODEL_NAME = CONFIG.get("embedding_model", "all-MiniLM-L6-v2")
 
 # Initialize embedding model
 embedding_model = None
 if EMBEDDINGS_AVAILABLE:
     try:
-        embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
-        logger.info("Loaded sentence-transformers embedding model")
+        embedding_model = SentenceTransformer(EMBEDDING_MODEL_NAME)
+        logger.info(f"Loaded sentence-transformers embedding model: {EMBEDDING_MODEL_NAME}")
     except Exception as e:
         logger.warning(f"Failed to load embedding model: {e}")
         EMBEDDINGS_AVAILABLE = False
@@ -760,9 +824,13 @@ init_database()
 
 
 if __name__ == "__main__":
-    print("Starting Memory MCP Server on http://localhost:3002...")
+    port = CONFIG.get("port", 3002)
+    host = CONFIG.get("host", "0.0.0.0")
+    print(f"Starting Memory MCP Server on http://{host}:{port}...")
     print(f"Database: {MEMORY_DB_PATH}")
     print(f"Embeddings enabled: {EMBEDDINGS_AVAILABLE}")
+    if EMBEDDINGS_AVAILABLE:
+        print(f"Embedding model: {EMBEDDING_MODEL_NAME}")
 
-    # Run server directly
-    mcp.run(transport="sse", port=3002, host="0.0.0.0")
+    # Run server with dynamic config
+    mcp.run(transport="sse", port=port, host=host)

@@ -85,10 +85,25 @@ class GroupChatFactory:
             """Check if message indicates termination"""
             content = msg.get("content", "")
 
-            # Check for termination keywords
+            # Handle empty or None content
+            if not content:
+                return False
+
+            # Convert to string and strip whitespace
+            content = str(content).strip()
+
+            # Check for termination keywords (case-insensitive)
+            content_upper = content.upper()
             for keyword in keywords:
-                if keyword.upper() in content.upper():
+                if keyword.upper() in content_upper:
+                    self.logger.info(f"Termination keyword '{keyword}' detected in message")
                     return True
+
+            # Special handling for multiple consecutive TERMINATE messages
+            # This happens when agents hit max_consecutive_auto_reply
+            if content.count("**TERMINATE**") > 1 or content.count("TERMINATE") > 3:
+                self.logger.info("Multiple TERMINATE messages detected - forcing termination")
+                return True
 
             return False
 
@@ -206,12 +221,27 @@ class GroupChatFactory:
         chat_cfg = self.groupchat_configs[chat_name]
         manager_name = chat_cfg.get("manager", f"{chat_name}_manager")
 
-        # Create manager
-        manager = GroupChatManager(
-            groupchat=groupchat,
-            llm_config=llm_config,
-            name=manager_name
-        )
+        # Get termination condition
+        termination_condition_name = chat_cfg.get("termination_condition")
+        termination_func = None
+
+        if termination_condition_name:
+            termination_func = self._create_termination_function(termination_condition_name)
+            self.logger.debug(f"Using termination condition: {termination_condition_name}")
+
+        # Create manager with termination function
+        manager_kwargs = {
+            "groupchat": groupchat,
+            "llm_config": llm_config,
+            "name": manager_name
+        }
+
+        # Add is_termination_msg if we have a termination function
+        if termination_func:
+            manager_kwargs["is_termination_msg"] = termination_func
+            self.logger.debug(f"Manager configured with termination function")
+
+        manager = GroupChatManager(**manager_kwargs)
 
         # Cache the manager
         self.managers[chat_name] = manager

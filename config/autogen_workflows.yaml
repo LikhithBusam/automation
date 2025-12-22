@@ -38,7 +38,14 @@ workflows:
     group_chat_config: "security_audit_chat"
     description: "Deep security vulnerability assessment"
     initial_message_template: |
-      Perform a comprehensive security audit on: {code_path}
+      Perform a comprehensive security audit on: {project_path}
+      Scope: {scope}
+
+      IMPORTANT - USE THESE FUNCTIONS TO ACCESS FILES:
+      1. First call: list_directory("{project_path}") to see available files
+      2. Then call: read_file("path/to/file.py") for each file you need to analyze
+      
+      DO NOT use bash, ls, or shell commands. Use ONLY the registered functions.
 
       Focus areas:
       - OWASP Top 10 vulnerabilities
@@ -47,9 +54,11 @@ workflows:
       - Data protection
       - Dependency vulnerabilities
 
-      Provide severity ratings and remediation guidance.
+      After analyzing, provide severity ratings and remediation guidance.
+      When complete, end with: SECURITY_AUDIT_COMPLETE
     message_variables:
-      code_path: "${CODE_PATH}"
+      project_path: "${PROJECT_PATH}"
+      scope: "${SCOPE}"
     max_turns: 15
     termination_keywords: ["TERMINATE", "SECURITY_AUDIT_COMPLETE"]
     human_input_required: false

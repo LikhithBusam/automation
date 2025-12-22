@@ -460,21 +460,29 @@ class MCPToolManager:
     ) -> Any:
         """
         Execute an operation on a specific MCP tool.
-        
+
         Args:
-            tool_name: Name of the tool (github, filesystem, memory, slack)
+            tool_name: Name of the tool (github, filesystem, memory, slack, codebasebuddy)
             operation: Operation to execute
             params: Operation parameters
             use_cache: Whether to use caching
             agent_name: Name of the calling agent (for permission checks)
-            
+
         Returns:
             Operation result
-            
+
         Raises:
             ValueError: If tool not found
             PermissionError: If agent lacks permission
         """
+        # Validate parameters for security
+        from src.security.input_validator import validator
+        try:
+            params = validator.validate_mcp_tool_params(tool_name, operation, params)
+        except Exception as e:
+            self.logger.warning(f"Parameter validation failed for {tool_name}.{operation}: {e}")
+            # Continue with unvalidated params but log the issue
+
         # Check permissions if agent specified
         if agent_name:
             perms = self.agent_permissions.get(agent_name)

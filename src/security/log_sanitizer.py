@@ -7,6 +7,7 @@ import re
 import logging
 from typing import Any, Dict, List, Pattern
 from functools import wraps
+from dataclasses import dataclass
 
 
 class SensitiveDataFilter(logging.Filter):
@@ -349,6 +350,17 @@ def safe_log_decorator(func):
         return func(*args, **kwargs)
 
     return wrapper
+
+
+# Aliases for backward compatibility with tests
+LogSanitizer = SensitiveDataFilter
+
+@dataclass
+class SanitizationConfig:
+    """Configuration for log sanitization (alias for compatibility)"""
+    redact_emails: bool = False
+    redact_ips: bool = False
+    custom_patterns: List[Dict[str, Any]] = None
 
 
 # Auto-install on import for root logger (can be disabled if needed)

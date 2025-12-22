@@ -137,6 +137,138 @@
       "timestamp": "2025-12-17T16:21:48.297974",
       "expires_at": "2025-12-17T17:21:48.298028",
       "fallback": true
+    },
+    {
+      "id": "fallback-10-1766295984.247137",
+      "content": {
+        "test": "data",
+        "type": "pattern"
+      },
+      "type": "short_term",
+      "tier": "short",
+      "tags": [
+        "test"
+      ],
+      "agent": "unknown",
+      "metadata": {},
+      "timestamp": "2025-12-21T11:16:20.982335",
+      "expires_at": "2025-12-21T12:16:20.982368",
+      "fallback": true
+    },
+    {
+      "id": "fallback-11-1766296850.584461",
+      "content": {
+        "test": "data"
+      },
+      "type": "short_term",
+      "tier": "short",
+      "tags": [
+        "test"
+      ],
+      "agent": "unknown",
+      "metadata": {},
+      "timestamp": "2025-12-21T11:30:47.382684",
+      "expires_at": "2025-12-21T12:30:47.382727",
+      "fallback": true
+    },
+    {
+      "id": "fallback-12-1766297822.730163",
+      "content": {
+        "test": "data",
+        "type": "pattern"
+      },
+      "type": "short_term",
+      "tier": "short",
+      "tags": [
+        "test"
+      ],
+      "agent": "unknown",
+      "metadata": {},
+      "timestamp": "2025-12-21T11:46:58.244287",
+      "expires_at": "2025-12-21T12:46:58.244325",
+      "fallback": true
+    },
+    {
+      "id": "fallback-13-1766297838.206224",
+      "content": {
+        "test": "data"
+      },
+      "type": "short_term",
+      "tier": "short",
+      "tags": [
+        "test"
+      ],
+      "agent": "unknown",
+      "metadata": {},
+      "timestamp": "2025-12-21T11:47:14.958583",
+      "expires_at": "2025-12-21T12:47:14.958608",
+      "fallback": true
+    },
+    {
+      "id": "fallback-14-1766298277.822698",
+      "content": {
+        "test": "data",
+        "type": "pattern"
+      },
+      "type": "short_term",
+      "tier": "short",
+      "tags": [
+        "test"
+      ],
+      "agent": "unknown",
+      "metadata": {},
+      "timestamp": "2025-12-21T11:54:34.906557",
+      "expires_at": "2025-12-21T12:54:34.906612",
+      "fallback": true
+    },
+    {
+      "id": "fallback-15-1766298317.678353",
+      "content": {
+        "test": "data"
+      },
+      "type": "short_term",
+      "tier": "short",
+      "tags": [
+        "test"
+      ],
+      "agent": "unknown",
+      "metadata": {},
+      "timestamp": "2025-12-21T11:55:14.653813",
+      "expires_at": "2025-12-21T12:55:14.653846",
+      "fallback": true
+    },
+    {
+      "id": "fallback-16-1766310121.183173",
+      "content": {
+        "test": "data",
+        "type": "pattern"
+      },
+      "type": "short_term",
+      "tier": "short",
+      "tags": [
+        "test"
+      ],
+      "agent": "unknown",
+      "metadata": {},
+      "timestamp": "2025-12-21T15:11:57.560228",
+      "expires_at": "2025-12-21T16:11:57.560276",
+      "fallback": true
+    },
+    {
+      "id": "fallback-17-1766310127.985915",
+      "content": {
+        "test": "data"
+      },
+      "type": "short_term",
+      "tier": "short",
+      "tags": [
+        "test"
+      ],
+      "agent": "unknown",
+      "metadata": {},
+      "timestamp": "2025-12-21T15:12:04.663792",
+      "expires_at": "2025-12-21T16:12:04.663813",
+      "fallback": true
     }
   ]
 }

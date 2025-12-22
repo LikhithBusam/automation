@@ -49,3 +49,25 @@ class Calculator:
         return a + b
 ''')
     return code_file
+
+import pytest
+from unittest.mock import Mock, AsyncMock
+
+@pytest.fixture
+async def mock_mcp_manager():
+    """Mock MCP Manager for integration tests"""
+    manager = Mock()
+    manager.start_all = AsyncMock()
+    manager.stop_all = AsyncMock()
+    manager.health_check_all = AsyncMock(return_value={
+        "github": {"status": "healthy"},
+        "filesystem": {"status": "healthy"},
+        "memory": {"status": "healthy"},
+        "codebasebuddy": {"status": "healthy"}
+    })
+    manager.get_server = Mock(return_value=Mock())
+
+    await manager.start_all()
+    yield manager
+    await manager.stop_all()
+

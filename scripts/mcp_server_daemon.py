@@ -27,9 +27,14 @@ import threading
 import logging
 
 # Configuration
-DAEMON_DIR = Path("./daemon")
+# Determine project root (parent of scripts directory)
+SCRIPT_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = SCRIPT_DIR.parent
+
+# Use absolute paths based on project root
+DAEMON_DIR = PROJECT_ROOT / "daemon"
 PID_DIR = DAEMON_DIR / "pids"
-LOG_DIR = Path("./logs/mcp_servers")
+LOG_DIR = PROJECT_ROOT / "logs" / "mcp_servers"
 STATE_FILE = DAEMON_DIR / "daemon_state.json"
 
 # Create directories
@@ -42,25 +47,25 @@ SERVERS_CONFIG = [
     {
         "name": "github_server",
         "display_name": "GitHub Server",
-        "script": "mcp_servers/github_server.py",
+        "script": PROJECT_ROOT / "mcp_servers/github_server.py",
         "port": 3000,
     },
     {
         "name": "filesystem_server",
         "display_name": "Filesystem Server",
-        "script": "mcp_servers/filesystem_server.py",
+        "script": PROJECT_ROOT / "mcp_servers/filesystem_server.py",
         "port": 3001,
     },
     {
         "name": "memory_server",
         "display_name": "Memory Server",
-        "script": "mcp_servers/memory_server.py",
+        "script": PROJECT_ROOT / "mcp_servers/memory_server.py",
         "port": 3002,
     },
     {
         "name": "codebasebuddy_server",
         "display_name": "CodeBaseBuddy Server",
-        "script": "mcp_servers/codebasebuddy_server.py",
+        "script": PROJECT_ROOT / "mcp_servers/codebasebuddy_server.py",
         "port": 3004,
     }
 ]

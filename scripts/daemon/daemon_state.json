@@ -1,36 +1,36 @@
 {
   "github_server": {
     "name": "github_server",
-    "pid": 18856,
+    "pid": null,
     "port": 3000,
-    "status": "running",
+    "status": "stopped",
     "start_time": "2025-12-18T09:59:16.437235",
     "restart_count": 0,
     "last_crash": null
   },
   "filesystem_server": {
     "name": "filesystem_server",
-    "pid": 13984,
+    "pid": null,
     "port": 3001,
-    "status": "running",
+    "status": "stopped",
     "start_time": "2025-12-18T09:59:16.658536",
     "restart_count": 0,
     "last_crash": null
   },
   "memory_server": {
     "name": "memory_server",
-    "pid": 13356,
+    "pid": null,
     "port": 3002,
-    "status": "running",
+    "status": "stopped",
     "start_time": "2025-12-18T09:59:16.863240",
     "restart_count": 0,
     "last_crash": null
   },
   "codebasebuddy_server": {
     "name": "codebasebuddy_server",
-    "pid": 23652,
+    "pid": null,
     "port": 3004,
-    "status": "running",
+    "status": "stopped",
     "start_time": "2025-12-18T09:59:17.208569",
     "restart_count": 0,
     "last_crash": null

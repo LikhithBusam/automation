@@ -9,36 +9,89 @@ from typing import List, Optional, Dict, Any
 import logging
 import os
 import re
+import yaml
 from datetime import datetime
 
 
-# Initialize LiteMCP server
+def load_config() -> Dict[str, Any]:
+    """Load configuration from config.yaml with environment variable substitution"""
+    config_path = Path(__file__).parent.parent / "config" / "config.yaml"
+    
+    default_config = {
+        "port": 3001,
+        "host": "0.0.0.0",
+        "allowed_paths": ["./workspace", "./projects", "./src", "./config", "./examples"],
+        "blocked_patterns": [r"\.\./", r"/etc/", r"/root/", r"\.ssh/", r"\.env$"],
+        "max_file_size_mb": 10,
+        "rate_limit_minute": 100,
+        "rate_limit_hour": 2000
+    }
+    
+    if not config_path.exists():
+        logging.warning(f"Config file not found at {config_path}, using defaults")
+        return default_config
+    
+    try:
+        with open(config_path, 'r') as f:
+            full_config = yaml.safe_load(f)
+        
+        # Get filesystem server config
+        server_config = full_config.get("mcp_servers", {}).get("filesystem", {})
+        
+        # Substitute environment variables (${VAR_NAME} pattern)
+        def substitute_env_vars(value):
+            if isinstance(value, str):
+                pattern = r'\$\{([^}]+)\}'
+                matches = re.findall(pattern, value)
+                for var_name in matches:
+                    env_value = os.getenv(var_name, "")
+                    value = value.replace(f"${{{var_name}}}", env_value)
+                return value
+            elif isinstance(value, dict):
+                return {k: substitute_env_vars(v) for k, v in value.items()}
+            elif isinstance(value, list):
+                return [substitute_env_vars(item) for item in value]
+            return value
+        
+        server_config = substitute_env_vars(server_config)
+        
+        # Merge with defaults
+        for key, value in default_config.items():
+            if key not in server_config:
+                server_config[key] = value
+        
+        return server_config
+    
+    except Exception as e:
+        logging.error(f"Error loading config: {e}, using defaults")
+        return default_config
+
+
+# Load configuration
+CONFIG = load_config()
+
+# Initialize FastMCP server
 mcp = FastMCP("Filesystem Operations")
 logger = logging.getLogger("mcp.filesystem")
 
-# Security configuration
-ALLOWED_PATHS = [
-    Path("./workspace").resolve(),
-    Path("./projects").resolve(),
-    Path("./src").resolve(),
-    Path("./config").resolve(),
-    Path("./examples").resolve(),
-]
+# Security configuration (from config)
+ALLOWED_PATHS = [Path(p).resolve() for p in CONFIG.get("allowed_paths", ["./workspace", "./src"])]
 
-BLOCKED_PATTERNS = [
+BLOCKED_PATTERNS = CONFIG.get("blocked_patterns", [
     r"\.\./",  # Directory traversal
     r"/etc/",  # System files
     r"/root/",  # Root directory
     r"\.ssh/",  # SSH keys
     r"\.env$",  # Environment files
-    r"\.git/config",  # Git config (may contain tokens)
-    r"__pycache__",  # Python cache
-    r"\.pyc$",  # Compiled Python
-]
+])
 
-# File size limits
-MAX_FILE_SIZE_MB = 10
-MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024  # 10MB default
+# Add default patterns that should always be blocked
+DEFAULT_BLOCKED = [r"\.git/config", r"__pycache__", r"\.pyc$"]
+BLOCKED_PATTERNS.extend([p for p in DEFAULT_BLOCKED if p not in BLOCKED_PATTERNS])
+
+# File size limits (from config)
+MAX_FILE_SIZE_MB = CONFIG.get("max_file_size_mb", 10)
+MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
 
 # File type filters for code analysis
 CODE_FILE_EXTENSIONS = {
@@ -530,8 +583,13 @@ async def health_check() -> Dict[str, Any]:
 
 
 if __name__ == "__main__":
-    print("Starting Filesystem MCP Server on http://localhost:3001...")
+    port = CONFIG["port"]
+    host = CONFIG["host"]
+    
+    print(f"Starting Filesystem MCP Server on http://{host}:{port}...")
     print(f"Allowed paths: {[str(p) for p in ALLOWED_PATHS]}")
+    print(f"Max file size: {MAX_FILE_SIZE_MB}MB")
+    print(f"Config source: config/config.yaml + environment variables")
 
     # Run server directly
-    mcp.run(transport="sse", port=3001, host="0.0.0.0")
+    mcp.run(transport="sse", port=port, host=host)

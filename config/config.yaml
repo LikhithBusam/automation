@@ -1,54 +1,47 @@
 # Intelligent Development Assistant Configuration
 
 # Model Configuration
+# UNIFIED: Using OpenRouter API for all models (matches autogen_agents.yaml)
+# Primary model: mistralai/devstral-2512:free (123B agentic coding model with function calling)
 models:
-  code_analyzer:
-    primary: "codellama/CodeLlama-13b-Instruct-hf"
-    alternative: "bigcode/starcoder2-15b"
-    quantization: "4bit"
-    max_tokens: 4096
-    temperature: 0.3
-    deployment: "local"  # or "hf_api"
+  # OpenRouter Configuration (Primary - Production)
+  openrouter:
+    enabled: true
+    api_key: "${OPENROUTER_API_KEY}"
+    base_url: "https://openrouter.ai/api/v1"
+    default_model: "mistralai/devstral-2512:free"
+    alternative_models:
+      - "kwaipilot/kat-coder-pro:free"
+      - "nex-agi/deepseek-v3.1-nex-n1:free"
+    max_retries: 3
+    timeout: 120
 
-  documentation:
-    primary: "meta-llama/Meta-Llama-3-8B-Instruct"
-    alternative: "mistralai/Mistral-7B-Instruct-v0.2"
-    quantization: "4bit"
-    max_tokens: 2048
-    temperature: 0.7
-    deployment: "local"
+  # Local Models Configuration (Fallback - Development)
+  local:
+    enabled: false  # Disabled by default, enable for offline development
+    code_analyzer:
+      primary: "codellama/CodeLlama-13b-Instruct-hf"
+      alternative: "bigcode/starcoder2-15b"
+      quantization: "4bit"
+      max_tokens: 4096
+      temperature: 0.3
+      deployment: "local"
 
-  dev_workflow:
-    primary: "mistralai/Mistral-7B-Instruct-v0.2"
-    alternative: "microsoft/Phi-3-medium-4k-instruct"
-    quantization: "4bit"
-    max_tokens: 2048
-    temperature: 0.5
-    deployment: "local"
+    documentation:
+      primary: "meta-llama/Meta-Llama-3-8B-Instruct"
+      alternative: "mistralai/Mistral-7B-Instruct-v0.2"
+      quantization: "4bit"
+      max_tokens: 2048
+      temperature: 0.7
+      deployment: "local"
 
-  communication:
-    primary: "meta-llama/Meta-Llama-3-8B-Instruct"
-    alternative: "microsoft/Phi-3-medium-4k-instruct"
-    quantization: "4bit"
-    max_tokens: 1024
-    temperature: 0.8
-    deployment: "local"
-
-  code_generation:
-    primary: "deepseek-ai/deepseek-coder-33b-instruct"
-    alternative: "codellama/CodeLlama-34b-Instruct-hf"
-    quantization: "4bit"
-    max_tokens: 4096
-    temperature: 0.2
-    deployment: "hf_api"  # Use API for large models
-
-  memory:
-    primary: "meta-llama/Meta-Llama-3-8B-Instruct"
-    alternative: "mistralai/Mistral-7B-Instruct-v0.2"
-    quantization: "4bit"
-    max_tokens: 2048
-    temperature: 0.4
-    deployment: "local"
+    code_generation:
+      primary: "deepseek-ai/deepseek-coder-33b-instruct"
+      alternative: "codellama/CodeLlama-34b-Instruct-hf"
+      quantization: "4bit"
+      max_tokens: 4096
+      temperature: 0.2
+      deployment: "hf_api"
 
 # Hugging Face API Configuration
 huggingface:
@@ -61,8 +54,11 @@ huggingface:
 mcp_servers:
   github:
     enabled: true
+    port: 3000
+    host: "0.0.0.0"
     server_url: "http://localhost:3000/mcp/github"
     auth_token: "${GITHUB_TOKEN}"
+    api_base: "https://api.github.com"
     timeout: 30
     retry_attempts: 3
     fallback_enabled: true
@@ -80,10 +76,13 @@ mcp_servers:
 
   filesystem:
     enabled: true
+    port: 3001
+    host: "0.0.0.0"
     server_url: "http://localhost:3001/mcp/filesystem"
     timeout: 10
     retry_attempts: 2
     fallback_enabled: true
+    max_file_size_mb: 10
     # Security - allowed paths
     allowed_paths:
       - "./workspace"
@@ -108,9 +107,18 @@ mcp_servers:
 
   memory:
     enabled: true
+    port: 3002
+    host: "0.0.0.0"
     server_url: "http://localhost:3002/mcp/memory"
     storage_backend: "sqlite"  # Best for local development - simple, fast, reliable
     sqlite_path: "./data/memory.db"  # Local file storage
+    embedding_model: "all-MiniLM-L6-v2"  # Sentence-transformers model
+    valid_memory_types:
+      - "pattern"
+      - "preference"
+      - "solution"
+      - "context"
+      - "error"
     timeout: 5
     retry_attempts: 3
     fallback_enabled: true  # Falls back to JSON if server unavailable
@@ -124,6 +132,8 @@ mcp_servers:
 
   slack:
     enabled: true
+    port: 3003
+    host: "0.0.0.0"
     server_url: "http://localhost:3003/mcp/slack"
     bot_token: "${SLACK_BOT_TOKEN}"
     default_channel: "#dev-assistant"
@@ -139,30 +149,47 @@ mcp_servers:
 
   codebasebuddy:
     enabled: true
+    port: 3004
+    host: "0.0.0.0"
     server_url: "http://localhost:3004/mcp/codebasebuddy"
     timeout: 60
     retry_attempts: 3
     fallback_enabled: true
     # Index configuration
     index_path: "./data/codebase_index"
+    embedding_dimensions: 384  # Dimensions for all-MiniLM-L6-v2
+    embedding_model: "all-MiniLM-L6-v2"  # Sentence-transformers model name
     scan_paths:
       - "./src"
       - "./mcp_servers"
       - "./config"
     exclude_patterns:
       - "__pycache__"
-      - "*.pyc"
+      - ".git"
+      - ".venv"
       - "venv"
       - "node_modules"
-      - ".git"
+      - ".pytest_cache"
+      - ".mypy_cache"
+      - "dist"
+      - "build"
+    exclude_files:
+      - ".pyc"
+      - ".pyo"
+      - ".so"
+      - ".dll"
+      - ".exe"
     file_extensions:
       - ".py"
       - ".js"
       - ".ts"
+      - ".jsx"
+      - ".tsx"
+      - ".java"
       - ".yaml"
       - ".yml"
+      - ".json"
       - ".md"
-    embedding_model: "sentence-transformers"  # Uses all-MiniLM-L6-v2
     chunk_strategy: "function"  # 'function' for Python AST parsing, 'file' for simple chunking
     # Rate limiting
     rate_limit_minute: 100
@@ -174,6 +201,8 @@ mcp_servers:
 
   google_drive:
     enabled: false
+    port: 3005
+    host: "0.0.0.0"
     server_url: "http://localhost:3005/mcp/gdrive"
     credentials_file: "./config/google_credentials.json"
     timeout: 30

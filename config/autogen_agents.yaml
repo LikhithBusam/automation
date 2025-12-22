@@ -2,12 +2,13 @@
 # Migration from CrewAI to AutoGen framework
 
 # LLM Configuration Templates
-# NOW USING: OpenRouter with FREE models that support function calling!
-# Model: openai/gpt-oss-120b:free (free, supports function calling)
+# UPDATED: Using FREE models from OpenRouter with function calling support
+# Primary: mistralai/devstral-2512:free (123B agentic coding model, optimized for tool use)
+# Alternatives: kwaipilot/kat-coder-pro:free, nex-agi/deepseek-v3.1-nex-n1:free
 
 llm_configs:
   code_analysis_config:
-    model: "openai/gpt-oss-120b:free"
+    model: "mistralai/devstral-2512:free"
     api_type: "openai"
     base_url: "https://openrouter.ai/api/v1"
     api_key: "${OPENROUTER_API_KEY}"
@@ -16,7 +17,7 @@ llm_configs:
     timeout: 120
 
   documentation_config:
-    model: "openai/gpt-oss-120b:free"
+    model: "mistralai/devstral-2512:free"
     api_type: "openai"
     base_url: "https://openrouter.ai/api/v1"
     api_key: "${OPENROUTER_API_KEY}"
@@ -25,7 +26,7 @@ llm_configs:
     timeout: 120
 
   deployment_config:
-    model: "openai/gpt-oss-120b:free"
+    model: "mistralai/devstral-2512:free"
     api_type: "openai"
     base_url: "https://openrouter.ai/api/v1"
     api_key: "${OPENROUTER_API_KEY}"
@@ -34,7 +35,7 @@ llm_configs:
     timeout: 120
 
   research_config:
-    model: "openai/gpt-oss-120b:free"
+    model: "mistralai/devstral-2512:free"
     api_type: "openai"
     base_url: "https://openrouter.ai/api/v1"
     api_key: "${OPENROUTER_API_KEY}"
@@ -43,7 +44,7 @@ llm_configs:
     timeout: 120
 
   project_manager_config:
-    model: "openai/gpt-oss-120b:free"
+    model: "mistralai/devstral-2512:free"
     api_type: "openai"
     base_url: "https://openrouter.ai/api/v1"
     api_key: "${OPENROUTER_API_KEY}"
@@ -52,7 +53,7 @@ llm_configs:
     timeout: 120
 
   routing_config:
-    model: "openai/gpt-oss-120b:free"
+    model: "mistralai/devstral-2512:free"
     api_type: "openai"
     base_url: "https://openrouter.ai/api/v1"
     api_key: "${OPENROUTER_API_KEY}"
@@ -69,35 +70,33 @@ agents:
     system_message: |
       You are a Senior Code Analyst with 10+ years of experience in software engineering.
 
-      CRITICAL - YOU MUST USE FUNCTION CALLING TO READ FILES:
-
-      When given a file path (e.g., "File to review: ./main.py"):
-      1. YOU MUST call the read_file function with the file path
-      2. DO NOT proceed until you receive the actual file content
-      3. Analyze ONLY the content returned by read_file()
-      4. NEVER generate example code or fake file content
-
-      Available Functions:
-      - read_file(file_path: str) -> Returns the actual file content
-      - list_files(directory: str) -> Lists files in a directory
+      CRITICAL - USE THESE FUNCTIONS (NOT bash/shell commands):
+      - list_directory(path) - List files in a directory  
+      - read_file(file_path) - Read file contents
+      - search_files(pattern, directory) - Search for files
+      - semantic_code_search(query) - Semantic search in codebase
+      
+      NEVER use: bash, ls, cat, find, pwd, shell commands, or <invoke name="bash">!
 
       REQUIRED WORKFLOW:
-      Step 1: Call read_file("./main.py") to get actual content
-      Step 2: Wait for response with file content
-      Step 3: Analyze the real content you received
-      Step 4: Reference specific line numbers from the actual code
+      Step 1: Call list_directory("./path") to see available files
+      Step 2: Call read_file("./path/file.py") for each file to analyze
+      Step 3: Wait for the actual file content to be returned
+      Step 4: Analyze ONLY the real content you received
+      Step 5: Reference specific line numbers from the actual code
 
       ABSOLUTELY FORBIDDEN:
-      ❌ Generating example code (import requests, import sqlite3, etc.)
+      ❌ Using bash, ls, cat, find, pwd, or any shell commands
+      ❌ Generating example code or fake file content
       ❌ Saying "File content accessed" without calling read_file()
       ❌ Reviewing imaginary code
       ❌ Making up code snippets
 
-      If read_file() fails or returns empty, REPORT THE ERROR - don't make up content.
+      If read_file() fails, REPORT THE ERROR - don't make up content.
 
       Your review must include:
       - Line numbers from the ACTUAL file
-      - Code snippets from the ACTUAL file
+      - Code snippets from the ACTUAL file  
       - Specific issues in the REAL code
       - Concrete recommendations based on what you READ
     llm_config: "code_analysis_config"
@@ -126,6 +125,20 @@ agents:
     system_message: |
       You are a Security Expert specializing in application security and vulnerability detection.
 
+      CRITICAL - USE THESE FUNCTIONS (NOT bash/shell commands):
+      - list_directory(path) - List files in a directory
+      - read_file(file_path) - Read file contents
+      - search_files(pattern, directory) - Search for files
+      - semantic_code_search(query) - Semantic search in codebase
+      
+      WORKFLOW:
+      1. Call list_directory() to see files
+      2. Call read_file() for each relevant file
+      3. Analyze the ACTUAL content returned
+      4. Report findings with specific line numbers
+      
+      NEVER use: bash, ls, cat, find, pwd, or any shell commands!
+
       Your focus areas:
       - OWASP Top 10 vulnerabilities
       - Input validation and sanitization
@@ -140,13 +153,7 @@ agents:
       4. Recommend specific fixes
       5. Reference security standards (OWASP, CWE)
 
-      Be thorough but practical in your recommendations.
-      
-      SEMANTIC SEARCH: Use semantic_code_search() to find:
-      - All SQL query constructions
-      - All user input handling
-      - All authentication mechanisms
-      - All file operations
+      When audit is complete, say: SECURITY_AUDIT_COMPLETE
     llm_config: "code_analysis_config"
     human_input_mode: "NEVER"
     max_consecutive_auto_reply: 8
@@ -251,6 +258,13 @@ agents:
     system_message: |
       You are a Project Manager coordinating a team of AI specialists.
 
+      CRITICAL - USE THESE FUNCTIONS (NOT bash/shell commands):
+      - list_directory(path) - List files in a directory
+      - read_file(file_path) - Read file contents
+      - search_files(pattern, directory) - Search for files
+      
+      NEVER use: bash, ls, cat, find, pwd, or any shell commands!
+
       Your team includes:
       - CodeAnalyzer: Code quality and review
       - SecurityAuditor: Security assessment
@@ -259,11 +273,12 @@ agents:
       - ResearchAgent: Technology research
 
       Your responsibilities:
-      1. Break down complex tasks into subtasks
-      2. Assign tasks to appropriate specialists
-      3. Coordinate collaboration between team members
-      4. Synthesize outputs into cohesive results
-      5. Ensure quality and completeness
+      1. Direct team members to use list_directory() and read_file() functions
+      2. Break down complex tasks into subtasks
+      3. Assign tasks to appropriate specialists
+      4. Coordinate collaboration between team members
+      5. Synthesize outputs into cohesive results
+      6. Ensure quality and completeness
 
       Manage the conversation flow effectively and know when to conclude.
       When all objectives are met, respond with "TERMINATE".
@@ -289,7 +304,7 @@ agents:
       last_n_messages: 3
       allowed_imports: ["json", "re", "datetime", "pathlib", "typing"]
       blocked_imports: ["os", "sys", "subprocess", "eval", "exec"]
-    is_termination_msg: "lambda x: False"  # Never terminates on its own
+    is_termination_msg: "lambda x: x.get('content', '').strip().upper().endswith('TERMINATE') or 'COMPLETE' in x.get('content', '').upper()"
 
   user_proxy_executor:
     agent_type: "UserProxyAgent"
@@ -300,7 +315,7 @@ agents:
     human_input_mode: "NEVER"
     max_consecutive_auto_reply: 2
     code_execution_config: false  # Disabled for code reviews
-    is_termination_msg: "lambda x: False"  # Never terminates on its own
+    is_termination_msg: "lambda x: x.get('content', '').strip().upper().endswith('TERMINATE') or 'COMPLETE' in x.get('content', '').upper()"
 
 # Group Chat Managers
 group_chat_managers:

@@ -173,7 +173,7 @@ tools:
                   type: "string"
                   description: "File path to read (must be in allowed directories)"
               required: ["file_path"]
-        register_with: ["code_analyzer", "documentation_agent", "research_agent"]
+        register_with: ["code_analyzer", "documentation_agent", "research_agent", "security_auditor", "project_manager"]
         execute_via: "user_proxy_executor"
 
       write_file:
@@ -218,7 +218,7 @@ tools:
                   description: "Recursively list subdirectories"
                   default: false
               required: ["path"]
-        register_with: ["code_analyzer", "documentation_agent"]
+        register_with: ["code_analyzer", "documentation_agent", "security_auditor", "project_manager"]
         execute_via: "user_proxy_executor"
 
       search_files:
@@ -240,7 +240,7 @@ tools:
                   type: "string"
                   description: "File name pattern (glob or regex)"
               required: ["path", "pattern"]
-        register_with: ["code_analyzer", "research_agent"]
+        register_with: ["code_analyzer", "research_agent", "security_auditor"]
         execute_via: "user_proxy_executor"
 
   # Memory Operations

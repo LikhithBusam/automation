@@ -35,10 +35,34 @@ class InputValidator:
     - DoS via large inputs
     """
 
-    # Allowed workflow parameters
+    # Allowed workflow parameters (expanded to support all workflows)
     ALLOWED_PARAMS = {
-        'code_path', 'focus_areas', 'target_path', 'module_path',
-        'output_path', 'environment', 'branch', 'additional_requirements'
+        # Path parameters
+        'code_path', 'target_path', 'module_path', 'output_path', 'project_path',
+        'file_path', 'path', 'root_path', 'directory', 'dir_path',
+        # Analysis parameters
+        'focus_areas', 'scope', 'depth',
+        # Documentation parameters
+        'doc_type', 'format', 'output_format', 'audience', 'sections',
+        # Deployment parameters
+        'environment', 'branch', 'version', 'strategy', 'run_tests', 'notify',
+        # Research parameters
+        'topic', 'query',
+        # General parameters
+        'additional_requirements', 'max_results', 'timeout',
+        # MCP Tool Parameters (GitHub)
+        'owner', 'repo', 'title', 'body', 'head', 'base', 'pr_number', 'labels',
+        'sha', 'ref', 'state', 'per_page',
+        # MCP Tool Parameters (Filesystem)
+        'content', 'pattern', 'recursive', 'file_types', 'max_depth',
+        # MCP Tool Parameters (Memory)
+        'memory_type', 'tags', 'metadata', 'memory_id', 'limit', 'min_relevance',
+        # MCP Tool Parameters (Slack)
+        'channel', 'text', 'thread_ts', 'blocks', 'severity',
+        # MCP Tool Parameters (CodeBaseBuddy)
+        'top_k', 'file_filter', 'chunk_type_filter', 'code_snippet',
+        'exclude_self', 'line_number', 'context_lines', 'file_extensions',
+        'rebuild', 'symbol_name',
     }
 
     # Shell metacharacters to block
@@ -66,6 +90,7 @@ class InputValidator:
     def _setup_rules(self) -> Dict[str, ValidationRule]:
         """Setup parameter-specific validation rules"""
         return {
+            # Path parameters
             'code_path': ValidationRule(
                 max_length=500,
                 allowed_pattern=r'^[a-zA-Z0-9._/\\-]+$'
@@ -82,21 +107,191 @@ class InputValidator:
                 max_length=500,
                 allowed_pattern=r'^[a-zA-Z0-9._/\\-]+$'
             ),
+            'project_path': ValidationRule(
+                max_length=500,
+                allowed_pattern=r'^[a-zA-Z0-9._/\\-]+$'
+            ),
+            # Analysis parameters
             'focus_areas': ValidationRule(
                 max_length=500,
                 allowed_pattern=r'^[a-zA-Z0-9, _-]+$'
             ),
+            'scope': ValidationRule(
+                max_length=100,
+                allowed_values={'full', 'partial', 'quick', 'deep', 'basic'}
+            ),
+            'depth': ValidationRule(
+                max_length=50,
+                allowed_values={'shallow', 'medium', 'deep', 'comprehensive'}
+            ),
+            # Documentation parameters
+            'doc_type': ValidationRule(
+                max_length=50,
+                allowed_values={'readme', 'api', 'user_guide', 'developer', 'architecture'}
+            ),
+            'format': ValidationRule(
+                max_length=50,
+                allowed_values={'markdown', 'html', 'rst', 'pdf', 'docx'}
+            ),
+            'output_format': ValidationRule(
+                max_length=50,
+                allowed_values={'markdown', 'html', 'rst', 'pdf', 'json', 'yaml'}
+            ),
+            'audience': ValidationRule(
+                max_length=100,
+                allowed_values={'developers', 'users', 'admins', 'all', 'technical', 'non-technical'}
+            ),
+            'sections': ValidationRule(
+                max_length=500,
+                allowed_pattern=r'^[a-zA-Z0-9, _-]+$'
+            ),
+            # Deployment parameters
             'environment': ValidationRule(
                 max_length=50,
-                allowed_values={'development', 'staging', 'production', 'test'}
+                allowed_values={'development', 'staging', 'production', 'test', 'dev', 'prod'}
             ),
             'branch': ValidationRule(
                 max_length=100,
                 allowed_pattern=r'^[a-zA-Z0-9._/-]+$'
             ),
+            'version': ValidationRule(
+                max_length=50,
+                allowed_pattern=r'^[a-zA-Z0-9._-]+$'
+            ),
+            'strategy': ValidationRule(
+                max_length=50,
+                allowed_values={'blue-green', 'canary', 'rolling', 'recreate', 'direct'}
+            ),
+            'run_tests': ValidationRule(
+                max_length=10,
+                allowed_values={'true', 'false', 'yes', 'no', '1', '0'}
+            ),
+            'notify': ValidationRule(
+                max_length=10,
+                allowed_values={'true', 'false', 'yes', 'no', '1', '0'}
+            ),
+            # Research parameters
+            'topic': ValidationRule(
+                max_length=500,
+                allowed_pattern=r'^[a-zA-Z0-9, _.\'"-]+$'
+            ),
+            'query': ValidationRule(
+                max_length=1000,
+                allowed_pattern=r'^[a-zA-Z0-9, _.\'"\-?!]+$'
+            ),
+            # General parameters
             'additional_requirements': ValidationRule(
                 max_length=1000,
-                allowed_pattern=r'^[a-zA-Z0-9, _.-]+$'
+                allowed_pattern=r'^[a-zA-Z0-9, _.\-\'"]+$'
+            ),
+            'max_results': ValidationRule(
+                max_length=10,
+                allowed_pattern=r'^[0-9]+$'
+            ),
+            'timeout': ValidationRule(
+                max_length=10,
+                allowed_pattern=r'^[0-9]+$'
+            ),
+            # MCP Tool Parameters - GitHub
+            'owner': ValidationRule(
+                max_length=100,
+                allowed_pattern=r'^[a-zA-Z0-9_-]+$'
+            ),
+            'repo': ValidationRule(
+                max_length=100,
+                allowed_pattern=r'^[a-zA-Z0-9._-]+$'
+            ),
+            'pr_number': ValidationRule(
+                max_length=10,
+                allowed_pattern=r'^[0-9]+$'
+            ),
+            'sha': ValidationRule(
+                max_length=40,
+                allowed_pattern=r'^[a-f0-9]+$'
+            ),
+            'ref': ValidationRule(
+                max_length=100,
+                allowed_pattern=r'^[a-zA-Z0-9._/-]+$'
+            ),
+            'state': ValidationRule(
+                max_length=20,
+                allowed_values={'open', 'closed', 'all'}
+            ),
+            'per_page': ValidationRule(
+                max_length=10,
+                allowed_pattern=r'^[0-9]+$'
+            ),
+            # MCP Tool Parameters - Filesystem
+            'pattern': ValidationRule(
+                max_length=500,
+                allowed_pattern=r'^[a-zA-Z0-9*._/\\-]+$'
+            ),
+            'recursive': ValidationRule(
+                max_length=10,
+                allowed_values={'true', 'false', 'yes', 'no', '1', '0'}
+            ),
+            'max_depth': ValidationRule(
+                max_length=10,
+                allowed_pattern=r'^[0-9]+$'
+            ),
+            # MCP Tool Parameters - Memory
+            'memory_type': ValidationRule(
+                max_length=50,
+                allowed_values={'pattern', 'preference', 'solution', 'context', 'error'}
+            ),
+            'memory_id': ValidationRule(
+                max_length=100,
+                allowed_pattern=r'^[a-zA-Z0-9_-]+$'
+            ),
+            'limit': ValidationRule(
+                max_length=10,
+                allowed_pattern=r'^[0-9]+$'
+            ),
+            'min_relevance': ValidationRule(
+                max_length=10,
+                allowed_pattern=r'^[0-9]+(\.[0-9]+)?$'
+            ),
+            # MCP Tool Parameters - Slack
+            'channel': ValidationRule(
+                max_length=100,
+                allowed_pattern=r'^[#@a-zA-Z0-9_-]+$'
+            ),
+            'severity': ValidationRule(
+                max_length=20,
+                allowed_values={'info', 'warning', 'error', 'success', 'critical'}
+            ),
+            # MCP Tool Parameters - CodeBaseBuddy
+            'top_k': ValidationRule(
+                max_length=10,
+                allowed_pattern=r'^[0-9]+$'
+            ),
+            'file_filter': ValidationRule(
+                max_length=200,
+                allowed_pattern=r'^[a-zA-Z0-9*._/\\-]+$'
+            ),
+            'chunk_type_filter': ValidationRule(
+                max_length=20,
+                allowed_values={'function', 'class', 'file', 'method', 'module'}
+            ),
+            'exclude_self': ValidationRule(
+                max_length=10,
+                allowed_values={'true', 'false', 'yes', 'no', '1', '0'}
+            ),
+            'line_number': ValidationRule(
+                max_length=10,
+                allowed_pattern=r'^[0-9]+$'
+            ),
+            'context_lines': ValidationRule(
+                max_length=10,
+                allowed_pattern=r'^[0-9]+$'
+            ),
+            'rebuild': ValidationRule(
+                max_length=10,
+                allowed_values={'true', 'false', 'yes', 'no', '1', '0'}
+            ),
+            'symbol_name': ValidationRule(
+                max_length=200,
+                allowed_pattern=r'^[a-zA-Z0-9_:.]+$'
             ),
         }
 
@@ -250,6 +445,37 @@ class InputValidator:
 
         return path
 
+    def validate_path_safety(self, path: str, base_dir: str = None) -> str:
+        """
+        Validate path safety with optional base directory check.
+        Alias for validate_path() with additional base_dir parameter.
+
+        Args:
+            path: File path to validate
+            base_dir: Optional base directory to check against
+
+        Returns:
+            Validated path
+
+        Raises:
+            ValidationError: If path is unsafe
+        """
+        # First do standard path validation
+        validated = self.validate_path(path)
+
+        # If base_dir provided, ensure path is within it
+        if base_dir:
+            try:
+                resolved_path = Path(validated).resolve()
+                resolved_base = Path(base_dir).resolve()
+
+                if not str(resolved_path).startswith(str(resolved_base)):
+                    raise ValidationError(f"Path {path} outside base directory {base_dir}")
+            except (ValueError, OSError) as e:
+                raise ValidationError(f"Invalid path or base directory: {e}")
+
+        return validated
+
     def _default_validation(self, value: str) -> str:
         """
         Default validation for values without specific rules.
@@ -328,6 +554,56 @@ class InputValidator:
             value = value[:max_length] + '...'
 
         return value
+
+    def validate_mcp_tool_params(
+        self,
+        tool_name: str,
+        operation: str,
+        params: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Validate parameters for MCP tool operations.
+
+        Args:
+            tool_name: Name of the MCP tool (github, filesystem, memory, slack, codebasebuddy)
+            operation: Operation being performed
+            params: Parameters for the operation
+
+        Returns:
+            Validated parameters
+
+        Raises:
+            ValidationError: If parameters are invalid
+        """
+        if not isinstance(params, dict):
+            raise ValidationError("MCP tool parameters must be a dictionary")
+
+        # Validate tool name
+        allowed_tools = {'github', 'filesystem', 'memory', 'slack', 'codebasebuddy'}
+        if tool_name not in allowed_tools:
+            raise ValidationError(
+                f"Invalid tool name: {tool_name}. Allowed: {', '.join(allowed_tools)}"
+            )
+
+        # Validate operation name (alphanumeric and underscore only)
+        if not re.match(r'^[a-z_][a-z0-9_]*$', operation):
+            raise ValidationError(f"Invalid operation name: {operation}")
+
+        # Validate each parameter
+        validated = {}
+        for key, value in params.items():
+            try:
+                validated_value = self.validate_parameter_value(key, value)
+                validated[key] = validated_value
+            except ValidationError:
+                # If not in standard params, apply basic validation
+                if key not in self.ALLOWED_PARAMS:
+                    # Allow it but apply default validation
+                    validated[key] = self._default_validation(str(value))
+                else:
+                    raise
+
+        return validated
 
 
 # Global validator instance

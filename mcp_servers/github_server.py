@@ -1,6 +1,10 @@
-"""
-GitHub MCP Server using FastMCP
+"""GitHub MCP Server using FastMCP
 Provides GitHub API operations with rate limiting
+
+Configuration loaded from:
+1. config/config.yaml (mcp_servers.github section)
+2. Environment variables (GITHUB_*)
+3. Fallback to sensible defaults
 """
 
 from fastmcp import FastMCP
@@ -8,17 +12,65 @@ from typing import List, Optional, Dict, Any
 import logging
 import os
 import asyncio
+import yaml
+from pathlib import Path
 from datetime import datetime
 import httpx
 
+
+# =============================================================================
+# Configuration Loading
+# =============================================================================
+
+def load_config() -> Dict[str, Any]:
+    """Load configuration from config.yaml or environment variables"""
+    config = {
+        "port": 3000,
+        "host": "0.0.0.0",
+        "rate_limit_minute": 60,
+        "rate_limit_hour": 1000,
+        "api_base": "https://api.github.com",
+        "timeout": 30,
+    }
+    
+    # Try to load from config.yaml
+    config_path = Path("config/config.yaml")
+    if config_path.exists():
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                yaml_config = yaml.safe_load(f)
+                gh_config = yaml_config.get("mcp_servers", {}).get("github", {})
+                
+                if gh_config.get("rate_limit_minute"):
+                    config["rate_limit_minute"] = gh_config["rate_limit_minute"]
+                if gh_config.get("rate_limit_hour"):
+                    config["rate_limit_hour"] = gh_config["rate_limit_hour"]
+                if gh_config.get("timeout"):
+                    config["timeout"] = gh_config["timeout"]
+        except Exception as e:
+            logging.warning(f"Failed to load config.yaml: {e}")
+    
+    # Environment variable overrides
+    config["port"] = int(os.getenv("GITHUB_SERVER_PORT", config["port"]))
+    config["host"] = os.getenv("GITHUB_SERVER_HOST", config["host"])
+    config["rate_limit_minute"] = int(os.getenv("GITHUB_RATE_LIMIT_MINUTE", config["rate_limit_minute"]))
+    config["rate_limit_hour"] = int(os.getenv("GITHUB_RATE_LIMIT_HOUR", config["rate_limit_hour"]))
+    config["api_base"] = os.getenv("GITHUB_API_BASE", config["api_base"])
+    config["timeout"] = int(os.getenv("GITHUB_TIMEOUT", config["timeout"]))
+    
+    return config
+
+
+# Load configuration
+CONFIG = load_config()
 
 # Initialize FastMCP server
 mcp = FastMCP("GitHub Operations")
 logger = logging.getLogger("mcp.github")
 
-# GitHub configuration
+# GitHub configuration (from env)
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
-GITHUB_API_BASE = "https://api.github.com"
+GITHUB_API_BASE = CONFIG["api_base"]
 
 # Rate limiting using Token Bucket Algorithm
 class TokenBucket:
@@ -71,8 +123,11 @@ class TokenBucket:
             "hour_remaining": self.tokens_hour
         }
 
-# Initialize rate limiter
-rate_limiter = TokenBucket(rate_per_minute=60, rate_per_hour=1000)
+# Initialize rate limiter with config values
+rate_limiter = TokenBucket(
+    rate_per_minute=CONFIG.get("rate_limit_minute", 60),
+    rate_per_hour=CONFIG.get("rate_limit_hour", 1000)
+)
 
 # Request statistics
 request_stats = {
@@ -613,5 +668,8 @@ if __name__ == "__main__":
     if GITHUB_TOKEN:
         print(f"GitHub Token: {'*' * 20}{GITHUB_TOKEN[-4:]}")
 
-    # Run server directly
-    mcp.run(transport="sse", port=3000, host="0.0.0.0")
+    # Run server with dynamic config
+    port = CONFIG.get("port", 3000)
+    host = CONFIG.get("host", "0.0.0.0")
+    print(f"Starting GitHub MCP Server on http://{host}:{port}...")
+    mcp.run(transport="sse", port=port, host=host)

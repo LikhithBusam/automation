@@ -2,8 +2,10 @@
 
 > **Production-ready multi-agent AI system for intelligent code analysis, security auditing, and development automation**
 
+[![CI/CD Pipeline](https://github.com/LikhithBusam/automation/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/LikhithBusam/automation/actions/workflows/ci-cd.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![AutoGen](https://img.shields.io/badge/AutoGen-0.2.0+-green.svg)](https://microsoft.github.io/autogen/)
+[![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ## Overview
@@ -31,9 +33,11 @@
 - **OS**: Windows 10+, Ubuntu 20.04+, macOS 11+
 - **Memory**: 4GB+ RAM
 - **API Keys**:
-  - [Groq API Key](https://console.groq.com/keys) (required)
-  - [OpenRouter API Key](https://openrouter.ai/keys) (recommended)
+  - [Groq API Key](https://console.groq.com/keys) (required for fast inference)
+  - [OpenRouter API Key](https://openrouter.ai/keys) (recommended for 200+ models)
   - [Google Gemini API Key](https://makersuite.google.com/app/apikey) (optional)
+
+> **Note**: Python 3.9 is not supported due to `fastmcp` and other dependencies requiring Python 3.10+
 
 ### Installation (2 minutes)
 
@@ -75,12 +79,25 @@ python scripts/mcp_server_daemon.py start
 ```
 
 This auto-starts all 4 MCP servers:
-- GitHub Server (Port 3000)
-- Filesystem Server (Port 3001)
-- Memory Server (Port 3002)
-- CodeBaseBuddy Server (Port 3004)
+- GitHub Server (Port 3000) - GitHub API operations
+- Filesystem Server (Port 3001) - Local file access
+- Memory Server (Port 3002) - Semantic memory storage
+- CodeBaseBuddy Server (Port 3004) - Intelligent code search
 
-**Step 2: Launch the Assistant**
+**Step 2: Use CodeBaseBuddy Interactive Chat**
+
+```bash
+# Start interactive Q&A about your codebase
+python scripts/codebasebuddy_interactive.py
+
+# Example queries:
+CodeBaseBuddy> What agents are available?
+CodeBaseBuddy> How does the security module work?
+CodeBaseBuddy> search authentication
+CodeBaseBuddy> find_usages AgentFactory
+```
+
+**Step 3: Launch the Assistant**
 
 ```bash
 # Windows:
@@ -345,7 +362,33 @@ The system uses 4 FastMCP servers for tool integration:
 | **GitHub** | 3000 | GitHub API operations | clone, commit, create_pr, search_code |
 | **Filesystem** | 3001 | Local file access | read_file, write_file, list_directory |
 | **Memory** | 3002 | Semantic memory | store_memory, search_memory, get_context |
-| **CodeBaseBuddy** | 3004 | Code search | semantic_search, find_definition, analyze_dependencies |
+| **CodeBaseBuddy** | 3004 | Code search | semantic_search, find_definition, find_usages |
+
+### CodeBaseBuddy Interactive Chat
+
+CodeBaseBuddy provides an interactive chat interface for exploring your codebase:
+
+```bash
+python scripts/codebasebuddy_interactive.py
+```
+
+**Available Commands:**
+| Command | Description | Example |
+|---------|-------------|---------|
+| `search <query>` | Search code semantically | `search authentication logic` |
+| `find <symbol>` | Find symbol definition | `find AgentFactory` |
+| `find_usages <symbol>` | Find all usages of a symbol | `find_usages validate_parameters` |
+| `analyze <path>` | Analyze file dependencies | `analyze src/mcp/` |
+| `help` | Show all commands | `help` |
+| `exit` | Exit the chat | `exit` |
+
+**Natural Language Queries:**
+```
+CodeBaseBuddy> What agents are available in this project?
+CodeBaseBuddy> How does the security module work?
+CodeBaseBuddy> Where is the rate limiter configured?
+CodeBaseBuddy> Show me the MCP server implementations
+```
 
 ### Server Management
 
@@ -457,14 +500,20 @@ python tests/diagnostics/check_env.py
 ### Code Quality
 
 ```bash
-# Format code
-black src/ tests/
+# Format code (line length 100)
+black --line-length 100 src/ tests/ scripts/ mcp_servers/
+
+# Sort imports
+isort --line-length 100 --profile black src/ tests/
 
 # Lint code
-flake8 src/ tests/
+flake8 src/ tests/ --max-line-length=100
+
+# Lint with Ruff (fast)
+ruff check src/ tests/
 
 # Type checking
-mypy src/
+mypy src/ --ignore-missing-imports
 
 # Security scan
 bandit -r src/
@@ -681,6 +730,15 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ### Version History
 
+**v2.1.0** (December 22, 2024)
+- Added CodeBaseBuddy interactive chat (`scripts/codebasebuddy_interactive.py`)
+- Enhanced fallback search with YAML config file support
+- Improved smart keyword extraction for natural language queries
+- CI/CD pipeline with Black, isort, flake8, Ruff, and mypy
+- Updated to Python 3.10+ (dropped 3.9 support due to fastmcp)
+- Added `pyproject.toml` for unified tool configuration
+- Consolidated GitHub Actions workflows into single `ci-cd.yml`
+
 **v2.0.0** (December 18, 2024)
 - Migrated from CrewAI to AutoGen framework
 - Added CodeBaseBuddy semantic search integration
@@ -699,4 +757,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Built with ❤️ using Microsoft AutoGen**
 
-*Last Updated: December 18, 2024*
+*Last Updated: December 22, 2024*

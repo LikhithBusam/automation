@@ -18,14 +18,11 @@ REMOVE_FILES = [
     "src/agents/project_manager_agent.py",
     "src/agents/research_agent.py",
     "src/agents/__init__.py",
-
     # CrewAI Workflow Manager
     "src/workflows/crew_manager.py",
     "src/workflows/__init__.py",
-
     # CrewAI Tool Wrapper
     "src/mcp/crewai_wrapper.py",
-
     # Old main.py (will be replaced)
     "main.py.crewai.backup",  # We'll rename current main.py to this
 ]
@@ -44,23 +41,20 @@ KEEP_FILES = [
     "src/mcp/memory_tool.py",
     "src/mcp/slack_tool.py",
     "src/mcp/__init__.py",
-
     # Memory System (independent)
     "src/memory/memory_manager.py",
     "src/memory/__init__.py",
-
     # Models (keep OpenRouter LLM)
     "src/models/openrouter_llm.py",
     "src/models/__init__.py",
-
     # Security (independent)
     "src/security/auth.py",
     "src/security/validation.py",
     "src/security/__init__.py",
-
     # API (independent)
     "src/api/health.py",
 ]
+
 
 def backup_file(filepath):
     """Backup a file before removing"""
@@ -70,6 +64,7 @@ def backup_file(filepath):
         print(f"  [OK] Backed up: {filepath} -> {backup_path}")
         return True
     return False
+
 
 def remove_file(filepath):
     """Remove a file"""
@@ -81,6 +76,7 @@ def remove_file(filepath):
         print(f"  [-] Not found: {filepath}")
         return False
 
+
 def remove_directory(dirpath):
     """Remove a directory and its contents"""
     if os.path.exists(dirpath) and os.path.isdir(dirpath):
@@ -90,6 +86,7 @@ def remove_directory(dirpath):
     else:
         print(f"  [-] Directory not found: {dirpath}")
         return False
+
 
 def main():
     print("=" * 70)
@@ -156,7 +153,7 @@ def main():
         # Create __init__.py
         init_file = os.path.join(dirpath, "__init__.py")
         if not os.path.exists(init_file):
-            with open(init_file, 'w') as f:
+            with open(init_file, "w") as f:
                 f.write(f'"""{os.path.basename(dirpath)} package"""\n')
             print(f"  [OK] Created: {init_file}")
     print()
@@ -191,6 +188,7 @@ def main():
     print("  4. Test the AutoGen implementation")
     print()
     print("=" * 70)
+
 
 if __name__ == "__main__":
     main()

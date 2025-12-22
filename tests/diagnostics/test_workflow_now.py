@@ -13,9 +13,9 @@ from src.autogen_adapters.conversation_manager import create_conversation_manage
 
 async def test_workflow():
     """Test the workflow"""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("  TESTING WORKFLOW EXECUTION")
-    print("="*80 + "\n")
+    print("=" * 80 + "\n")
 
     # Create manager
     print("[1/3] Creating conversation manager...")
@@ -36,10 +36,7 @@ async def test_workflow():
     try:
         result = await manager.execute_workflow(
             "quick_code_review",
-            variables={
-                "code_path": "./main.py",
-                "focus_areas": "error handling"
-            }
+            variables={"code_path": "./main.py", "focus_areas": "error handling"},
         )
 
         print(f"\n[RESULT] Status: {result.status}")
@@ -56,6 +53,7 @@ async def test_workflow():
     except Exception as e:
         print(f"\n[ERROR] Workflow execution failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -63,9 +61,9 @@ async def test_workflow():
 if __name__ == "__main__":
     success = asyncio.run(test_workflow())
 
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     if success:
         print("  [SUCCESS] Workflow executed successfully!")
     else:
         print("  [FAILED] Workflow execution failed")
-    print("="*80 + "\n")
+    print("=" * 80 + "\n")

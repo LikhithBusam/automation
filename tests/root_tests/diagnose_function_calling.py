@@ -2,6 +2,7 @@
 Diagnostic Script - Check Function Calling Setup
 Verifies that agents have proper access to MCP tools
 """
+
 import sys
 import io
 import asyncio
@@ -9,11 +10,12 @@ import logging
 from pathlib import Path
 
 # Fix encoding for Windows console
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 
 async def main():
     print("=" * 70)
@@ -24,6 +26,7 @@ async def main():
     print("\n[1] Importing conversation manager...")
     try:
         from src.autogen_adapters.conversation_manager import create_conversation_manager
+
         print("✅ Import successful")
     except ImportError as e:
         print(f"❌ Import failed: {e}")
@@ -37,6 +40,7 @@ async def main():
     except Exception as e:
         print(f"❌ Manager creation failed: {e}")
         import traceback
+
         traceback.print_exc()
         return
 
@@ -54,14 +58,14 @@ async def main():
         print(f"   Name: {code_analyzer.name}")
 
         # Check if agent has llm_config with tools
-        if hasattr(code_analyzer, 'llm_config') and code_analyzer.llm_config:
-            tools = code_analyzer.llm_config.get('tools', [])
+        if hasattr(code_analyzer, "llm_config") and code_analyzer.llm_config:
+            tools = code_analyzer.llm_config.get("tools", [])
             print(f"   Tools in llm_config: {len(tools)}")
             if tools:
                 print(f"   Available tools:")
                 for tool in tools[:5]:  # Show first 5
-                    if 'function' in tool:
-                        func_name = tool['function'].get('name', 'unknown')
+                    if "function" in tool:
+                        func_name = tool["function"].get("name", "unknown")
                         print(f"     - {func_name}")
         else:
             print("   ⚠️  No llm_config found!")
@@ -76,7 +80,7 @@ async def main():
         print(f"   Name: {executor.name}")
 
         # Check function_map
-        if hasattr(executor, '_function_map'):
+        if hasattr(executor, "_function_map"):
             func_map = executor._function_map
             print(f"   Functions registered: {len(func_map) if func_map else 0}")
             if func_map:
@@ -99,8 +103,8 @@ async def main():
 
     # Test a simple read_file call
     print("\n[7] Testing read_file function directly...")
-    if 'read_file' in func_registry.functions:
-        read_file_func = func_registry.functions['read_file']
+    if "read_file" in func_registry.functions:
+        read_file_func = func_registry.functions["read_file"]
         print(f"✅ read_file function exists: {read_file_func}")
 
         try:
@@ -109,8 +113,8 @@ async def main():
             print(f"   Attempting to call: read_file(file_path='{test_path}')")
             result = await read_file_func(file_path=test_path)
             if result:
-                content = result.get('content', '') if isinstance(result, dict) else str(result)
-                preview = content[:200] if content else 'No content'
+                content = result.get("content", "") if isinstance(result, dict) else str(result)
+                preview = content[:200] if content else "No content"
                 print(f"✅ Function executed successfully!")
                 print(f"   Result preview: {preview}...")
             else:
@@ -118,6 +122,7 @@ async def main():
         except Exception as e:
             print(f"❌ Function call failed: {e}")
             import traceback
+
             traceback.print_exc()
     else:
         print("❌ read_file function not found in registry")
@@ -128,7 +133,7 @@ async def main():
     print(f"   Tool manager type: {type(tool_manager).__name__}")
 
     # Check available tools
-    if hasattr(tool_manager, 'tools'):
+    if hasattr(tool_manager, "tools"):
         print(f"   Available MCP tools:")
         for tool_name, tool in tool_manager.tools.items():
             print(f"     - {tool_name}: {type(tool).__name__}")
@@ -140,9 +145,11 @@ async def main():
     print("\n📊 Summary:")
     print(f"   ✅ Agents created: {len(agents)}")
     print(f"   ✅ Functions registered: {len(func_registry.functions)}")
-    print(f"   {'✅' if 'read_file' in func_registry.functions else '❌'} read_file function available")
+    print(
+        f"   {'✅' if 'read_file' in func_registry.functions else '❌'} read_file function available"
+    )
 
-    if executor and hasattr(executor, '_function_map') and executor._function_map:
+    if executor and hasattr(executor, "_function_map") and executor._function_map:
         print(f"   ✅ Executor has function_map with {len(executor._function_map)} functions")
     else:
         print(f"   ⚠️  Executor function_map issue detected!")
@@ -151,6 +158,7 @@ async def main():
     print("1. How the agent formats the function call")
     print("2. The conversation flow/termination")
     print("3. The model's ability to generate correct function calls")
+
 
 if __name__ == "__main__":
     asyncio.run(main())

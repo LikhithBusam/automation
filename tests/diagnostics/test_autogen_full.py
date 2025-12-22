@@ -1,11 +1,13 @@
 """
 Full integration test for AutoGen with updated Groq models
 """
+
 import sys
 from pathlib import Path
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent))
+
 
 def test_autogen_integration():
     print("=" * 70)
@@ -19,6 +21,7 @@ def test_autogen_integration():
         from src.autogen_adapters.agent_factory import AutoGenAgentFactory
         from src.autogen_adapters.groupchat_factory import GroupChatFactory
         from src.autogen_adapters.conversation_manager import ConversationManager
+
         print("  [OK] All imports successful")
     except Exception as e:
         print(f"  [FAIL] Import failed: {e}")
@@ -35,6 +38,7 @@ def test_autogen_integration():
     except Exception as e:
         print(f"  [FAIL] AgentFactory creation failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
     print()
@@ -47,6 +51,7 @@ def test_autogen_integration():
     except Exception as e:
         print(f"  [FAIL] Agent creation failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
     print()
@@ -76,6 +81,7 @@ def test_autogen_integration():
     except Exception as e:
         print(f"  [FAIL] ConversationManager initialization failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
     print()

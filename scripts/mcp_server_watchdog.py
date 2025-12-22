@@ -29,6 +29,7 @@ from mcp_server_daemon import ServerDaemon, SERVERS_CONFIG, LOG_DIR, DAEMON_DIR
 @dataclass
 class WatchdogConfig:
     """Watchdog configuration"""
+
     check_interval: int = 30  # seconds between checks
     health_check_timeout: int = 5  # seconds
     max_restart_attempts: int = 5  # per hour
@@ -57,18 +58,18 @@ class ServerWatchdog:
 
         log_file = LOG_DIR / f"watchdog_{datetime.now().strftime('%Y%m%d')}.log"
         handler = logging.FileHandler(log_file)
-        handler.setFormatter(logging.Formatter(
-            '[%(asctime)s] [%(levelname)s] %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S'
-        ))
+        handler.setFormatter(
+            logging.Formatter(
+                "[%(asctime)s] [%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+            )
+        )
         logger.addHandler(handler)
 
         # Also log to console
         console_handler = logging.StreamHandler()
-        console_handler.setFormatter(logging.Formatter(
-            '[%(asctime)s] %(message)s',
-            datefmt='%H:%M:%S'
-        ))
+        console_handler.setFormatter(
+            logging.Formatter("[%(asctime)s] %(message)s", datefmt="%H:%M:%S")
+        )
         logger.addHandler(console_handler)
 
         return logger
@@ -100,8 +101,7 @@ class ServerWatchdog:
         # Clean old restart times (older than 1 hour)
         cutoff_time = datetime.now() - timedelta(hours=1)
         self.restart_history[server_name] = [
-            t for t in self.restart_history[server_name]
-            if t > cutoff_time
+            t for t in self.restart_history[server_name] if t > cutoff_time
         ]
 
         recent_restarts = len(self.restart_history[server_name])
@@ -119,8 +119,7 @@ class ServerWatchdog:
             delay = 0  # First restart, no delay
         else:
             delay = min(
-                self.config.restart_backoff_base ** recent_restarts,
-                self.config.max_restart_delay
+                self.config.restart_backoff_base**recent_restarts, self.config.max_restart_delay
             )
 
         return True, delay
@@ -130,9 +129,9 @@ class ServerWatchdog:
         Monitor a single server and restart if needed.
         Returns True if server is healthy, False if action was taken.
         """
-        name = config['name']
-        display_name = config['display_name']
-        port = config['port']
+        name = config["name"]
+        display_name = config["display_name"]
+        port = config["port"]
 
         # Check if process is running
         pid = self.daemon.read_pid(name)
@@ -147,8 +146,7 @@ class ServerWatchdog:
             if should_restart:
                 if delay > 0:
                     self.logger.info(
-                        f"Waiting {delay:.1f}s before restarting {display_name} "
-                        f"(backoff)"
+                        f"Waiting {delay:.1f}s before restarting {display_name} " f"(backoff)"
                     )
                     await asyncio.sleep(delay)
 
@@ -165,9 +163,7 @@ class ServerWatchdog:
 
                 return False
             else:
-                self.logger.error(
-                    f"Not restarting {display_name} - too many recent failures"
-                )
+                self.logger.error(f"Not restarting {display_name} - too many recent failures")
                 return False
 
         # Process is running, check HTTP health
@@ -175,8 +171,7 @@ class ServerWatchdog:
 
         if not is_healthy:
             self.logger.warning(
-                f"{display_name} not responding on port {port} "
-                f"(process running: PID {pid})"
+                f"{display_name} not responding on port {port} " f"(process running: PID {pid})"
             )
             # Process running but not responding - may need restart
             # For now, just log it. Could implement restart logic here too.
@@ -210,19 +205,13 @@ class ServerWatchdog:
                         healthy_count += 1
                         self.logger.info(f"[OK] {config['display_name']} healthy")
                 except Exception as e:
-                    self.logger.error(
-                        f"Error monitoring {config['display_name']}: {e}"
-                    )
+                    self.logger.error(f"Error monitoring {config['display_name']}: {e}")
 
-            self.logger.info(
-                f"\nStatus: {healthy_count}/{len(SERVERS_CONFIG)} servers healthy"
-            )
+            self.logger.info(f"\nStatus: {healthy_count}/{len(SERVERS_CONFIG)} servers healthy")
 
             # Wait for next check
             if self.running:
-                self.logger.info(
-                    f"Next check in {self.config.check_interval}s...\n"
-                )
+                self.logger.info(f"Next check in {self.config.check_interval}s...\n")
                 await asyncio.sleep(self.config.check_interval)
 
         self.logger.info("\nWatchdog shutting down...")

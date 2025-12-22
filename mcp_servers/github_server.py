@@ -22,6 +22,7 @@ import httpx
 # Configuration Loading
 # =============================================================================
 
+
 def load_config() -> Dict[str, Any]:
     """Load configuration from config.yaml or environment variables"""
     config = {
@@ -32,15 +33,15 @@ def load_config() -> Dict[str, Any]:
         "api_base": "https://api.github.com",
         "timeout": 30,
     }
-    
+
     # Try to load from config.yaml
     config_path = Path("config/config.yaml")
     if config_path.exists():
         try:
-            with open(config_path, 'r', encoding='utf-8') as f:
+            with open(config_path, "r", encoding="utf-8") as f:
                 yaml_config = yaml.safe_load(f)
                 gh_config = yaml_config.get("mcp_servers", {}).get("github", {})
-                
+
                 if gh_config.get("rate_limit_minute"):
                     config["rate_limit_minute"] = gh_config["rate_limit_minute"]
                 if gh_config.get("rate_limit_hour"):
@@ -49,15 +50,17 @@ def load_config() -> Dict[str, Any]:
                     config["timeout"] = gh_config["timeout"]
         except Exception as e:
             logging.warning(f"Failed to load config.yaml: {e}")
-    
+
     # Environment variable overrides
     config["port"] = int(os.getenv("GITHUB_SERVER_PORT", config["port"]))
     config["host"] = os.getenv("GITHUB_SERVER_HOST", config["host"])
-    config["rate_limit_minute"] = int(os.getenv("GITHUB_RATE_LIMIT_MINUTE", config["rate_limit_minute"]))
+    config["rate_limit_minute"] = int(
+        os.getenv("GITHUB_RATE_LIMIT_MINUTE", config["rate_limit_minute"])
+    )
     config["rate_limit_hour"] = int(os.getenv("GITHUB_RATE_LIMIT_HOUR", config["rate_limit_hour"]))
     config["api_base"] = os.getenv("GITHUB_API_BASE", config["api_base"])
     config["timeout"] = int(os.getenv("GITHUB_TIMEOUT", config["timeout"]))
-    
+
     return config
 
 
@@ -72,9 +75,11 @@ logger = logging.getLogger("mcp.github")
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
 GITHUB_API_BASE = CONFIG["api_base"]
 
+
 # Rate limiting using Token Bucket Algorithm
 class TokenBucket:
     """Token bucket rate limiter for GitHub API requests"""
+
     def __init__(self, rate_per_minute: int = 60, rate_per_hour: int = 1000):
         self.rate_per_minute = rate_per_minute
         self.rate_per_hour = rate_per_hour
@@ -83,24 +88,24 @@ class TokenBucket:
         self.last_refill_minute = datetime.now()
         self.last_refill_hour = datetime.now()
         self._lock = asyncio.Lock()
-    
+
     async def acquire(self) -> bool:
         """Acquire a token, waiting if necessary"""
         async with self._lock:
             now = datetime.now()
-            
+
             # Refill minute tokens
             elapsed_minutes = (now - self.last_refill_minute).total_seconds() / 60
             if elapsed_minutes >= 1:
                 self.tokens_minute = self.rate_per_minute
                 self.last_refill_minute = now
-            
+
             # Refill hour tokens
             elapsed_hours = (now - self.last_refill_hour).total_seconds() / 3600
             if elapsed_hours >= 1:
                 self.tokens_hour = self.rate_per_hour
                 self.last_refill_hour = now
-            
+
             # Check if we have tokens
             if self.tokens_minute <= 0:
                 wait_time = 60 - (now - self.last_refill_minute).total_seconds()
@@ -108,25 +113,23 @@ class TokenBucket:
                 await asyncio.sleep(max(0, wait_time))
                 self.tokens_minute = self.rate_per_minute
                 self.last_refill_minute = datetime.now()
-            
+
             if self.tokens_hour <= 0:
                 raise Exception("Hourly rate limit exceeded. Please wait.")
-            
+
             self.tokens_minute -= 1
             self.tokens_hour -= 1
             return True
-    
+
     def get_remaining(self) -> Dict[str, int]:
         """Get remaining tokens"""
-        return {
-            "minute_remaining": self.tokens_minute,
-            "hour_remaining": self.tokens_hour
-        }
+        return {"minute_remaining": self.tokens_minute, "hour_remaining": self.tokens_hour}
+
 
 # Initialize rate limiter with config values
 rate_limiter = TokenBucket(
     rate_per_minute=CONFIG.get("rate_limit_minute", 60),
-    rate_per_hour=CONFIG.get("rate_limit_hour", 1000)
+    rate_per_hour=CONFIG.get("rate_limit_hour", 1000),
 )
 
 # Request statistics
@@ -134,15 +137,12 @@ request_stats = {
     "total_requests": 0,
     "successful_requests": 0,
     "failed_requests": 0,
-    "last_request_time": None
+    "last_request_time": None,
 }
 
 
 async def github_request(
-    method: str,
-    endpoint: str,
-    data: Optional[Dict] = None,
-    params: Optional[Dict] = None
+    method: str, endpoint: str, data: Optional[Dict] = None, params: Optional[Dict] = None
 ) -> Dict[str, Any]:
     """Make authenticated request to GitHub API with rate limiting"""
     if not GITHUB_TOKEN:
@@ -150,14 +150,14 @@ async def github_request(
 
     # Acquire rate limit token
     await rate_limiter.acquire()
-    
+
     request_stats["total_requests"] += 1
     request_stats["last_request_time"] = datetime.now().isoformat()
 
     headers = {
         "Authorization": f"Bearer {GITHUB_TOKEN}",
         "Accept": "application/vnd.github.v3+json",
-        "X-GitHub-Api-Version": "2022-11-28"
+        "X-GitHub-Api-Version": "2022-11-28",
     }
 
     url = f"{GITHUB_API_BASE}{endpoint}"
@@ -179,7 +179,7 @@ async def github_request(
 
             response.raise_for_status()
             request_stats["successful_requests"] += 1
-            
+
             # Handle empty responses
             if response.status_code == 204:
                 return {"status": "success"}
@@ -192,11 +192,7 @@ async def github_request(
 
 @mcp.tool()
 async def create_pull_request(
-    repo: str,
-    title: str,
-    head: str,
-    base: str,
-    body: Optional[str] = None
+    repo: str, title: str, head: str, base: str, body: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Create a pull request on GitHub.
@@ -222,12 +218,7 @@ async def create_pull_request(
         print(f"Created PR #{pr['number']}: {pr['url']}")
     """
     endpoint = f"/repos/{repo}/pulls"
-    data = {
-        "title": title,
-        "head": head,
-        "base": base,
-        "body": body or ""
-    }
+    data = {"title": title, "head": head, "base": base, "body": body or ""}
 
     result = await github_request("POST", endpoint, data=data)
 
@@ -238,7 +229,7 @@ async def create_pull_request(
         "url": result["html_url"],
         "state": result["state"],
         "created_at": result["created_at"],
-        "user": result["user"]["login"]
+        "user": result["user"]["login"],
     }
 
 
@@ -273,7 +264,7 @@ async def get_pull_request(repo: str, pr_number: int) -> Dict[str, Any]:
         "url": result["html_url"],
         "user": result["user"]["login"],
         "created_at": result["created_at"],
-        "updated_at": result["updated_at"]
+        "updated_at": result["updated_at"],
     }
 
 
@@ -283,7 +274,7 @@ async def create_issue(
     title: str,
     body: Optional[str] = None,
     labels: Optional[List[str]] = None,
-    assignees: Optional[List[str]] = None
+    assignees: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """
     Create an issue on GitHub.
@@ -325,16 +316,13 @@ async def create_issue(
         "number": result["number"],
         "url": result["html_url"],
         "state": result["state"],
-        "created_at": result["created_at"]
+        "created_at": result["created_at"],
     }
 
 
 @mcp.tool()
 async def search_code(
-    query: str,
-    language: Optional[str] = None,
-    repo: Optional[str] = None,
-    per_page: int = 10
+    query: str, language: Optional[str] = None, repo: Optional[str] = None, per_page: int = 10
 ) -> Dict[str, Any]:
     """
     Search for code across GitHub repositories.
@@ -365,10 +353,7 @@ async def search_code(
         search_query += f" repo:{repo}"
 
     endpoint = "/search/code"
-    params = {
-        "q": search_query,
-        "per_page": min(per_page, 100)
-    }
+    params = {"q": search_query, "per_page": min(per_page, 100)}
 
     result = await github_request("GET", endpoint, params=params)
 
@@ -377,24 +362,19 @@ async def search_code(
             "repo": item["repository"]["full_name"],
             "path": item["path"],
             "url": item["html_url"],
-            "score": item.get("score", 0)
+            "score": item.get("score", 0),
         }
         for item in result.get("items", [])
     ]
 
     logger.info(f"Found {result.get('total_count', 0)} code results for '{query}'")
 
-    return {
-        "total_count": result.get("total_count", 0),
-        "items": items
-    }
+    return {"total_count": result.get("total_count", 0), "items": items}
 
 
 @mcp.tool()
 async def search_repositories(
-    query: str,
-    sort: str = "stars",
-    per_page: int = 10
+    query: str, sort: str = "stars", per_page: int = 10
 ) -> Dict[str, Any]:
     """
     Search for GitHub repositories.
@@ -416,11 +396,7 @@ async def search_repositories(
             print(f"{repo['name']}: {repo['stars']} stars")
     """
     endpoint = "/search/repositories"
-    params = {
-        "q": query,
-        "sort": sort,
-        "per_page": min(per_page, 100)
-    }
+    params = {"q": query, "sort": sort, "per_page": min(per_page, 100)}
 
     result = await github_request("GET", endpoint, params=params)
 
@@ -432,23 +408,16 @@ async def search_repositories(
             "forks": repo["forks_count"],
             "language": repo.get("language"),
             "url": repo["html_url"],
-            "updated_at": repo["updated_at"]
+            "updated_at": repo["updated_at"],
         }
         for repo in result.get("items", [])
     ]
 
-    return {
-        "total_count": result.get("total_count", 0),
-        "repositories": repositories
-    }
+    return {"total_count": result.get("total_count", 0), "repositories": repositories}
 
 
 @mcp.tool()
-async def get_file_content(
-    repo: str,
-    path: str,
-    ref: Optional[str] = None
-) -> Dict[str, Any]:
+async def get_file_content(repo: str, path: str, ref: Optional[str] = None) -> Dict[str, Any]:
     """
     Get the content of a file from a GitHub repository.
 
@@ -474,23 +443,21 @@ async def get_file_content(
 
     # Decode base64 content
     import base64
-    content = base64.b64decode(result["content"]).decode('utf-8')
+
+    content = base64.b64decode(result["content"]).decode("utf-8")
 
     return {
         "content": content,
         "path": result["path"],
         "size": result["size"],
         "sha": result["sha"],
-        "url": result["html_url"]
+        "url": result["html_url"],
     }
 
 
 @mcp.tool()
 async def list_commits(
-    repo: str,
-    branch: Optional[str] = None,
-    since: Optional[str] = None,
-    per_page: int = 10
+    repo: str, branch: Optional[str] = None, since: Optional[str] = None, per_page: int = 10
 ) -> Dict[str, Any]:
     """
     List recent commits in a repository.
@@ -516,7 +483,7 @@ async def list_commits(
     """
     endpoint = f"/repos/{repo}/commits"
     params = {"per_page": min(per_page, 100)}
-    
+
     if branch:
         params["sha"] = branch
     if since:
@@ -527,22 +494,17 @@ async def list_commits(
     commits = [
         {
             "sha": commit["sha"],
-            "message": commit["commit"]["message"].split('\n')[0],  # First line only
+            "message": commit["commit"]["message"].split("\n")[0],  # First line only
             "full_message": commit["commit"]["message"],
             "author": commit["commit"]["author"]["name"],
             "author_email": commit["commit"]["author"]["email"],
             "date": commit["commit"]["author"]["date"],
-            "url": commit["html_url"]
+            "url": commit["html_url"],
         }
         for commit in result
     ]
 
-    return {
-        "commits": commits,
-        "count": len(commits),
-        "repo": repo,
-        "branch": branch
-    }
+    return {"commits": commits, "count": len(commits), "repo": repo, "branch": branch}
 
 
 @mcp.tool()
@@ -551,7 +513,7 @@ async def list_repositories(
     user: Optional[str] = None,
     visibility: str = "all",
     sort: str = "updated",
-    per_page: int = 30
+    per_page: int = 30,
 ) -> Dict[str, Any]:
     """
     List repositories for an organization or user.
@@ -578,11 +540,11 @@ async def list_repositories(
     else:
         # List authenticated user's repos
         endpoint = "/user/repos"
-    
+
     params = {
         "type": visibility if visibility != "all" else "all",
         "sort": sort,
-        "per_page": min(per_page, 100)
+        "per_page": min(per_page, 100),
     }
 
     result = await github_request("GET", endpoint, params=params)
@@ -600,19 +562,14 @@ async def list_repositories(
             "default_branch": repo.get("default_branch", "main"),
             "created_at": repo["created_at"],
             "updated_at": repo["updated_at"],
-            "pushed_at": repo.get("pushed_at")
+            "pushed_at": repo.get("pushed_at"),
         }
         for repo in result
     ]
 
     logger.info(f"Listed {len(repositories)} repositories")
 
-    return {
-        "repositories": repositories,
-        "count": len(repositories),
-        "org": org,
-        "user": user
-    }
+    return {"repositories": repositories, "count": len(repositories), "org": org, "user": user}
 
 
 @mcp.tool()
@@ -633,28 +590,27 @@ async def health_check() -> Dict[str, Any]:
         "timestamp": datetime.now().isoformat(),
         "token_configured": bool(GITHUB_TOKEN),
         "rate_limits": rate_limiter.get_remaining(),
-        "stats": request_stats
+        "stats": request_stats,
     }
-    
+
     # Test GitHub API connectivity
     if GITHUB_TOKEN:
         try:
             result = await github_request("GET", "/rate_limit")
             health["github_api"] = {
                 "connected": True,
-                "rate_limit_remaining": result.get("resources", {}).get("core", {}).get("remaining", 0),
-                "rate_limit_reset": result.get("resources", {}).get("core", {}).get("reset", 0)
+                "rate_limit_remaining": result.get("resources", {})
+                .get("core", {})
+                .get("remaining", 0),
+                "rate_limit_reset": result.get("resources", {}).get("core", {}).get("reset", 0),
             }
         except Exception as e:
-            health["github_api"] = {
-                "connected": False,
-                "error": str(e)
-            }
+            health["github_api"] = {"connected": False, "error": str(e)}
             health["status"] = "degraded"
     else:
         health["github_api"] = {"connected": False, "error": "Token not configured"}
         health["status"] = "unconfigured"
-    
+
     return health
 
 

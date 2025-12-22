@@ -2,16 +2,18 @@
 Complete CodeBaseBuddy Test Script
 Tests the full workflow: index building and semantic search
 """
+
 import sys
 import io
 import asyncio
 from pathlib import Path
 
 # Fix encoding for Windows console
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
 
 # Add mcp_servers to path to import client
 sys.path.insert(0, str(Path(__file__).parent))
+
 
 async def test_codebasebuddy_complete():
     """Complete test of CodeBaseBuddy functionality"""
@@ -24,6 +26,7 @@ async def test_codebasebuddy_complete():
         print("\n[Step 1] Importing MCP client...")
         from mcp import ClientSession, StdioServerParameters
         from mcp.client.stdio import stdio_client
+
         print("✅ MCP client imported")
     except ImportError as e:
         print(f"❌ Failed to import MCP client: {e}")
@@ -36,6 +39,7 @@ async def test_codebasebuddy_complete():
 
     # Test with direct HTTP instead
     await test_with_http()
+
 
 async def test_with_http():
     """Test CodeBaseBuddy using direct HTTP calls"""
@@ -53,7 +57,9 @@ async def test_with_http():
         async with aiohttp.ClientSession() as session:
             # Just check if we can connect (SSE will timeout which is fine)
             try:
-                async with session.get(f"{base_url}/sse", timeout=aiohttp.ClientTimeout(total=1)) as response:
+                async with session.get(
+                    f"{base_url}/sse", timeout=aiohttp.ClientTimeout(total=1)
+                ) as response:
                     print(f"✅ Server responding: {response.status}")
             except asyncio.TimeoutError:
                 print(f"✅ Server responding (SSE stream active)")
@@ -72,6 +78,7 @@ async def test_with_http():
     # let's test by directly importing and using the server module
     await test_direct_import()
 
+
 async def test_direct_import():
     """Test by directly importing the server module"""
     print("\n" + "=" * 70)
@@ -82,6 +89,7 @@ async def test_direct_import():
         # Import the server module
         print("\n[Step 1] Importing CodeBaseBuddy server module...")
         import mcp_servers.codebasebuddy_server as cbb
+
         print("✅ Module imported successfully")
 
         # Initialize if needed
@@ -99,9 +107,7 @@ async def test_direct_import():
         print("   Extensions: .py")
 
         result = await cbb.build_index(
-            root_path="./mcp_servers",
-            file_extensions=[".py"],
-            rebuild=False
+            root_path="./mcp_servers", file_extensions=[".py"], rebuild=False
         )
 
         if result.get("success"):
@@ -119,7 +125,7 @@ async def test_direct_import():
         queries = [
             "FastMCP server implementation",
             "semantic code search with embeddings",
-            "FAISS vector index"
+            "FAISS vector index",
         ]
 
         for query in queries:
@@ -169,6 +175,7 @@ async def test_direct_import():
     except Exception as e:
         print(f"❌ Test failed: {e}")
         import traceback
+
         traceback.print_exc()
         return
 
@@ -183,6 +190,7 @@ async def test_direct_import():
     print("  - find_similar_code: Find similar code patterns")
     print("  - get_code_context: Get code with context")
     print("  - get_index_stats: View index statistics")
+
 
 if __name__ == "__main__":
     asyncio.run(test_codebasebuddy_complete())

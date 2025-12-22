@@ -16,7 +16,7 @@ from datetime import datetime
 def load_config() -> Dict[str, Any]:
     """Load configuration from config.yaml with environment variable substitution"""
     config_path = Path(__file__).parent.parent / "config" / "config.yaml"
-    
+
     default_config = {
         "port": 3001,
         "host": "0.0.0.0",
@@ -24,24 +24,24 @@ def load_config() -> Dict[str, Any]:
         "blocked_patterns": [r"\.\./", r"/etc/", r"/root/", r"\.ssh/", r"\.env$"],
         "max_file_size_mb": 10,
         "rate_limit_minute": 100,
-        "rate_limit_hour": 2000
+        "rate_limit_hour": 2000,
     }
-    
+
     if not config_path.exists():
         logging.warning(f"Config file not found at {config_path}, using defaults")
         return default_config
-    
+
     try:
-        with open(config_path, 'r') as f:
+        with open(config_path, "r") as f:
             full_config = yaml.safe_load(f)
-        
+
         # Get filesystem server config
         server_config = full_config.get("mcp_servers", {}).get("filesystem", {})
-        
+
         # Substitute environment variables (${VAR_NAME} pattern)
         def substitute_env_vars(value):
             if isinstance(value, str):
-                pattern = r'\$\{([^}]+)\}'
+                pattern = r"\$\{([^}]+)\}"
                 matches = re.findall(pattern, value)
                 for var_name in matches:
                     env_value = os.getenv(var_name, "")
@@ -52,16 +52,16 @@ def load_config() -> Dict[str, Any]:
             elif isinstance(value, list):
                 return [substitute_env_vars(item) for item in value]
             return value
-        
+
         server_config = substitute_env_vars(server_config)
-        
+
         # Merge with defaults
         for key, value in default_config.items():
             if key not in server_config:
                 server_config[key] = value
-        
+
         return server_config
-    
+
     except Exception as e:
         logging.error(f"Error loading config: {e}, using defaults")
         return default_config
@@ -77,13 +77,16 @@ logger = logging.getLogger("mcp.filesystem")
 # Security configuration (from config)
 ALLOWED_PATHS = [Path(p).resolve() for p in CONFIG.get("allowed_paths", ["./workspace", "./src"])]
 
-BLOCKED_PATTERNS = CONFIG.get("blocked_patterns", [
-    r"\.\./",  # Directory traversal
-    r"/etc/",  # System files
-    r"/root/",  # Root directory
-    r"\.ssh/",  # SSH keys
-    r"\.env$",  # Environment files
-])
+BLOCKED_PATTERNS = CONFIG.get(
+    "blocked_patterns",
+    [
+        r"\.\./",  # Directory traversal
+        r"/etc/",  # System files
+        r"/root/",  # Root directory
+        r"\.ssh/",  # SSH keys
+        r"\.env$",  # Environment files
+    ],
+)
 
 # Add default patterns that should always be blocked
 DEFAULT_BLOCKED = [r"\.git/config", r"__pycache__", r"\.pyc$"]
@@ -95,9 +98,30 @@ MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
 
 # File type filters for code analysis
 CODE_FILE_EXTENSIONS = {
-    ".py", ".js", ".ts", ".jsx", ".tsx", ".java", ".cpp", ".c", ".h",
-    ".cs", ".go", ".rs", ".rb", ".php", ".swift", ".kt", ".scala",
-    ".yaml", ".yml", ".json", ".xml", ".toml", ".ini", ".cfg"
+    ".py",
+    ".js",
+    ".ts",
+    ".jsx",
+    ".tsx",
+    ".java",
+    ".cpp",
+    ".c",
+    ".h",
+    ".cs",
+    ".go",
+    ".rs",
+    ".rb",
+    ".php",
+    ".swift",
+    ".kt",
+    ".scala",
+    ".yaml",
+    ".yml",
+    ".json",
+    ".xml",
+    ".toml",
+    ".ini",
+    ".cfg",
 }
 
 
@@ -114,10 +138,7 @@ def is_path_allowed(path: str) -> bool:
                 return False
 
         # Check if within allowed paths
-        return any(
-            str(resolved).startswith(str(allowed))
-            for allowed in ALLOWED_PATHS
-        )
+        return any(str(resolved).startswith(str(allowed)) for allowed in ALLOWED_PATHS)
     except Exception as e:
         logger.error(f"Path validation error: {e}")
         return False
@@ -158,16 +179,18 @@ async def read_file(path: str, max_size_mb: Optional[float] = None) -> Dict[str,
     stat = file_path.stat()
     size_limit = (max_size_mb or MAX_FILE_SIZE_MB) * 1024 * 1024
     if stat.st_size > size_limit:
-        raise ValueError(f"File too large: {stat.st_size / 1024 / 1024:.2f}MB exceeds limit of {max_size_mb or MAX_FILE_SIZE_MB}MB")
+        raise ValueError(
+            f"File too large: {stat.st_size / 1024 / 1024:.2f}MB exceeds limit of {max_size_mb or MAX_FILE_SIZE_MB}MB"
+        )
 
     try:
-        content = file_path.read_text(encoding='utf-8')
+        content = file_path.read_text(encoding="utf-8")
 
         return {
             "content": content,
             "path": str(file_path),
             "size": stat.st_size,
-            "lines": len(content.split('\n')),
+            "lines": len(content.split("\n")),
             "encoding": "utf-8",
             "modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
         }
@@ -179,7 +202,7 @@ async def read_file(path: str, max_size_mb: Optional[float] = None) -> Dict[str,
             "path": str(file_path),
             "size": len(content),
             "encoding": "binary",
-            "note": "Binary file - content returned as hex string"
+            "note": "Binary file - content returned as hex string",
         }
 
 
@@ -209,22 +232,20 @@ async def write_file(path: str, content: str, create_dirs: bool = True) -> Dict[
         file_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Write file
-    file_path.write_text(content, encoding='utf-8')
+    file_path.write_text(content, encoding="utf-8")
     stat = file_path.stat()
 
     return {
         "status": "success",
         "path": str(file_path),
         "bytes_written": stat.st_size,
-        "lines_written": len(content.split('\n'))
+        "lines_written": len(content.split("\n")),
     }
 
 
 @mcp.tool()
 async def list_directory(
-    path: str,
-    recursive: bool = False,
-    filter_code_files: bool = False
+    path: str, recursive: bool = False, filter_code_files: bool = False
 ) -> Dict[str, Any]:
     """
     List contents of a directory.
@@ -269,14 +290,16 @@ async def list_directory(
 
         try:
             stat = item.stat()
-            items.append({
-                "name": item.name,
-                "path": str(item.relative_to(dir_path)),
-                "type": "directory" if item.is_dir() else "file",
-                "size": stat.st_size if item.is_file() else None,
-                "modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
-                "extension": item.suffix if item.is_file() else None,
-            })
+            items.append(
+                {
+                    "name": item.name,
+                    "path": str(item.relative_to(dir_path)),
+                    "type": "directory" if item.is_dir() else "file",
+                    "size": stat.st_size if item.is_file() else None,
+                    "modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                    "extension": item.suffix if item.is_file() else None,
+                }
+            )
         except Exception as e:
             logger.warning(f"Error accessing {item}: {e}")
             continue
@@ -286,7 +309,7 @@ async def list_directory(
         "items": items,
         "count": len(items),
         "recursive": recursive,
-        "filtered": filter_code_files
+        "filtered": filter_code_files,
     }
 
 
@@ -296,7 +319,7 @@ async def search_files(
     query: str,
     case_sensitive: bool = False,
     max_results: int = 100,
-    file_pattern: Optional[str] = None
+    file_pattern: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Search for text within files in a directory.
@@ -341,27 +364,33 @@ async def search_files(
             continue
 
         try:
-            content = file_path.read_text(encoding='utf-8')
-            lines = content.split('\n')
+            content = file_path.read_text(encoding="utf-8")
+            lines = content.split("\n")
 
             matches = []
             for i, line in enumerate(lines, 1):
                 check_line = line if case_sensitive else line.lower()
                 if search_query in check_line:
-                    matches.append({
-                        "line_number": i,
-                        "content": line.strip(),
-                        "context_before": lines[max(0, i-2):i-1] if i > 1 else [],
-                        "context_after": lines[i:min(len(lines), i+2)] if i < len(lines) else []
-                    })
+                    matches.append(
+                        {
+                            "line_number": i,
+                            "content": line.strip(),
+                            "context_before": lines[max(0, i - 2) : i - 1] if i > 1 else [],
+                            "context_after": (
+                                lines[i : min(len(lines), i + 2)] if i < len(lines) else []
+                            ),
+                        }
+                    )
 
             if matches:
-                results.append({
-                    "file": str(file_path.relative_to(search_path)),
-                    "absolute_path": str(file_path),
-                    "matches": matches,
-                    "match_count": len(matches)
-                })
+                results.append(
+                    {
+                        "file": str(file_path.relative_to(search_path)),
+                        "absolute_path": str(file_path),
+                        "matches": matches,
+                        "match_count": len(matches),
+                    }
+                )
 
         except UnicodeDecodeError:
             # Skip binary files
@@ -376,7 +405,7 @@ async def search_files(
         "results": results,
         "total_files": len(results),
         "total_matches": sum(r["match_count"] for r in results),
-        "case_sensitive": case_sensitive
+        "case_sensitive": case_sensitive,
     }
 
 
@@ -446,7 +475,7 @@ async def analyze_code_structure(path: str) -> Dict[str, Any]:
         "total_lines": 0,
         "total_size": 0,
         "by_extension": {},
-        "largest_files": []
+        "largest_files": [],
     }
 
     files_with_sizes = []
@@ -460,8 +489,8 @@ async def analyze_code_structure(path: str) -> Dict[str, Any]:
 
         try:
             stat = file_path.stat()
-            content = file_path.read_text(encoding='utf-8')
-            lines = len(content.split('\n'))
+            content = file_path.read_text(encoding="utf-8")
+            lines = len(content.split("\n"))
 
             stats["total_files"] += 1
             stats["total_lines"] += lines
@@ -475,11 +504,9 @@ async def analyze_code_structure(path: str) -> Dict[str, Any]:
             stats["by_extension"][ext]["lines"] += lines
             stats["by_extension"][ext]["size"] += stat.st_size
 
-            files_with_sizes.append({
-                "file": str(file_path.relative_to(dir_path)),
-                "size": stat.st_size,
-                "lines": lines
-            })
+            files_with_sizes.append(
+                {"file": str(file_path.relative_to(dir_path)), "size": stat.st_size, "lines": lines}
+            )
 
         except Exception as e:
             logger.warning(f"Error analyzing {file_path}: {e}")
@@ -511,9 +538,9 @@ async def delete_file(path: str, confirm: bool = False) -> Dict[str, Any]:
         return {
             "status": "confirmation_required",
             "message": "Set confirm=True to actually delete the file",
-            "path": path
+            "path": path,
         }
-    
+
     if not is_path_allowed(path):
         raise PermissionError(f"Access denied: {path} is outside allowed directories")
 
@@ -529,18 +556,14 @@ async def delete_file(path: str, confirm: bool = False) -> Dict[str, Any]:
     file_info = {
         "name": file_path.name,
         "size": stat.st_size,
-        "modified": datetime.fromtimestamp(stat.st_mtime).isoformat()
+        "modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
     }
 
     # Delete the file
     file_path.unlink()
     logger.info(f"Deleted file: {path}")
 
-    return {
-        "status": "success",
-        "deleted_file": file_info,
-        "path": str(file_path)
-    }
+    return {"status": "success", "deleted_file": file_info, "path": str(file_path)}
 
 
 @mcp.tool()
@@ -561,31 +584,31 @@ async def health_check() -> Dict[str, Any]:
         "timestamp": datetime.now().isoformat(),
         "allowed_paths": [],
         "blocked_patterns": BLOCKED_PATTERNS,
-        "max_file_size_mb": MAX_FILE_SIZE_MB
+        "max_file_size_mb": MAX_FILE_SIZE_MB,
     }
-    
+
     # Check each allowed path
     for allowed_path in ALLOWED_PATHS:
         path_status = {
             "path": str(allowed_path),
             "exists": allowed_path.exists(),
             "readable": allowed_path.exists() and os.access(allowed_path, os.R_OK),
-            "writable": allowed_path.exists() and os.access(allowed_path, os.W_OK)
+            "writable": allowed_path.exists() and os.access(allowed_path, os.W_OK),
         }
         health["allowed_paths"].append(path_status)
-    
+
     # Check if any paths are inaccessible
     if not any(p["readable"] for p in health["allowed_paths"]):
         health["status"] = "degraded"
         health["warning"] = "No allowed paths are accessible"
-    
+
     return health
 
 
 if __name__ == "__main__":
     port = CONFIG["port"]
     host = CONFIG["host"]
-    
+
     print(f"Starting Filesystem MCP Server on http://{host}:{port}...")
     print(f"Allowed paths: {[str(p) for p in ALLOWED_PATHS]}")
     print(f"Max file size: {MAX_FILE_SIZE_MB}MB")

@@ -11,11 +11,13 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
+
 def print_section(title):
     """Print a section header"""
     print("\n" + "=" * 70)
     print(f"  {title}")
     print("=" * 70)
+
 
 def check_env_vars():
     """Check environment variables"""
@@ -32,9 +34,12 @@ def check_env_vars():
 
     # Check other keys
     github_token = os.getenv("GITHUB_TOKEN")
-    print(f"{'[OK]' if github_token else '[WARN]'} GITHUB_TOKEN: {'SET' if github_token else 'NOT SET'}")
+    print(
+        f"{'[OK]' if github_token else '[WARN]'} GITHUB_TOKEN: {'SET' if github_token else 'NOT SET'}"
+    )
 
     return True
+
 
 def check_config_files():
     """Check configuration files"""
@@ -44,7 +49,7 @@ def check_config_files():
 
     # Check autogen_agents.yaml
     try:
-        with open("config/autogen_agents.yaml", 'r') as f:
+        with open("config/autogen_agents.yaml", "r") as f:
             config = yaml.safe_load(f)
 
         llm_configs = config.get("llm_configs", {})
@@ -66,6 +71,7 @@ def check_config_files():
         print(f"[ERROR] Error reading config: {e}")
         return False
 
+
 def test_groq_api():
     """Test Groq API directly"""
     print_section("3. Groq API Connection Test")
@@ -84,12 +90,7 @@ def test_groq_api():
         # Test with a simple completion
         print("  Sending test request...")
         chat_completion = client.chat.completions.create(
-            messages=[
-                {
-                    "role": "user",
-                    "content": "Respond with exactly: 'Groq API is working!'"
-                }
-            ],
+            messages=[{"role": "user", "content": "Respond with exactly: 'Groq API is working!'"}],
             model="llama-3.1-8b-instant",
             max_tokens=50,
         )
@@ -108,6 +109,7 @@ def test_groq_api():
         print(f"  [ERROR] Groq API test failed: {e}")
         print(f"  Error type: {type(e).__name__}")
         return False
+
 
 def test_autogen_config():
     """Test AutoGen configuration"""
@@ -133,8 +135,10 @@ def test_autogen_config():
     except Exception as e:
         print(f"  [ERROR] Error: {e}")
         import traceback
+
         traceback.print_exc()
         return False
+
 
 async def test_conversation_manager():
     """Test Conversation Manager initialization"""
@@ -159,8 +163,10 @@ async def test_conversation_manager():
     except Exception as e:
         print(f"  [ERROR] Error: {e}")
         import traceback
+
         traceback.print_exc()
         return False
+
 
 def print_summary(results):
     """Print test summary"""
@@ -193,6 +199,7 @@ def print_summary(results):
         print("  3. Ensure MCP servers are running: python start_mcp_servers.py")
         return 1
 
+
 async def main():
     """Run all diagnostic tests"""
     print()
@@ -215,6 +222,7 @@ async def main():
 
     return exit_code
 
+
 if __name__ == "__main__":
     try:
         exit_code = asyncio.run(main())
@@ -225,5 +233,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n\nFatal error: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

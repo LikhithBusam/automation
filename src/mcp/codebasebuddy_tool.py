@@ -19,24 +19,19 @@ import time
 import hashlib
 from contextlib import asynccontextmanager
 
-from src.mcp.base_tool import (
-    BaseMCPTool,
-    MCPConnectionError,
-    MCPValidationError,
-    MCPToolError
-)
+from src.mcp.base_tool import BaseMCPTool, MCPConnectionError, MCPValidationError, MCPToolError
 
 
 class CodeBaseBuddyMCPTool(BaseMCPTool):
     """
     CodeBaseBuddy MCP Tool Wrapper.
-    
+
     Provides semantic code search and understanding:
     - Natural language code search
     - Find similar code patterns
     - Get code context
     - Build/manage vector index
-    
+
     Features:
     - Sentence-transformer embeddings
     - Annoy vector index for fast search
@@ -46,15 +41,13 @@ class CodeBaseBuddyMCPTool(BaseMCPTool):
 
     # Cache TTLs for different operations (in seconds)
     CACHE_TTLS = {
-        "semantic_search": 300,      # 5 minutes
-        "find_similar_code": 300,    # 5 minutes
-        "get_index_stats": 60,       # 1 minute
+        "semantic_search": 300,  # 5 minutes
+        "find_similar_code": 300,  # 5 minutes
+        "get_index_stats": 60,  # 1 minute
     }
 
     def __init__(
-        self,
-        server_url: str = "http://localhost:3004",
-        config: Optional[Dict[str, Any]] = None
+        self, server_url: str = "http://localhost:3004", config: Optional[Dict[str, Any]] = None
     ):
         """
         Initialize CodeBaseBuddy tool.
@@ -77,7 +70,7 @@ class CodeBaseBuddyMCPTool(BaseMCPTool):
             name="codebasebuddy",
             server_url=server_url,
             config=config,
-            fallback_handler=self._fallback_handler
+            fallback_handler=self._fallback_handler,
         )
 
         self.logger = logging.getLogger(__name__)
@@ -88,11 +81,7 @@ class CodeBaseBuddyMCPTool(BaseMCPTool):
         self._max_connections = config.get("max_connections", 10)
         self._max_connections_per_host = config.get("max_connections_per_host", 5)
 
-    async def _fallback_handler(
-        self,
-        operation: str,
-        params: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    async def _fallback_handler(self, operation: str, params: Dict[str, Any]) -> Dict[str, Any]:
         """
         Fallback handler when MCP server is unavailable.
         Uses basic text search and file operations as fallback.
@@ -117,56 +106,198 @@ class CodeBaseBuddyMCPTool(BaseMCPTool):
             return {
                 "success": False,
                 "error": f"Fallback not available for operation: {operation}",
-                "fallback_used": True
+                "fallback_used": True,
             }
 
     async def _fallback_search(self, params: Dict[str, Any]) -> Dict[str, Any]:
-        """Basic text search fallback when semantic search unavailable"""
+        """Smart text search fallback when semantic search unavailable"""
         query = params.get("query", "")
         top_k = params.get("top_k", 5)
 
         results = []
+
+        # Extract meaningful keywords from query (ignore common words)
+        stop_words = {
+            "what",
+            "is",
+            "how",
+            "does",
+            "the",
+            "a",
+            "an",
+            "are",
+            "in",
+            "to",
+            "for",
+            "of",
+            "and",
+            "or",
+            "it",
+            "this",
+            "that",
+            "be",
+            "with",
+            "on",
+            "at",
+            "by",
+            "work",
+            "works",
+            "working",
+            "used",
+            "use",
+            "using",
+            "do",
+            "can",
+            "where",
+            "when",
+            "why",
+            "which",
+            "there",
+            "here",
+            "about",
+            "get",
+            "gets",
+            "got",
+            "available",
+            "exist",
+            "exists",
+            "have",
+            "has",
+            "had",
+            "defined",
+            "define",
+            "list",
+            "show",
+            "find",
+            "tell",
+            "give",
+            "me",
+            "all",
+            "any",
+            "some",
+        }
+
+        # Get keywords - words longer than 2 chars that aren't stop words
+        words = query.lower().replace("?", "").replace('"', "").replace("'", "").split()
+        keywords = [w for w in words if len(w) > 2 and w not in stop_words]
+
+        # If no keywords found, use original query words
+        if not keywords:
+            keywords = [w for w in words if len(w) > 2]
+
+        if not keywords:
+            return {
+                "success": True,
+                "query": query,
+                "results_count": 0,
+                "results": [],
+                "fallback_used": True,
+                "message": "No searchable keywords found in query",
+            }
 
         for scan_path in self.scan_paths:
             path = Path(scan_path)
             if not path.exists():
                 continue
 
-            for file_path in path.rglob("*.py"):
-                try:
-                    content = file_path.read_text(encoding='utf-8', errors='ignore')
-                    if query.lower() in content.lower():
-                        # Find matching lines
-                        lines = content.split('\n')
+            # Search Python files AND YAML config files
+            file_patterns = ["*.py", "*.yaml", "*.yml"]
+            for pattern in file_patterns:
+                for file_path in path.rglob(pattern):
+                    try:
+                        content = file_path.read_text(encoding="utf-8", errors="ignore")
+                        content_lower = content.lower()
+
+                        # Check if file contains any keywords
+                        matching_keywords = [kw for kw in keywords if kw in content_lower]
+                        if not matching_keywords:
+                            continue
+
+                        lines = content.split("\n")
+                        is_yaml = file_path.suffix in [".yaml", ".yml"]
+
+                        # Priority 1: Look for class/function definitions containing keywords
                         for i, line in enumerate(lines):
-                            if query.lower() in line.lower():
-                                results.append({
-                                    "file_path": str(file_path),
-                                    "chunk_type": "line_match",
-                                    "name": file_path.name,
-                                    "start_line": i + 1,
-                                    "end_line": i + 1,
-                                    "content_preview": line.strip()[:200],
-                                    "similarity_score": 0.5,  # Fallback has no real score
-                                    "fallback_match": True
-                                })
-                                if len(results) >= top_k:
+                            line_lower = line.lower()
+
+                            # For Python: class/function definitions
+                            # For YAML: key definitions (lines ending with :)
+                            if is_yaml:
+                                is_definition = ":" in line and not line.strip().startswith("#")
+                            else:
+                                is_definition = line.strip().startswith(
+                                    ("class ", "def ", "async def ")
+                                )
+
+                            # Check if this line contains any keyword
+                            line_keywords = [kw for kw in keywords if kw in line_lower]
+
+                            if line_keywords:
+                                # Higher score for definitions and config files
+                                score = 0.8 if is_definition else 0.5
+                                score += 0.1 * len(line_keywords)  # Bonus for multiple keywords
+
+                                # Boost YAML config files (they contain important definitions)
+                                if is_yaml:
+                                    score += 0.15
+
+                                # Get context (2 lines before, 3 lines after)
+                                start_idx = max(0, i - 2)
+                                end_idx = min(len(lines), i + 4)
+                                context_lines = lines[start_idx:end_idx]
+                                context_preview = "\n".join(context_lines)[:300]
+
+                                results.append(
+                                    {
+                                        "file_path": str(file_path),
+                                        "chunk_type": (
+                                            "config"
+                                            if is_yaml
+                                            else ("definition" if is_definition else "code")
+                                        ),
+                                        "name": file_path.name,
+                                        "start_line": i + 1,
+                                        "end_line": end_idx,
+                                        "content_preview": context_preview,
+                                        "similarity_score": min(0.98, score),
+                                        "matched_keywords": line_keywords,
+                                        "fallback_match": True,
+                                    }
+                                )
+
+                                # Don't break early - collect results from ALL scan paths
+                                if len(results) >= top_k * 5:  # Collect more to ensure variety
                                     break
-                except Exception as e:
-                    self.logger.warning(f"Error reading {file_path}: {e}")
 
-                if len(results) >= top_k:
-                    break
+                    except Exception as e:
+                        self.logger.warning(f"Error reading {file_path}: {e}")
 
-            if len(results) >= top_k:
-                break
+                    if len(results) >= top_k * 5:
+                        break
+
+                # Don't break here - continue to next pattern in same scan path
+
+            # Don't break here - continue to next scan path to get config files
+
+        # Sort by score (YAML configs and definitions first)
+        results.sort(key=lambda x: (-x["similarity_score"], x["file_path"]))
+
+        # Remove duplicates (same file + same line)
+        seen = set()
+        unique_results = []
+        for r in results:
+            key = (r["file_path"], r["start_line"])
+            if key not in seen:
+                seen.add(key)
+                unique_results.append(r)
 
         return {
             "success": True,
             "query": query,
-            "results_count": len(results),
-            "results": results[:top_k],
-            "fallback_used": True
+            "keywords_used": keywords,
+            "results_count": len(unique_results[:top_k]),
+            "results": unique_results[:top_k],
+            "fallback_used": True,
         }
 
     def _fallback_stats(self) -> Dict[str, Any]:
@@ -175,13 +306,9 @@ class CodeBaseBuddyMCPTool(BaseMCPTool):
 
         if stats_path.exists():
             try:
-                with open(stats_path, 'r') as f:
+                with open(stats_path, "r") as f:
                     stats = json.load(f)
-                return {
-                    "success": True,
-                    "stats": stats,
-                    "fallback_used": True
-                }
+                return {"success": True, "stats": stats, "fallback_used": True}
             except Exception:
                 pass
 
@@ -200,16 +327,16 @@ class CodeBaseBuddyMCPTool(BaseMCPTool):
                 "classes_indexed": 0,
                 "total_vectors": 0,
                 "index_ready": False,
-                "mode": "fallback"
+                "mode": "fallback",
             },
-            "fallback_used": True
+            "fallback_used": True,
         }
 
     def _fallback_build_index(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Fallback build index - returns success status"""
         root_path = params.get("root_path", "./src")
         file_extensions = params.get("file_extensions", [".py"])
-        
+
         return {
             "success": True,
             "message": "Index building skipped in fallback mode",
@@ -219,9 +346,9 @@ class CodeBaseBuddyMCPTool(BaseMCPTool):
                 "files_indexed": 0,
                 "functions_indexed": 0,
                 "classes_indexed": 0,
-                "total_vectors": 0
+                "total_vectors": 0,
             },
-            "fallback_used": True
+            "fallback_used": True,
         }
 
     async def _fallback_find_similar(self, params: Dict[str, Any]) -> Dict[str, Any]:
@@ -230,7 +357,7 @@ class CodeBaseBuddyMCPTool(BaseMCPTool):
         top_k = params.get("top_k", 5)
 
         results = []
-        
+
         # Search for files containing similar patterns
         for scan_path in self.scan_paths:
             path = Path(scan_path)
@@ -239,18 +366,22 @@ class CodeBaseBuddyMCPTool(BaseMCPTool):
 
             for file_path in path.rglob("*.py"):
                 try:
-                    content = file_path.read_text(encoding='utf-8', errors='ignore')
+                    content = file_path.read_text(encoding="utf-8", errors="ignore")
                     # Look for keywords from the snippet
                     keywords = [w for w in code_snippet.split() if len(w) > 3]
                     match_count = sum(1 for kw in keywords if kw.lower() in content.lower())
-                    
+
                     if match_count > 0:
-                        results.append({
-                            "file_path": str(file_path),
-                            "similarity_score": min(0.9, match_count / len(keywords)) if keywords else 0,
-                            "match_count": match_count,
-                            "fallback_match": True
-                        })
+                        results.append(
+                            {
+                                "file_path": str(file_path),
+                                "similarity_score": (
+                                    min(0.9, match_count / len(keywords)) if keywords else 0
+                                ),
+                                "match_count": match_count,
+                                "fallback_match": True,
+                            }
+                        )
                 except Exception:
                     pass
 
@@ -264,7 +395,7 @@ class CodeBaseBuddyMCPTool(BaseMCPTool):
             "success": True,
             "results_count": len(results),
             "results": sorted(results, key=lambda x: x["similarity_score"], reverse=True)[:top_k],
-            "fallback_used": True
+            "fallback_used": True,
         }
 
     async def _fallback_get_context(self, params: Dict[str, Any]) -> Dict[str, Any]:
@@ -281,25 +412,31 @@ class CodeBaseBuddyMCPTool(BaseMCPTool):
                 Path.cwd().parent / file_path,  # If called from scripts directory
                 Path(__file__).parent.parent / file_path,  # Relative to src directory
             ]
-            
+
             path = None
             for p in possible_paths:
                 if p.exists():
                     path = p
                     break
-            
-            if path is None:
-                return {"success": False, "error": f"File not found: {file_path}", "fallback_used": True}
 
-            content = path.read_text(encoding='utf-8', errors='ignore')
-            lines = content.split('\n')
-            
+            if path is None:
+                return {
+                    "success": False,
+                    "error": f"File not found: {file_path}",
+                    "fallback_used": True,
+                }
+
+            content = path.read_text(encoding="utf-8", errors="ignore")
+            lines = content.split("\n")
+
             start = max(0, line_number - context_lines - 1)
             end = min(len(lines), line_number + context_lines)
-            
+
             context_lines_list = lines[start:end]
-            context = '\n'.join(f"{i+1:4d}: {line}" for i, line in enumerate(context_lines_list, start=start))
-            
+            context = "\n".join(
+                f"{i+1:4d}: {line}" for i, line in enumerate(context_lines_list, start=start)
+            )
+
             return {
                 "success": True,
                 "file_path": str(path),
@@ -308,15 +445,18 @@ class CodeBaseBuddyMCPTool(BaseMCPTool):
                 "end_line": end,
                 "total_lines": len(lines),
                 "context": context,
-                "fallback_used": True
+                "fallback_used": True,
             }
         except Exception as e:
             return {"success": False, "error": str(e), "fallback_used": True}
 
     async def _fallback_find_usages(self, params: Dict[str, Any]) -> Dict[str, Any]:
-        """Fallback find usages - searches for symbol in files"""
-        symbol = params.get("symbol", "")
+        """Fallback find usages - searches for exact symbol in files"""
+        symbol = params.get("symbol", params.get("symbol_name", ""))
         top_k = params.get("top_k", 10)
+
+        if not symbol:
+            return {"success": False, "error": "No symbol provided", "fallback_used": True}
 
         results = []
 
@@ -327,47 +467,98 @@ class CodeBaseBuddyMCPTool(BaseMCPTool):
 
             for file_path in path.rglob("*.py"):
                 try:
-                    content = file_path.read_text(encoding='utf-8', errors='ignore')
-                    lines = content.split('\n')
-                    
+                    content = file_path.read_text(encoding="utf-8", errors="ignore")
+
+                    # Only process files that contain the symbol
+                    if symbol not in content:
+                        continue
+
+                    lines = content.split("\n")
+
                     for i, line in enumerate(lines):
+                        # Check for exact symbol match (as whole word or part of identifier)
                         if symbol in line:
-                            results.append({
-                                "file_path": str(file_path),
-                                "line_number": i + 1,
-                                "line_content": line.strip()[:200],
-                                "fallback_match": True
-                            })
-                            if len(results) >= top_k:
+                            # Determine usage type
+                            stripped = line.strip()
+                            if (
+                                stripped.startswith(f"class {symbol}")
+                                or f"class {symbol}(" in stripped
+                            ):
+                                usage_type = "definition (class)"
+                            elif stripped.startswith(f"def {symbol}") or stripped.startswith(
+                                f"async def {symbol}"
+                            ):
+                                usage_type = "definition (function)"
+                            elif (
+                                f"import {symbol}" in stripped
+                                or f"from " in stripped
+                                and symbol in stripped
+                            ):
+                                usage_type = "import"
+                            elif f"{symbol}(" in stripped:
+                                usage_type = "call"
+                            elif f"= {symbol}" in stripped or f"={symbol}" in stripped:
+                                usage_type = "assignment"
+                            else:
+                                usage_type = "reference"
+
+                            results.append(
+                                {
+                                    "file_path": str(file_path),
+                                    "line_number": i + 1,
+                                    "line_content": stripped[:200],
+                                    "usage_type": usage_type,
+                                    "fallback_match": True,
+                                }
+                            )
+
+                            if len(results) >= top_k * 2:  # Collect extra to filter
                                 break
                 except Exception:
                     pass
 
-                if len(results) >= top_k:
+                if len(results) >= top_k * 2:
                     break
 
-            if len(results) >= top_k:
+            if len(results) >= top_k * 2:
                 break
+
+        # Sort: definitions first, then imports, then calls, then others
+        priority = {
+            "definition (class)": 0,
+            "definition (function)": 1,
+            "import": 2,
+            "call": 3,
+            "assignment": 4,
+            "reference": 5,
+        }
+        results.sort(
+            key=lambda x: (priority.get(x.get("usage_type", "reference"), 5), x["file_path"])
+        )
+
+        return {
+            "success": True,
+            "symbol": symbol,
+            "results_count": len(results[:top_k]),
+            "results": results[:top_k],
+            "fallback_used": True,
+        }
 
         return {
             "success": True,
             "symbol": symbol,
             "results_count": len(results),
             "results": results[:top_k],
-            "fallback_used": True
+            "fallback_used": True,
         }
 
     # =========================================================================
     # Abstract Method Implementations
     # =========================================================================
 
-    async def _execute_operation(
-        self,
-        operation: str,
-        params: Dict[str, Any]
-    ) -> Any:
+    async def _execute_operation(self, operation: str, params: Dict[str, Any]) -> Any:
         """Execute CodeBaseBuddy operation"""
-        
+
         # Map operations to handlers
         handlers = {
             "semantic_search": self._handle_semantic_search,
@@ -378,11 +569,11 @@ class CodeBaseBuddyMCPTool(BaseMCPTool):
             "find_usages": self._handle_find_usages,
             "health": self._handle_health,
         }
-        
+
         handler = handlers.get(operation)
         if not handler:
             raise ValueError(f"Unknown operation: {operation}")
-        
+
         return await handler(params)
 
     async def _handle_semantic_search(self, params: Dict[str, Any]) -> Dict[str, Any]:
@@ -419,21 +610,18 @@ class CodeBaseBuddyMCPTool(BaseMCPTool):
             import aiohttp
 
             timeout = aiohttp.ClientTimeout(
-                total=self._connection_timeout,
-                connect=min(10, self._connection_timeout // 6)
+                total=self._connection_timeout, connect=min(10, self._connection_timeout // 6)
             )
 
             connector = aiohttp.TCPConnector(
                 limit=self._max_connections,
                 limit_per_host=self._max_connections_per_host,
                 ttl_dns_cache=300,
-                enable_cleanup_closed=True
+                enable_cleanup_closed=True,
             )
 
             self._session = aiohttp.ClientSession(
-                timeout=timeout,
-                connector=connector,
-                raise_for_status=False
+                timeout=timeout, connector=connector, raise_for_status=False
             )
 
             self.logger.info(
@@ -477,7 +665,7 @@ class CodeBaseBuddyMCPTool(BaseMCPTool):
 
     def validate_params(self, operation: str, params: Dict[str, Any]):
         """Validate operation parameters"""
-        
+
         validators = {
             "semantic_search": self._validate_semantic_search,
             "find_similar_code": self._validate_find_similar,
@@ -485,7 +673,7 @@ class CodeBaseBuddyMCPTool(BaseMCPTool):
             "build_index": self._validate_build_index,
             "find_usages": self._validate_find_usages,
         }
-        
+
         validator = validators.get(operation)
         if validator:
             validator(params)
@@ -526,30 +714,27 @@ class CodeBaseBuddyMCPTool(BaseMCPTool):
         query: str,
         top_k: int = 5,
         file_filter: Optional[str] = None,
-        chunk_type_filter: Optional[str] = None
+        chunk_type_filter: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Search the codebase using natural language queries.
-        
+
         Args:
             query: Natural language search query
             top_k: Number of results to return
             file_filter: Filter by file path pattern
             chunk_type_filter: Filter by chunk type ('function', 'class', 'file')
-        
+
         Returns:
             Dictionary with search results
-        
+
         Example:
             results = await tool.semantic_search("How does authentication work?")
         """
         if not query or not query.strip():
             raise MCPValidationError("Query cannot be empty")
 
-        params = {
-            "query": query.strip(),
-            "top_k": min(top_k, 50)  # Cap at 50 results
-        }
+        params = {"query": query.strip(), "top_k": min(top_k, 50)}  # Cap at 50 results
 
         if file_filter:
             params["file_filter"] = file_filter
@@ -571,22 +756,19 @@ class CodeBaseBuddyMCPTool(BaseMCPTool):
         return result
 
     async def find_similar_code(
-        self,
-        code_snippet: str,
-        top_k: int = 5,
-        exclude_self: bool = True
+        self, code_snippet: str, top_k: int = 5, exclude_self: bool = True
     ) -> Dict[str, Any]:
         """
         Find code similar to a given snippet.
-        
+
         Args:
             code_snippet: Code snippet to find similar patterns for
             top_k: Number of similar results to return
             exclude_self: If True, exclude exact matches
-        
+
         Returns:
             Dictionary with similar code locations
-        
+
         Example:
             results = await tool.find_similar_code("def process_data(df):")
         """
@@ -596,28 +778,25 @@ class CodeBaseBuddyMCPTool(BaseMCPTool):
         params = {
             "code_snippet": code_snippet,
             "top_k": min(top_k, 50),
-            "exclude_self": exclude_self
+            "exclude_self": exclude_self,
         }
 
         return await self._make_http_request("find_similar_code", params)
 
     async def get_code_context(
-        self,
-        file_path: str,
-        line_number: int,
-        context_lines: int = 10
+        self, file_path: str, line_number: int, context_lines: int = 10
     ) -> Dict[str, Any]:
         """
         Get code context around a specific line in a file.
-        
+
         Args:
             file_path: Path to the code file
             line_number: Target line number
             context_lines: Number of lines before and after
-        
+
         Returns:
             Dictionary with code context
-        
+
         Example:
             context = await tool.get_code_context("./src/main.py", 42)
         """
@@ -629,7 +808,7 @@ class CodeBaseBuddyMCPTool(BaseMCPTool):
         params = {
             "file_path": file_path,
             "line_number": line_number,
-            "context_lines": max(1, min(context_lines, 100))
+            "context_lines": max(1, min(context_lines, 100)),
         }
 
         return await self._make_http_request("get_code_context", params)
@@ -639,30 +818,27 @@ class CodeBaseBuddyMCPTool(BaseMCPTool):
         root_path: str,
         file_extensions: Optional[List[str]] = None,
         exclude_patterns: Optional[List[str]] = None,
-        rebuild: bool = False
+        rebuild: bool = False,
     ) -> Dict[str, Any]:
         """
         Build or rebuild the semantic code index.
-        
+
         Args:
             root_path: Root directory to scan
             file_extensions: File extensions to include
             exclude_patterns: Patterns to exclude
             rebuild: If True, completely rebuild index
-        
+
         Returns:
             Dictionary with build status
-        
+
         Example:
             result = await tool.build_index("./src", file_extensions=[".py"])
         """
         if not root_path:
             raise MCPValidationError("Root path cannot be empty")
 
-        params = {
-            "root_path": root_path,
-            "rebuild": rebuild
-        }
+        params = {"root_path": root_path, "rebuild": rebuild}
 
         if file_extensions:
             params["file_extensions"] = file_extensions
@@ -674,7 +850,7 @@ class CodeBaseBuddyMCPTool(BaseMCPTool):
     async def get_index_stats(self) -> Dict[str, Any]:
         """
         Get statistics about the current index.
-        
+
         Returns:
             Dictionary with index statistics
         """
@@ -690,38 +866,31 @@ class CodeBaseBuddyMCPTool(BaseMCPTool):
 
         return result
 
-    async def find_usages(
-        self,
-        symbol_name: str,
-        top_k: int = 10
-    ) -> Dict[str, Any]:
+    async def find_usages(self, symbol_name: str, top_k: int = 10) -> Dict[str, Any]:
         """
         Find all usages of a symbol across the codebase.
-        
+
         Args:
             symbol_name: Name of the symbol to find
             top_k: Maximum number of results
-        
+
         Returns:
             Dictionary with usage locations
-        
+
         Example:
             results = await tool.find_usages("MCPToolManager")
         """
         if not symbol_name or not symbol_name.strip():
             raise MCPValidationError("Symbol name cannot be empty")
 
-        params = {
-            "symbol_name": symbol_name.strip(),
-            "top_k": min(top_k, 50)
-        }
+        params = {"symbol_name": symbol_name.strip(), "top_k": min(top_k, 50)}
 
         return await self._make_http_request("find_usages", params)
 
     async def health_check(self) -> Dict[str, Any]:
         """
         Check if the CodeBaseBuddy server is healthy.
-        
+
         Returns:
             Dictionary with health status
         """
@@ -733,36 +902,34 @@ class CodeBaseBuddyMCPTool(BaseMCPTool):
 
     def _get_cached(self, key: str) -> Optional[Dict[str, Any]]:
         """Get cached result if available and not expired"""
-        if hasattr(self, '_cache') and key in self._cache:
+        if hasattr(self, "_cache") and key in self._cache:
             entry = self._cache[key]
             import time
-            if time.time() < entry['expires']:
-                return entry['data']
+
+            if time.time() < entry["expires"]:
+                return entry["data"]
         return None
 
     def _set_cached(self, key: str, data: Dict[str, Any], ttl: int = 300):
         """Cache a result with TTL"""
         import time
-        if not hasattr(self, '_cache'):
+
+        if not hasattr(self, "_cache"):
             self._cache = {}
-        self._cache[key] = {
-            'data': data,
-            'expires': time.time() + ttl
-        }
+        self._cache[key] = {"data": data, "expires": time.time() + ttl}
 
 
 # Convenience function for standalone usage
 async def create_codebasebuddy_tool(
-    server_url: str = "http://localhost:3004",
-    config: Optional[Dict[str, Any]] = None
+    server_url: str = "http://localhost:3004", config: Optional[Dict[str, Any]] = None
 ) -> CodeBaseBuddyMCPTool:
     """
     Create and initialize a CodeBaseBuddy tool instance.
-    
+
     Args:
         server_url: URL of the CodeBaseBuddy MCP server
         config: Additional configuration
-    
+
     Returns:
         Initialized CodeBaseBuddyMCPTool instance
     """

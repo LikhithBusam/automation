@@ -14,12 +14,14 @@ from dataclasses import dataclass, field
 
 class RateLimitExceeded(Exception):
     """Raised when rate limit is exceeded"""
+
     pass
 
 
 @dataclass
 class RateLimitConfig:
     """Rate limit configuration"""
+
     max_calls: int
     time_window_seconds: int
     burst_size: Optional[int] = None  # Allow burst, default = max_calls
@@ -86,8 +88,7 @@ class RateLimiter:
             if len(self.calls) >= self.max_calls:
                 if not wait:
                     raise RateLimitExceeded(
-                        f"Rate limit exceeded: {self.max_calls} calls "
-                        f"per {self.time_window}s"
+                        f"Rate limit exceeded: {self.max_calls} calls " f"per {self.time_window}s"
                     )
 
                 # Calculate wait time
@@ -122,13 +123,11 @@ class RateLimiter:
             "total_waits": self.total_waits,
             "total_wait_time_seconds": round(self.total_wait_time, 2),
             "average_wait_time_seconds": round(
-                self.total_wait_time / self.total_waits if self.total_waits > 0 else 0,
-                2
+                self.total_wait_time / self.total_waits if self.total_waits > 0 else 0, 2
             ),
             "utilization_percent": round(
-                (len(self.calls) / self.max_calls * 100) if self.max_calls > 0 else 0,
-                1
-            )
+                (len(self.calls) / self.max_calls * 100) if self.max_calls > 0 else 0, 1
+            ),
         }
 
     def reset(self):
@@ -148,11 +147,15 @@ class ServiceRateLimiters:
 
     # Known service limits (conservative estimates)
     SERVICE_LIMITS = {
-        "groq_free": RateLimitConfig(max_calls=25, time_window_seconds=60),  # 30/min, use 25 for safety
+        "groq_free": RateLimitConfig(
+            max_calls=25, time_window_seconds=60
+        ),  # 30/min, use 25 for safety
         "groq_pro": RateLimitConfig(max_calls=450, time_window_seconds=60),  # 14400/day ≈ 600/min
         "gemini_free": RateLimitConfig(max_calls=50, time_window_seconds=60),  # 60/min
         "gemini_pro": RateLimitConfig(max_calls=1800, time_window_seconds=60),  # 2000/min
-        "github": RateLimitConfig(max_calls=80, time_window_seconds=3600),  # 5000/hour, use 80/hour for safety
+        "github": RateLimitConfig(
+            max_calls=80, time_window_seconds=3600
+        ),  # 5000/hour, use 80/hour for safety
         "slack": RateLimitConfig(max_calls=50, time_window_seconds=60),  # Tier 1: 1/sec
         "default": RateLimitConfig(max_calls=30, time_window_seconds=60),  # Conservative default
     }
@@ -181,7 +184,7 @@ class ServiceRateLimiters:
                 self._limiters[service] = RateLimiter(
                     max_calls=config.max_calls,
                     time_window_seconds=config.time_window_seconds,
-                    burst_size=config.burst_size
+                    burst_size=config.burst_size,
                 )
 
             return self._limiters[service]
@@ -216,10 +219,7 @@ class ServiceRateLimiters:
 
     def get_all_stats(self) -> Dict[str, Dict]:
         """Get statistics for all rate limiters"""
-        return {
-            service: limiter.get_stats()
-            for service, limiter in self._limiters.items()
-        }
+        return {service: limiter.get_stats() for service, limiter in self._limiters.items()}
 
     def reset_all(self):
         """Reset all rate limiters"""

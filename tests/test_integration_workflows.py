@@ -48,7 +48,7 @@ class TestWorkflowIntegration:
             title="Test PR",
             body="Integration test PR",
             head="feature-branch",
-            base="main"
+            base="main",
         )
 
         assert pr["title"] == "Test PR"
@@ -62,10 +62,7 @@ class TestWorkflowIntegration:
         filesystem = manager.get_server("filesystem")
 
         # Test file operations
-        write_result = await filesystem.write_file(
-            "/test/new_file.txt",
-            "Test content"
-        )
+        write_result = await filesystem.write_file("/test/new_file.txt", "Test content")
         assert write_result["success"]
 
         read_result = await filesystem.read_file("/test/new_file.txt")
@@ -79,23 +76,14 @@ class TestWorkflowIntegration:
         memory = manager.get_server("memory")
 
         # Store memories
-        store1 = await memory.store_memory(
-            content="Important code pattern",
-            category="patterns"
-        )
+        store1 = await memory.store_memory(content="Important code pattern", category="patterns")
         assert store1["stored"]
 
-        store2 = await memory.store_memory(
-            content="Security best practice",
-            category="security"
-        )
+        store2 = await memory.store_memory(content="Security best practice", category="security")
         assert store2["stored"]
 
         # Search memories
-        search_result = await memory.search_memory(
-            query="security",
-            category="security"
-        )
+        search_result = await memory.search_memory(query="security", category="security")
         assert search_result["count"] >= 1
 
     @pytest.mark.asyncio
@@ -106,8 +94,7 @@ class TestWorkflowIntegration:
 
         # Semantic search
         search_result = await codebasebuddy.semantic_search(
-            query="authentication functions",
-            top_k=3
+            query="authentication functions", top_k=3
         )
 
         assert "results" in search_result
@@ -124,10 +111,7 @@ class TestWorkflowIntegration:
         memory = manager.get_server("memory")
 
         # 1. Search code
-        code_search = await github.search_code(
-            query="def main",
-            repo="test/repo"
-        )
+        code_search = await github.search_code(query="def main", repo="test/repo")
         assert code_search["total_count"] > 0
 
         # 2. Read a file
@@ -136,8 +120,7 @@ class TestWorkflowIntegration:
 
         # 3. Store analysis in memory
         memory_store = await memory.store_memory(
-            content=f"Analyzed {file_read['path']}",
-            category="analysis"
+            content=f"Analyzed {file_read['path']}", category="analysis"
         )
         assert memory_store["stored"]
 
@@ -178,23 +161,18 @@ class TestEndToEndScenarios:
         assert code["exists"]
 
         # Analyze
-        analysis = await codebasebuddy.semantic_search(
-            query="security issues"
-        )
+        analysis = await codebasebuddy.semantic_search(query="security issues")
         assert "results" in analysis
 
         # Store findings
         findings_stored = await memory.store_memory(
-            content="Code review complete: No issues found",
-            category="code_review"
+            content="Code review complete: No issues found", category="code_review"
         )
         assert findings_stored["stored"]
 
         # Create issue (if needed)
         issue = await github.create_issue(
-            repo="test/repo",
-            title="Code Review Complete",
-            body="Review findings attached"
+            repo="test/repo", title="Code Review Complete", body="Review findings attached"
         )
         assert issue["state"] == "open"
 
@@ -208,8 +186,7 @@ class TestEndToEndScenarios:
 
         # Find functions to document
         definition = await codebasebuddy.find_definition(
-            symbol="calculate_total",
-            symbol_type="function"
+            symbol="calculate_total", symbol_type="function"
         )
         assert "name" in definition
 
@@ -217,10 +194,7 @@ class TestEndToEndScenarios:
         doc_content = f"# {definition['name']}\\n\\nDocumentation here"
 
         # Write documentation
-        write_result = await filesystem.write_file(
-            "/test/docs/calculate_total.md",
-            doc_content
-        )
+        write_result = await filesystem.write_file("/test/docs/calculate_total.md", doc_content)
         assert write_result["success"]
 
     @pytest.mark.asyncio
@@ -237,14 +211,13 @@ class TestEndToEndScenarios:
             title="Deploy v1.0.0",
             body="Deployment to production",
             head="release/1.0.0",
-            base="main"
+            base="main",
         )
         assert pr is not None
 
         # Log deployment
         await memory.store_memory(
-            content=f"Deployment PR created: {pr['url']}",
-            category="deployment"
+            content=f"Deployment PR created: {pr['url']}", category="deployment"
         )
 
 
@@ -262,10 +235,7 @@ class TestPerformanceIntegration:
         filesystem = manager.get_server("filesystem")
 
         # Perform multiple operations concurrently
-        tasks = [
-            filesystem.read_file(f"/test/file{i}.txt")
-            for i in range(5)
-        ]
+        tasks = [filesystem.read_file(f"/test/file{i}.txt") for i in range(5)]
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
 

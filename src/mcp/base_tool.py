@@ -35,7 +35,7 @@ from src.exceptions import (
     MCPAuthenticationError,
     MCPOperationError,
     RateLimitError as MCPRateLimitError,
-    ValidationError as MCPValidationError
+    ValidationError as MCPValidationError,
 )
 
 
@@ -43,30 +43,32 @@ from src.exceptions import (
 # Token Bucket Rate Limiter
 # =============================================================================
 
+
 @dataclass
 class TokenBucket:
     """
     Token bucket rate limiter implementation.
-    
+
     Allows bursts up to bucket capacity while maintaining
     average rate over time.
     """
+
     capacity: float  # Maximum tokens
     refill_rate: float  # Tokens per second
     tokens: float = field(init=False)
     last_refill: float = field(init=False)
-    
+
     def __post_init__(self):
         self.tokens = self.capacity
         self.last_refill = time.time()
-    
+
     def _refill(self):
         """Refill tokens based on elapsed time"""
         now = time.time()
         elapsed = now - self.last_refill
         self.tokens = min(self.capacity, self.tokens + elapsed * self.refill_rate)
         self.last_refill = now
-    
+
     def consume(self, tokens: float = 1.0) -> bool:
         """
         Try to consume tokens. Returns True if successful.
@@ -76,7 +78,7 @@ class TokenBucket:
             self.tokens -= tokens
             return True
         return False
-    
+
     def wait_time(self, tokens: float = 1.0) -> float:
         """Calculate wait time needed for tokens to be available"""
         self._refill()
@@ -84,7 +86,7 @@ class TokenBucket:
             return 0.0
         needed = tokens - self.tokens
         return needed / self.refill_rate
-    
+
     async def acquire(self, tokens: float = 1.0):
         """Async acquire tokens, waiting if necessary"""
         wait = self.wait_time(tokens)
@@ -97,21 +99,23 @@ class TokenBucket:
 # TTL Cache with Expiry Timestamps
 # =============================================================================
 
+
 @dataclass
 class CacheEntry:
     """Cache entry with expiry timestamp"""
+
     data: Any
     created_at: float
     expires_at: float
     access_count: int = 0
     last_accessed: float = field(init=False)
-    
+
     def __post_init__(self):
         self.last_accessed = self.created_at
-    
+
     def is_expired(self) -> bool:
         return time.time() > self.expires_at
-    
+
     def touch(self):
         """Update access time and count"""
         self.access_count += 1
@@ -121,113 +125,96 @@ class CacheEntry:
 class TTLCache:
     """
     TTL-based cache with expiry timestamps.
-    
+
     Features:
     - Automatic expiry based on TTL
     - Max size limit with LRU eviction
     - Statistics tracking
     """
-    
+
     def __init__(self, default_ttl: float = 300.0, max_size: int = 1000):
         self.default_ttl = default_ttl
         self.max_size = max_size
         self._cache: Dict[str, CacheEntry] = {}
-        self._stats = {
-            "hits": 0,
-            "misses": 0,
-            "evictions": 0,
-            "expirations": 0
-        }
-    
+        self._stats = {"hits": 0, "misses": 0, "evictions": 0, "expirations": 0}
+
     def _generate_key(self, operation: str, params: Dict[str, Any]) -> str:
         """Generate cache key from operation and params"""
         key_data = json.dumps({"op": operation, "params": params}, sort_keys=True)
         return hashlib.sha256(key_data.encode()).hexdigest()
-    
+
     def get(self, operation: str, params: Dict[str, Any]) -> Optional[Any]:
         """Get value from cache if not expired"""
         key = self._generate_key(operation, params)
         entry = self._cache.get(key)
-        
+
         if entry is None:
             self._stats["misses"] += 1
             return None
-        
+
         if entry.is_expired():
             del self._cache[key]
             self._stats["expirations"] += 1
             self._stats["misses"] += 1
             return None
-        
+
         entry.touch()
         self._stats["hits"] += 1
         return entry.data
-    
+
     def set(self, operation: str, params: Dict[str, Any], data: Any, ttl: float = None):
         """Store value in cache with TTL"""
         # Enforce max size with LRU eviction
         if len(self._cache) >= self.max_size:
             self._evict_lru()
-        
+
         key = self._generate_key(operation, params)
         now = time.time()
         ttl = ttl or self.default_ttl
-        
-        self._cache[key] = CacheEntry(
-            data=data,
-            created_at=now,
-            expires_at=now + ttl
-        )
-    
+
+        self._cache[key] = CacheEntry(data=data, created_at=now, expires_at=now + ttl)
+
     def _evict_lru(self, count: int = 100):
         """Evict least recently used entries"""
         if not self._cache:
             return
-        
+
         # Sort by last accessed time
-        sorted_entries = sorted(
-            self._cache.items(),
-            key=lambda x: x[1].last_accessed
-        )
-        
+        sorted_entries = sorted(self._cache.items(), key=lambda x: x[1].last_accessed)
+
         # Remove oldest entries
         for key, _ in sorted_entries[:count]:
             del self._cache[key]
             self._stats["evictions"] += 1
-    
+
     def clear(self):
         """Clear all cache entries"""
         self._cache.clear()
-    
+
     def cleanup_expired(self):
         """Remove all expired entries"""
-        expired_keys = [
-            key for key, entry in self._cache.items()
-            if entry.is_expired()
-        ]
+        expired_keys = [key for key, entry in self._cache.items() if entry.is_expired()]
         for key in expired_keys:
             del self._cache[key]
             self._stats["expirations"] += 1
-    
+
     @property
     def stats(self) -> Dict[str, Any]:
         """Get cache statistics"""
         total = self._stats["hits"] + self._stats["misses"]
         hit_rate = (self._stats["hits"] / total * 100) if total > 0 else 0
-        return {
-            **self._stats,
-            "size": len(self._cache),
-            "hit_rate": f"{hit_rate:.1f}%"
-        }
+        return {**self._stats, "size": len(self._cache), "hit_rate": f"{hit_rate:.1f}%"}
 
 
 # =============================================================================
 # Statistics Tracker
 # =============================================================================
 
+
 @dataclass
 class ToolStatistics:
     """Track tool usage statistics"""
+
     total_calls: int = 0
     successful_calls: int = 0
     failed_calls: int = 0
@@ -236,65 +223,69 @@ class ToolStatistics:
     fallback_uses: int = 0
     total_latency_ms: float = 0.0
     retry_count: int = 0
-    
+
     # Per-operation stats
     operation_stats: Dict[str, Dict[str, int]] = field(default_factory=dict)
-    
+
     # Error tracking
     errors: List[Dict[str, Any]] = field(default_factory=list)
     max_errors: int = 100
-    
+
     def record_call(self, operation: str, success: bool, latency_ms: float):
         """Record a tool call"""
         self.total_calls += 1
         self.total_latency_ms += latency_ms
-        
+
         if success:
             self.successful_calls += 1
         else:
             self.failed_calls += 1
-        
+
         # Per-operation tracking
         if operation not in self.operation_stats:
             self.operation_stats[operation] = {"calls": 0, "success": 0, "failed": 0}
-        
+
         self.operation_stats[operation]["calls"] += 1
         if success:
             self.operation_stats[operation]["success"] += 1
         else:
             self.operation_stats[operation]["failed"] += 1
-    
+
     def record_error(self, operation: str, error: Exception):
         """Record an error"""
         if len(self.errors) >= self.max_errors:
             self.errors.pop(0)
-        
-        self.errors.append({
-            "operation": operation,
-            "error_type": type(error).__name__,
-            "message": str(error),
-            "timestamp": datetime.now().isoformat()
-        })
-    
+
+        self.errors.append(
+            {
+                "operation": operation,
+                "error_type": type(error).__name__,
+                "message": str(error),
+                "timestamp": datetime.now().isoformat(),
+            }
+        )
+
     def record_cache_hit(self):
         self.cache_hits += 1
-    
+
     def record_cache_miss(self):
         self.cache_misses += 1
-    
+
     def record_retry(self):
         self.retry_count += 1
-    
+
     def record_fallback(self):
         self.fallback_uses += 1
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
-        success_rate = (self.successful_calls / self.total_calls * 100) if self.total_calls > 0 else 0
+        success_rate = (
+            (self.successful_calls / self.total_calls * 100) if self.total_calls > 0 else 0
+        )
         avg_latency = (self.total_latency_ms / self.total_calls) if self.total_calls > 0 else 0
         cache_total = self.cache_hits + self.cache_misses
         cache_hit_rate = (self.cache_hits / cache_total * 100) if cache_total > 0 else 0
-        
+
         return {
             "total_calls": self.total_calls,
             "successful_calls": self.successful_calls,
@@ -307,7 +298,7 @@ class ToolStatistics:
             "retry_count": self.retry_count,
             "avg_latency_ms": f"{avg_latency:.2f}",
             "operation_stats": self.operation_stats,
-            "recent_errors": self.errors[-5:]  # Last 5 errors
+            "recent_errors": self.errors[-5:],  # Last 5 errors
         }
 
 
@@ -315,58 +306,59 @@ class ToolStatistics:
 # Exponential Backoff Retry
 # =============================================================================
 
+
 class ExponentialBackoff:
     """
     Exponential backoff retry logic.
-    
+
     Delays: 1s, 2s, 4s (configurable)
     """
-    
+
     def __init__(
         self,
         max_attempts: int = 3,
         base_delay: float = 1.0,
         max_delay: float = 10.0,
-        exponential_base: float = 2.0
+        exponential_base: float = 2.0,
     ):
         self.max_attempts = max_attempts
         self.base_delay = base_delay
         self.max_delay = max_delay
         self.exponential_base = exponential_base
-    
+
     def get_delay(self, attempt: int) -> float:
         """Calculate delay for given attempt (0-indexed)"""
-        delay = self.base_delay * (self.exponential_base ** attempt)
+        delay = self.base_delay * (self.exponential_base**attempt)
         return min(delay, self.max_delay)
-    
+
     async def execute(
         self,
         func: Callable,
         *args,
         retryable_exceptions: tuple = (MCPConnectionError, MCPTimeoutError),
-        **kwargs
+        **kwargs,
     ) -> Any:
         """
         Execute function with exponential backoff retry.
-        
+
         Args:
             func: Async function to execute
             retryable_exceptions: Exceptions that trigger retry
-            
+
         Returns:
             Function result
-            
+
         Raises:
             Last exception if all retries fail
         """
         last_exception = None
-        
+
         for attempt in range(self.max_attempts):
             try:
                 return await func(*args, **kwargs)
             except retryable_exceptions as e:
                 last_exception = e
-                
+
                 if attempt < self.max_attempts - 1:
                     delay = self.get_delay(attempt)
                     await asyncio.sleep(delay)
@@ -374,7 +366,7 @@ class ExponentialBackoff:
             except Exception as e:
                 # Non-retryable exception
                 raise
-        
+
         raise last_exception
 
 
@@ -382,10 +374,11 @@ class ExponentialBackoff:
 # Base MCP Tool (Abstract)
 # =============================================================================
 
+
 class BaseMCPTool(ABC):
     """
     Abstract base class for MCP tool wrappers.
-    
+
     Provides:
     - Retry logic with exponential backoff (3 attempts, 1s/2s/4s delays)
     - Token bucket rate limiting (configurable per tool)
@@ -400,14 +393,14 @@ class BaseMCPTool(ABC):
         name: str,
         server_url: str,
         config: Dict[str, Any],
-        fallback_handler: Optional[Callable] = None
+        fallback_handler: Optional[Callable] = None,
     ):
         self.name = name
         self.server_url = server_url
         self.config = config
         self.fallback_handler = fallback_handler
         self.logger = logging.getLogger(f"mcp.{name}")
-        
+
         # Connection state
         self._connected = False
         self._connection_lock = asyncio.Lock()
@@ -416,12 +409,10 @@ class BaseMCPTool(ABC):
         rate_per_minute = config.get("rate_limit_minute", 60)
         rate_per_hour = config.get("rate_limit_hour", 1000)
         self.rate_limiter_minute = TokenBucket(
-            capacity=rate_per_minute,
-            refill_rate=rate_per_minute / 60.0  # tokens per second
+            capacity=rate_per_minute, refill_rate=rate_per_minute / 60.0  # tokens per second
         )
         self.rate_limiter_hour = TokenBucket(
-            capacity=rate_per_hour,
-            refill_rate=rate_per_hour / 3600.0
+            capacity=rate_per_hour, refill_rate=rate_per_hour / 3600.0
         )
 
         # TTL-based caching
@@ -435,13 +426,13 @@ class BaseMCPTool(ABC):
             max_attempts=config.get("retry_attempts", 3),
             base_delay=1.0,
             max_delay=10.0,
-            exponential_base=2.0
+            exponential_base=2.0,
         )
         self.timeout = config.get("timeout", 30)
 
         # Statistics tracking
         self.stats = ToolStatistics()
-        
+
         # Legacy stats compatibility
         self._legacy_stats = {
             "total_requests": 0,
@@ -449,23 +440,23 @@ class BaseMCPTool(ABC):
             "failed_requests": 0,
             "cache_hits": 0,
             "cache_misses": 0,
-            "fallback_uses": 0
+            "fallback_uses": 0,
         }
 
     # =========================================================================
     # Async Context Manager Support
     # =========================================================================
-    
+
     async def __aenter__(self):
         """Async context manager entry"""
         await self.connect()
         return self
-    
+
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async context manager exit"""
         await self.disconnect()
         return False
-    
+
     async def connect(self):
         """Establish connection to MCP server"""
         async with self._connection_lock:
@@ -475,7 +466,7 @@ class BaseMCPTool(ABC):
                 await self._do_connect()
                 self._connected = True
                 self.logger.info(f"Connected to {self.name} MCP server")
-    
+
     async def disconnect(self):
         """Close connection to MCP server"""
         async with self._connection_lock:
@@ -483,11 +474,11 @@ class BaseMCPTool(ABC):
                 await self._do_disconnect()
                 self._connected = False
                 self.logger.info(f"Disconnected from {self.name} MCP server")
-    
+
     async def _do_connect(self):
         """Override in subclasses for custom connection logic"""
         pass
-    
+
     async def _do_disconnect(self):
         """Override in subclasses for custom disconnection logic"""
         pass
@@ -496,23 +487,18 @@ class BaseMCPTool(ABC):
     # Main Execute Method
     # =========================================================================
 
-    async def execute(
-        self,
-        operation: str,
-        params: Dict[str, Any],
-        use_cache: bool = True
-    ) -> Any:
+    async def execute(self, operation: str, params: Dict[str, Any], use_cache: bool = True) -> Any:
         """
         Execute an operation with error handling and retry logic.
-        
+
         Args:
             operation: Name of the operation to execute
             params: Parameters for the operation
             use_cache: Whether to use cache for this operation
-            
+
         Returns:
             Operation result
-            
+
         Raises:
             MCPToolError: If operation fails after retries
         """
@@ -580,27 +566,21 @@ class BaseMCPTool(ABC):
             raise MCPToolError(
                 f"Operation {operation} failed: {str(e)}",
                 operation=operation,
-                details={"params": params, "error_type": type(e).__name__}
+                details={"params": params, "error_type": type(e).__name__},
             ) from e
 
-    async def _execute_with_retry(
-        self,
-        operation: str,
-        params: Dict[str, Any]
-    ) -> Any:
+    async def _execute_with_retry(self, operation: str, params: Dict[str, Any]) -> Any:
         """Execute operation with exponential backoff retry (1s, 2s, 4s)"""
-        
+
         async def _do_execute():
             try:
                 result = await asyncio.wait_for(
-                    self._execute_operation(operation, params),
-                    timeout=self.timeout
+                    self._execute_operation(operation, params), timeout=self.timeout
                 )
                 return result
             except asyncio.TimeoutError:
                 raise MCPTimeoutError(
-                    f"Operation {operation} timed out after {self.timeout}s",
-                    operation=operation
+                    f"Operation {operation} timed out after {self.timeout}s", operation=operation
                 )
             except Exception as e:
                 # Wrap in appropriate exception type
@@ -612,12 +592,11 @@ class BaseMCPTool(ABC):
                 elif "auth" in error_msg or "unauthorized" in error_msg:
                     raise MCPAuthenticationError(str(e), operation=operation)
                 raise
-        
+
         # Use exponential backoff retry
         try:
             return await self.retry_handler.execute(
-                _do_execute,
-                retryable_exceptions=(MCPConnectionError, MCPTimeoutError)
+                _do_execute, retryable_exceptions=(MCPConnectionError, MCPTimeoutError)
             )
         except (MCPConnectionError, MCPTimeoutError):
             self.stats.record_retry()
@@ -628,11 +607,7 @@ class BaseMCPTool(ABC):
     # =========================================================================
 
     @abstractmethod
-    async def _execute_operation(
-        self,
-        operation: str,
-        params: Dict[str, Any]
-    ) -> Any:
+    async def _execute_operation(self, operation: str, params: Dict[str, Any]) -> Any:
         """
         Execute the actual operation (implemented by subclasses).
 
@@ -645,11 +620,7 @@ class BaseMCPTool(ABC):
         """
         pass
 
-    async def call_mcp_server(
-        self,
-        operation: str,
-        params: Dict[str, Any]
-    ) -> Any:
+    async def call_mcp_server(self, operation: str, params: Dict[str, Any]) -> Any:
         """
         Alias for _execute_operation for backward compatibility.
 
@@ -669,30 +640,27 @@ class BaseMCPTool(ABC):
     def validate_params(self, operation: str, params: Dict[str, Any]):
         """
         Validate operation parameters (must be implemented by subclasses).
-        
+
         Args:
             operation: Operation name
             params: Parameters to validate
-            
+
         Raises:
             MCPValidationError: If validation fails
         """
         pass
 
     async def handle_error(
-        self,
-        operation: str,
-        params: Dict[str, Any],
-        error: Exception
+        self, operation: str, params: Dict[str, Any], error: Exception
     ) -> Optional[Any]:
         """
         Handle errors (can be overridden by subclasses).
-        
+
         Args:
             operation: Failed operation name
             params: Operation parameters
             error: The exception that occurred
-            
+
         Returns:
             Optional recovery result, or None to proceed with fallback/raise
         """
@@ -710,13 +678,10 @@ class BaseMCPTool(ABC):
             self.logger.warning(f"Rate limit reached (per-minute), waiting {wait_time:.1f}s")
             await asyncio.sleep(wait_time)
             self.rate_limiter_minute.consume()
-        
+
         # Check hour bucket
         if not self.rate_limiter_hour.consume():
-            raise MCPRateLimitError(
-                "Hourly rate limit exceeded",
-                operation="rate_check"
-            )
+            raise MCPRateLimitError("Hourly rate limit exceeded", operation="rate_check")
 
     # =========================================================================
     # Caching Helpers
@@ -751,13 +716,13 @@ class BaseMCPTool(ABC):
             start_time = time.time()
             await self._execute_operation("health_check", {})
             latency_ms = (time.time() - start_time) * 1000
-            
+
             return {
                 "status": "healthy",
                 "server": self.server_url,
                 "latency_ms": f"{latency_ms:.2f}",
                 "connected": self._connected,
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
             }
         except Exception as e:
             return {
@@ -765,7 +730,7 @@ class BaseMCPTool(ABC):
                 "server": self.server_url,
                 "error": str(e),
                 "connected": self._connected,
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
             }
 
     # =========================================================================
@@ -776,20 +741,11 @@ class BaseMCPTool(ABC):
         """Deprecated: Use validate_params instead"""
         return self.validate_params(operation, params)
 
-    def _get_from_cache(
-        self,
-        operation: str,
-        params: Dict[str, Any]
-    ) -> Optional[Any]:
+    def _get_from_cache(self, operation: str, params: Dict[str, Any]) -> Optional[Any]:
         """Deprecated: Use self.cache.get instead"""
         return self.cache.get(operation, params)
 
-    def _store_in_cache(
-        self,
-        operation: str,
-        params: Dict[str, Any],
-        result: Any
-    ):
+    def _store_in_cache(self, operation: str, params: Dict[str, Any], result: Any):
         """Deprecated: Use self.cache.set instead"""
         self.cache.set(operation, params, result)
 

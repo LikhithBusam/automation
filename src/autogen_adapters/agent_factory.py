@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 # AutoGen imports
 try:
     from autogen import AssistantAgent, UserProxyAgent, GroupChatManager
+
     HAS_AUTOGEN = True
 except ImportError:
     HAS_AUTOGEN = False
@@ -24,11 +25,13 @@ except ImportError:
 # Try to import TeachableAgent separately (may not be available in newer versions)
 try:
     from autogen.agentchat.contrib.teachable_agent import TeachableAgent
+
     HAS_TEACHABLE = True
 except ImportError:
     try:
         # Try alternative import path for newer versions
         from autogen import TeachableAgent
+
         HAS_TEACHABLE = True
     except ImportError:
         HAS_TEACHABLE = False
@@ -79,7 +82,7 @@ class AutoGenAgentFactory:
         if not config_file.exists():
             raise FileNotFoundError(f"Config file not found: {self.config_path}")
 
-        with open(config_file, 'r', encoding='utf-8') as f:
+        with open(config_file, "r", encoding="utf-8") as f:
             config = yaml.safe_load(f)
 
         # Replace environment variable placeholders
@@ -125,7 +128,7 @@ class AutoGenAgentFactory:
             model_name = llm_cfg.get("model")
             if not model_name.startswith("gemini/"):
                 model_name = f"gemini/{model_name}"
-            
+
             autogen_config = {
                 "config_list": [
                     {
@@ -163,10 +166,14 @@ class AutoGenAgentFactory:
             autogen_config["cache_seed"] = llm_cfg["cache_seed"]
 
         # Log the config for debugging (hide API key)
-        debug_config = {k: v if k != "config_list" else [
-            {**item, "api_key": "***" if "api_key" in item else None}
-            for item in v
-        ] for k, v in autogen_config.items()}
+        debug_config = {
+            k: (
+                v
+                if k != "config_list"
+                else [{**item, "api_key": "***" if "api_key" in item else None} for item in v]
+            )
+            for k, v in autogen_config.items()
+        }
         self.logger.debug(f"Created LLM config for '{config_name}': {debug_config}")
 
         return autogen_config
@@ -227,13 +234,15 @@ class AutoGenAgentFactory:
             max_consecutive_auto_reply=agent_cfg.get("max_consecutive_auto_reply", 10),
             code_execution_config=agent_cfg.get("code_execution_config", False),
         )
-        
+
         # Store agent name for later function schema registration
         agent._agent_config_name = agent_name
 
         return agent
 
-    def _create_user_proxy_agent(self, agent_name: str, agent_cfg: Dict[str, Any]) -> UserProxyAgent:
+    def _create_user_proxy_agent(
+        self, agent_name: str, agent_cfg: Dict[str, Any]
+    ) -> UserProxyAgent:
         """Create a UserProxyAgent"""
         # Get code execution config
         code_exec_cfg = agent_cfg.get("code_execution_config", False)
@@ -261,7 +270,9 @@ class AutoGenAgentFactory:
     def _create_teachable_agent(self, agent_name: str, agent_cfg: Dict[str, Any]):
         """Create a TeachableAgent (for learning agents)"""
         if not HAS_TEACHABLE or not TeachableAgent:
-            self.logger.warning(f"TeachableAgent not available, creating AssistantAgent instead for {agent_name}")
+            self.logger.warning(
+                f"TeachableAgent not available, creating AssistantAgent instead for {agent_name}"
+            )
             # Fallback to regular AssistantAgent if TeachableAgent is not available
             return self._create_assistant_agent(agent_name, agent_cfg)
 
@@ -307,9 +318,9 @@ class AutoGenAgentFactory:
         for agent_name in self.agent_configs.keys():
             try:
                 agent = self.create_agent(agent_name)
-                
+
                 # Add function/tool schemas to AssistantAgent's llm_config
-                if function_registry and hasattr(agent, 'llm_config') and agent.llm_config:
+                if function_registry and hasattr(agent, "llm_config") and agent.llm_config:
                     tools = function_registry.get_tools_for_llm_config(agent_name)
                     if tools:
                         agent.llm_config["tools"] = tools

@@ -55,10 +55,7 @@ class GeminiLLM(BaseLLM):
         if stop:
             generation_config["stop_sequences"] = stop
 
-        response = self._model.generate_content(
-            prompt,
-            generation_config=generation_config
-        )
+        response = self._model.generate_content(prompt, generation_config=generation_config)
 
         return response.text
 
@@ -83,7 +80,7 @@ def create_gemini_llm(
     temperature: float = 0.7,
     max_tokens: int = 2048,
     api_key: Optional[str] = None,
-    **kwargs
+    **kwargs,
 ) -> BaseLLM:
     """
     Create a Gemini LLM instance compatible with AutoGen
@@ -117,7 +114,7 @@ def create_gemini_llm(
         temperature=temperature,
         max_tokens=max_tokens,
         api_key=gemini_api_key,
-        **kwargs
+        **kwargs,
     )
 
     logger.info("Gemini LLM created successfully")

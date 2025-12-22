@@ -75,8 +75,7 @@ class TestFunctionRegistryAdvanced:
         """Test tool initialization"""
         # Fix: Use config_path instead of function_schemas_path
         registry = FunctionRegistry(
-            config_path=mock_function_schemas,
-            tool_manager=mock_tool_manager
+            config_path=mock_function_schemas, tool_manager=mock_tool_manager
         )
 
         await registry.initialize_tools()
@@ -86,9 +85,7 @@ class TestFunctionRegistryAdvanced:
     def test_get_function_schemas(self, mock_function_schemas):
         """Test retrieving function schemas"""
         # Fix: Use config_path instead of function_schemas_path
-        registry = FunctionRegistry(
-            config_path=mock_function_schemas
-        )
+        registry = FunctionRegistry(config_path=mock_function_schemas)
 
         # Fix: Access function_schemas dict directly
         schemas = registry.function_schemas
@@ -98,9 +95,7 @@ class TestFunctionRegistryAdvanced:
     def test_get_function_schema_by_name(self, mock_function_schemas):
         """Test retrieving specific function schema"""
         # Fix: Use config_path instead of function_schemas_path
-        registry = FunctionRegistry(
-            config_path=mock_function_schemas
-        )
+        registry = FunctionRegistry(config_path=mock_function_schemas)
 
         # Register all functions first
         registry.register_all_functions()
@@ -114,9 +109,7 @@ class TestFunctionRegistryAdvanced:
     def test_get_nonexistent_function_schema(self, mock_function_schemas):
         """Test retrieving non-existent function schema"""
         # Fix: Use config_path instead of function_schemas_path
-        registry = FunctionRegistry(
-            config_path=mock_function_schemas
-        )
+        registry = FunctionRegistry(config_path=mock_function_schemas)
 
         schema = registry.get_function_schema("nonexistent")
         assert schema is None
@@ -128,9 +121,7 @@ class TestFunctionExecution:
     @pytest.mark.asyncio
     async def test_execute_function_success(self, mock_function_schemas, mock_tool_manager):
         """Test successful function execution"""
-        registry = FunctionRegistry(
-            config_path=mock_function_schemas
-        )
+        registry = FunctionRegistry(config_path=mock_function_schemas)
         registry.tool_manager = mock_tool_manager
 
         # Mock tool execution
@@ -138,8 +129,8 @@ class TestFunctionExecution:
         mock_tool.execute = AsyncMock(return_value={"status": "success"})
         mock_tool_manager.get_tool.return_value = mock_tool
 
-        result = await registry.execute_function("github_create_pr",
-            {"title": "Test PR", "body": "Test description"}
+        result = await registry.execute_function(
+            "github_create_pr", {"title": "Test PR", "body": "Test description"}
         )
 
         assert result["status"] == "success"
@@ -147,9 +138,7 @@ class TestFunctionExecution:
     @pytest.mark.asyncio
     async def test_execute_function_error(self, mock_function_schemas, mock_tool_manager):
         """Test function execution error handling"""
-        registry = FunctionRegistry(
-            config_path=mock_function_schemas
-        )
+        registry = FunctionRegistry(config_path=mock_function_schemas)
         registry.tool_manager = mock_tool_manager
 
         # Mock tool execution failure
@@ -158,9 +147,7 @@ class TestFunctionExecution:
         mock_tool_manager.get_tool.return_value = mock_tool
 
         with pytest.raises(Exception, match="Test error"):
-            await registry.execute_function("github_create_pr",
-                {"title": "Test"}
-            )
+            await registry.execute_function("github_create_pr", {"title": "Test"})
 
 
 class TestAgentFunctionRegistration:
@@ -168,9 +155,7 @@ class TestAgentFunctionRegistration:
 
     def test_register_functions_with_agent(self, mock_function_schemas):
         """Test registering functions with an agent"""
-        registry = FunctionRegistry(
-            config_path=mock_function_schemas
-        )
+        registry = FunctionRegistry(config_path=mock_function_schemas)
 
         # Mock agent
         mock_agent = Mock()
@@ -184,9 +169,7 @@ class TestAgentFunctionRegistration:
 
     def test_register_specific_functions(self, mock_function_schemas):
         """Test registering specific functions with agent"""
-        registry = FunctionRegistry(
-            config_path=mock_function_schemas
-        )
+        registry = FunctionRegistry(config_path=mock_function_schemas)
 
         mock_agent = Mock()
         mock_agent.name = "test_agent"
@@ -206,9 +189,7 @@ class TestFunctionValidation:
 
     def test_validate_parameters_success(self, mock_function_schemas):
         """Test successful parameter validation"""
-        registry = FunctionRegistry(
-            config_path=mock_function_schemas
-        )
+        registry = FunctionRegistry(config_path=mock_function_schemas)
 
         schema = registry.get_function_schema("github_create_pr")
 
@@ -221,9 +202,7 @@ class TestFunctionValidation:
 
     def test_validate_parameters_missing_required(self, mock_function_schemas):
         """Test validation with missing required parameters"""
-        registry = FunctionRegistry(
-            config_path=mock_function_schemas
-        )
+        registry = FunctionRegistry(config_path=mock_function_schemas)
 
         # Missing required 'title' parameter
         params = {"body": "Description"}
@@ -237,9 +216,7 @@ class TestFunctionValidation:
 
     def test_validate_parameters_extra_fields(self, mock_function_schemas):
         """Test validation with extra parameters"""
-        registry = FunctionRegistry(
-            config_path=mock_function_schemas
-        )
+        registry = FunctionRegistry(config_path=mock_function_schemas)
 
         # Extra parameters beyond schema
         params = {"title": "Test", "body": "Desc", "extra": "field"}
@@ -256,9 +233,7 @@ class TestFunctionMapping:
 
     def test_map_function_to_tool(self, mock_function_schemas, mock_tool_manager):
         """Test mapping function names to tools"""
-        registry = FunctionRegistry(
-            config_path=mock_function_schemas
-        )
+        registry = FunctionRegistry(config_path=mock_function_schemas)
         registry.tool_manager = mock_tool_manager
 
         # Map function to tool
@@ -268,9 +243,7 @@ class TestFunctionMapping:
 
     def test_list_functions_by_tool(self, mock_function_schemas):
         """Test listing functions by tool"""
-        registry = FunctionRegistry(
-            config_path=mock_function_schemas
-        )
+        registry = FunctionRegistry(config_path=mock_function_schemas)
 
         # Get all functions for a tool
         functions = registry.get_functions_by_tool("github")
@@ -284,9 +257,7 @@ class TestLLMConfigGeneration:
 
     def test_generate_llm_config(self, mock_function_schemas):
         """Test generating LLM config with functions"""
-        registry = FunctionRegistry(
-            config_path=mock_function_schemas
-        )
+        registry = FunctionRegistry(config_path=mock_function_schemas)
 
         llm_config = registry.generate_llm_config()
 
@@ -297,14 +268,11 @@ class TestLLMConfigGeneration:
 
     def test_generate_llm_config_for_agent(self, mock_function_schemas):
         """Test generating LLM config for specific agent"""
-        registry = FunctionRegistry(
-            config_path=mock_function_schemas
-        )
+        registry = FunctionRegistry(config_path=mock_function_schemas)
 
         # Get config for specific agent with subset of functions
         llm_config = registry.generate_llm_config_for_agent(
-            agent_name="code_analyzer",
-            function_names=["github_create_pr", "filesystem_read_file"]
+            agent_name="code_analyzer", function_names=["github_create_pr", "filesystem_read_file"]
         )
 
         assert llm_config is not None
@@ -315,9 +283,7 @@ class TestFunctionListing:
 
     def test_list_all_functions(self, mock_function_schemas):
         """Test listing all registered functions"""
-        registry = FunctionRegistry(
-            config_path=mock_function_schemas
-        )
+        registry = FunctionRegistry(config_path=mock_function_schemas)
 
         functions = registry.list_functions()
 
@@ -328,9 +294,7 @@ class TestFunctionListing:
 
     def test_list_functions_by_category(self, mock_function_schemas):
         """Test listing functions by category"""
-        registry = FunctionRegistry(
-            config_path=mock_function_schemas
-        )
+        registry = FunctionRegistry(config_path=mock_function_schemas)
 
         # List functions by tool/category
         github_functions = [f for f in registry.list_functions() if "github" in f]
@@ -367,9 +331,7 @@ class TestErrorConditions:
     @pytest.mark.asyncio
     async def test_execute_nonexistent_function(self, mock_function_schemas):
         """Test executing non-existent function"""
-        registry = FunctionRegistry(
-            config_path=mock_function_schemas
-        )
+        registry = FunctionRegistry(config_path=mock_function_schemas)
 
         with pytest.raises((ValueError, KeyError)):
             await registry.execute_function("nonexistent", {})
@@ -380,9 +342,7 @@ class TestFunctionCaching:
 
     def test_schema_caching(self, mock_function_schemas):
         """Test that schemas are cached after loading"""
-        registry = FunctionRegistry(
-            config_path=mock_function_schemas
-        )
+        registry = FunctionRegistry(config_path=mock_function_schemas)
 
         # First call loads schemas
         schemas1 = registry.get_function_schemas()
@@ -400,9 +360,7 @@ class TestAsyncOperations:
     @pytest.mark.asyncio
     async def test_concurrent_function_execution(self, mock_function_schemas, mock_tool_manager):
         """Test concurrent function executions"""
-        registry = FunctionRegistry(
-            config_path=mock_function_schemas
-        )
+        registry = FunctionRegistry(config_path=mock_function_schemas)
         registry.tool_manager = mock_tool_manager
 
         # Mock tool
@@ -412,8 +370,7 @@ class TestAsyncOperations:
 
         # Execute multiple functions concurrently
         tasks = [
-            registry.execute_function("github_create_pr", {"title": f"PR {i}"})
-            for i in range(3)
+            registry.execute_function("github_create_pr", {"title": f"PR {i}"}) for i in range(3)
         ]
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -429,9 +386,7 @@ class TestFunctionRegistryIntegration:
 
     def test_full_initialization(self, mock_function_schemas):
         """Test complete initialization flow"""
-        registry = FunctionRegistry(
-            config_path=mock_function_schemas
-        )
+        registry = FunctionRegistry(config_path=mock_function_schemas)
 
         # Verify initialization
         assert registry.function_schemas_path == mock_function_schemas
@@ -440,9 +395,7 @@ class TestFunctionRegistryIntegration:
     @pytest.mark.asyncio
     async def test_end_to_end_function_call(self, mock_function_schemas, mock_tool_manager):
         """Test end-to-end function call flow"""
-        registry = FunctionRegistry(
-            config_path=mock_function_schemas
-        )
+        registry = FunctionRegistry(config_path=mock_function_schemas)
         registry.tool_manager = mock_tool_manager
 
         # Initialize
@@ -454,8 +407,6 @@ class TestFunctionRegistryIntegration:
         mock_tool_manager.get_tool.return_value = mock_tool
 
         # Execute
-        result = await registry.execute_function("filesystem_read_file",
-            {"path": "/test/file.txt"}
-        )
+        result = await registry.execute_function("filesystem_read_file", {"path": "/test/file.txt"})
 
         assert result["result"] == "success"

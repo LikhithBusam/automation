@@ -9,15 +9,10 @@ from .auth import (
     require_auth,
     require_permission,
     require_role,
-    ROLE_PERMISSIONS
+    ROLE_PERMISSIONS,
 )
 
-from .validation import (
-    InputValidator,
-    ValidationResult,
-    get_validator,
-    validate_and_raise
-)
+from .validation import InputValidator, ValidationResult, get_validator, validate_and_raise
 
 __all__ = [
     # Auth

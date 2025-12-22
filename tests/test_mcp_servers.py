@@ -1,4 +1,5 @@
 """MCP Server Health Check and Basic Operation Tests"""
+
 import pytest
 import requests
 from unittest.mock import Mock, patch
@@ -15,7 +16,7 @@ class TestMCPServerHealth:
         try:
             response = requests.get(
                 f"http://localhost:{port}/health",
-                timeout=test_config["mcp_servers"]["github"]["timeout"]
+                timeout=test_config["mcp_servers"]["github"]["timeout"],
             )
             assert response.status_code == 200
             assert response.elapsed.total_seconds() < 0.5
@@ -28,7 +29,7 @@ class TestMCPServerHealth:
         try:
             response = requests.get(
                 f"http://localhost:{port}/health",
-                timeout=test_config["mcp_servers"]["filesystem"]["timeout"]
+                timeout=test_config["mcp_servers"]["filesystem"]["timeout"],
             )
             assert response.status_code == 200
         except requests.ConnectionError:
@@ -40,7 +41,7 @@ class TestMCPServerHealth:
         try:
             response = requests.get(
                 f"http://localhost:{port}/health",
-                timeout=test_config["mcp_servers"]["memory"]["timeout"]
+                timeout=test_config["mcp_servers"]["memory"]["timeout"],
             )
             assert response.status_code == 200
         except requests.ConnectionError:
@@ -99,9 +100,7 @@ class TestMemoryMCPOperations:
         memory_content = {"test": "data", "type": "pattern"}
 
         memory_id = tool.store_memory(
-            content=memory_content,
-            memory_type="short_term",
-            tags=["test"]
+            content=memory_content, memory_type="short_term", tags=["test"]
         )
 
         assert memory_id is not None

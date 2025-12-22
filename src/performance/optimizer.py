@@ -25,9 +25,11 @@ import json
 # CONNECTION POOL
 # ============================================================================
 
+
 @dataclass
 class Connection:
     """Reusable connection to MCP server"""
+
     id: str
     server_name: str
     created_at: float
@@ -76,7 +78,7 @@ class ConnectionPool:
                     created_at=time.time(),
                     last_used=time.time(),
                     in_use=True,
-                    request_count=1
+                    request_count=1,
                 )
                 pool.append(conn)
                 return conn
@@ -89,7 +91,7 @@ class ConnectionPool:
                     await asyncio.sleep(0.01)
                 finally:
                     await self._lock.acquire()
-                
+
                 # Check again
                 for conn in pool:
                     if not conn.in_use:
@@ -109,7 +111,8 @@ class ConnectionPool:
             now = time.time()
             for server_name, pool in self.pools.items():
                 self.pools[server_name] = [
-                    conn for conn in pool
+                    conn
+                    for conn in pool
                     if conn.in_use or (now - conn.last_used) < self.max_idle_time
                 ]
 
@@ -118,9 +121,11 @@ class ConnectionPool:
 # REQUEST BATCHER
 # ============================================================================
 
+
 @dataclass
 class BatchRequest:
     """Batched request"""
+
     operation: str
     params: Dict[str, Any]
     future: asyncio.Future
@@ -182,6 +187,7 @@ class RequestBatcher:
 # PARALLEL EXECUTOR
 # ============================================================================
 
+
 class ParallelExecutor:
     """
     Execute multiple operations in parallel
@@ -220,6 +226,7 @@ class ParallelExecutor:
 # ============================================================================
 # SMART CACHE
 # ============================================================================
+
 
 class SmartCache:
     """
@@ -300,13 +307,14 @@ class SmartCache:
             "size": len(self.cache),
             "total_accesses": sum(self.access_count.values()),
             "most_accessed": max(self.access_count.keys(), key=lambda k: self.access_count[k]),
-            "patterns_learned": len(self.access_patterns)
+            "patterns_learned": len(self.access_patterns),
         }
 
 
 # ============================================================================
 # RESPONSE STREAMER
 # ============================================================================
+
 
 class ResponseStreamer:
     """
@@ -340,9 +348,11 @@ class ResponseStreamer:
 # PERFORMANCE MONITOR
 # ============================================================================
 
+
 @dataclass
 class PerformanceMetrics:
     """Performance metrics"""
+
     operation: str
     duration_ms: float
     timestamp: datetime
@@ -359,14 +369,16 @@ class PerformanceMonitor:
         self.metrics: List[PerformanceMetrics] = []
         self.max_metrics = 1000
 
-    def record(self, operation: str, duration_ms: float, cache_hit: bool = False, batch_size: int = 1):
+    def record(
+        self, operation: str, duration_ms: float, cache_hit: bool = False, batch_size: int = 1
+    ):
         """Record performance metric"""
         metric = PerformanceMetrics(
             operation=operation,
             duration_ms=duration_ms,
             timestamp=datetime.now(),
             cache_hit=cache_hit,
-            batch_size=batch_size
+            batch_size=batch_size,
         )
 
         self.metrics.append(metric)
@@ -394,7 +406,7 @@ class PerformanceMonitor:
             "min_duration_ms": min(durations),
             "max_duration_ms": max(durations),
             "cache_hit_rate": (cache_hits / len(metrics)) * 100 if metrics else 0,
-            "total_time_saved_ms": sum(m.duration_ms * 0.9 for m in metrics if m.cache_hit)
+            "total_time_saved_ms": sum(m.duration_ms * 0.9 for m in metrics if m.cache_hit),
         }
 
     def get_slowest_operations(self, limit: int = 10) -> List[PerformanceMetrics]:
@@ -405,6 +417,7 @@ class PerformanceMonitor:
 # ============================================================================
 # MAIN PERFORMANCE OPTIMIZER
 # ============================================================================
+
 
 class PerformanceOptimizer:
     """
@@ -440,7 +453,7 @@ class PerformanceOptimizer:
             return cached
 
         # Use connection pool
-        conn = await self.connection_pool.get_connection(operation.split('_')[0])
+        conn = await self.connection_pool.get_connection(operation.split("_")[0])
 
         try:
             # Execute request (would call actual MCP server)
@@ -462,10 +475,7 @@ class PerformanceOptimizer:
 
         Performance: 5-10x faster than sequential
         """
-        tasks = [
-            self.optimize_request(operation, params)
-            for operation, params in requests
-        ]
+        tasks = [self.optimize_request(operation, params) for operation, params in requests]
         return await asyncio.gather(*tasks)
 
     def _get_cache_key(self, operation: str, params: Dict[str, Any]) -> str:
@@ -487,7 +497,7 @@ class PerformanceOptimizer:
             "slowest_operations": [
                 {"operation": m.operation, "duration_ms": m.duration_ms}
                 for m in self.monitor.get_slowest_operations(5)
-            ]
+            ],
         }
 
     def shutdown(self):
@@ -499,6 +509,7 @@ class PerformanceOptimizer:
 # USAGE EXAMPLE
 # ============================================================================
 
+
 async def example_usage():
     """Example of using the optimizer"""
     optimizer = PerformanceOptimizer()
@@ -507,10 +518,7 @@ async def example_usage():
     result1 = await optimizer.optimize_request("github_search", {"query": "python"})
 
     # Batch optimized requests (5-10x faster)
-    requests = [
-        ("read_file", {"path": f"/file{i}.py"})
-        for i in range(10)
-    ]
+    requests = [("read_file", {"path": f"/file{i}.py"}) for i in range(10)]
     results = await optimizer.optimize_batch(requests)
 
     # Get performance report

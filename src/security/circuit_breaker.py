@@ -13,28 +13,32 @@ from dataclasses import dataclass, field
 
 class CircuitState(Enum):
     """Circuit breaker states"""
-    CLOSED = "closed"        # Normal operation
-    OPEN = "open"            # Failing, reject requests
+
+    CLOSED = "closed"  # Normal operation
+    OPEN = "open"  # Failing, reject requests
     HALF_OPEN = "half_open"  # Testing if recovered
 
 
 class CircuitBreakerOpenError(Exception):
     """Raised when circuit breaker is open"""
+
     pass
 
 
 @dataclass
 class CircuitBreakerConfig:
     """Circuit breaker configuration"""
+
     failure_threshold: int = 5  # Failures before opening
     success_threshold: int = 2  # Successes to close from half-open
-    timeout_seconds: int = 60   # Time before attempting reset
+    timeout_seconds: int = 60  # Time before attempting reset
     half_open_max_calls: int = 1  # Max calls in half-open state
 
 
 @dataclass
 class CircuitBreakerStats:
     """Circuit breaker statistics"""
+
     state: CircuitState
     failure_count: int = 0
     success_count: int = 0
@@ -69,7 +73,7 @@ class CircuitBreaker:
         success_threshold: int = 2,
         timeout_seconds: int = 60,
         half_open_max_calls: int = 1,
-        excluded_exceptions: tuple = None
+        excluded_exceptions: tuple = None,
     ):
         """
         Initialize circuit breaker.
@@ -85,7 +89,7 @@ class CircuitBreaker:
             failure_threshold=failure_threshold,
             success_threshold=success_threshold,
             timeout_seconds=timeout_seconds,
-            half_open_max_calls=half_open_max_calls
+            half_open_max_calls=half_open_max_calls,
         )
 
         self.excluded_exceptions = excluded_exceptions or tuple()
@@ -140,9 +144,7 @@ class CircuitBreaker:
             # If half-open, limit concurrent calls
             if self.state == CircuitState.HALF_OPEN:
                 if self.half_open_calls >= self.config.half_open_max_calls:
-                    raise CircuitBreakerOpenError(
-                        "Circuit breaker is HALF_OPEN and at capacity"
-                    )
+                    raise CircuitBreakerOpenError("Circuit breaker is HALF_OPEN and at capacity")
                 self.half_open_calls += 1
 
         # Execute function (outside lock to avoid blocking)
@@ -251,9 +253,11 @@ class CircuitBreaker:
             total_calls=self.total_calls,
             total_failures=self.total_failures,
             total_successes=self.total_successes,
-            last_failure_time=datetime.fromtimestamp(self.last_failure_time) if self.last_failure_time else None,
+            last_failure_time=(
+                datetime.fromtimestamp(self.last_failure_time) if self.last_failure_time else None
+            ),
             time_in_open_state=time_in_open,
-            state_transitions=self.state_transitions
+            state_transitions=self.state_transitions,
         )
 
     def reset(self):
@@ -309,26 +313,19 @@ class ServiceCircuitBreakers:
         self._lock = asyncio.Lock()
 
     async def get_breaker(
-        self,
-        service: str,
-        failure_threshold: int = 5,
-        timeout_seconds: int = 60
+        self, service: str, failure_threshold: int = 5, timeout_seconds: int = 60
     ) -> CircuitBreaker:
         """Get or create circuit breaker for service"""
         async with self._lock:
             if service not in self._breakers:
                 self._breakers[service] = CircuitBreaker(
-                    failure_threshold=failure_threshold,
-                    timeout_seconds=timeout_seconds
+                    failure_threshold=failure_threshold, timeout_seconds=timeout_seconds
                 )
             return self._breakers[service]
 
     def get_all_stats(self) -> dict[str, CircuitBreakerStats]:
         """Get statistics for all circuit breakers"""
-        return {
-            service: breaker.get_stats()
-            for service, breaker in self._breakers.items()
-        }
+        return {service: breaker.get_stats() for service, breaker in self._breakers.items()}
 
     def reset_all(self):
         """Reset all circuit breakers"""

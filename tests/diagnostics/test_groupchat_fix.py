@@ -1,11 +1,13 @@
 """
 Test script to verify GroupChat backward compatibility fix
 """
+
 import sys
 from pathlib import Path
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent))
+
 
 def test_groupchat_compatibility():
     """Test that GroupChat creation works with feature detection"""
@@ -18,6 +20,7 @@ def test_groupchat_compatibility():
     print("Test 1: Checking AutoGen availability...")
     try:
         from autogen import GroupChat, AssistantAgent
+
         print("  [OK] AutoGen imported successfully")
     except ImportError as e:
         print(f"  [FAIL] AutoGen not available: {e}")
@@ -26,11 +29,16 @@ def test_groupchat_compatibility():
     # Test 2: Check parameter detection
     print("\nTest 2: Checking parameter detection...")
     import inspect
+
     params = inspect.signature(GroupChat.__init__).parameters
 
     print(f"  GroupChat parameters: {list(params.keys())}")
-    print(f"  - allow_repeat_speaker: {'SUPPORTED' if 'allow_repeat_speaker' in params else 'NOT SUPPORTED'}")
-    print(f"  - speaker_selection_method: {'SUPPORTED' if 'speaker_selection_method' in params else 'NOT SUPPORTED'}")
+    print(
+        f"  - allow_repeat_speaker: {'SUPPORTED' if 'allow_repeat_speaker' in params else 'NOT SUPPORTED'}"
+    )
+    print(
+        f"  - speaker_selection_method: {'SUPPORTED' if 'speaker_selection_method' in params else 'NOT SUPPORTED'}"
+    )
 
     # Test 3: Create simple agents
     print("\nTest 3: Creating test agents...")
@@ -38,13 +46,9 @@ def test_groupchat_compatibility():
         agent1 = AssistantAgent(
             name="agent1",
             system_message="Test agent 1",
-            llm_config=False  # Disable LLM for testing
+            llm_config=False,  # Disable LLM for testing
         )
-        agent2 = AssistantAgent(
-            name="agent2",
-            system_message="Test agent 2",
-            llm_config=False
-        )
+        agent2 = AssistantAgent(name="agent2", system_message="Test agent 2", llm_config=False)
         print("  [OK] Test agents created")
     except Exception as e:
         print(f"  [FAIL] Could not create agents: {e}")
@@ -90,7 +94,9 @@ def test_groupchat_compatibility():
         from src.autogen_adapters.groupchat_factory import GroupChatFactory
 
         factory = GroupChatFactory("config/autogen_workflows.yaml")
-        print(f"  [OK] GroupChatFactory initialized with {len(factory.groupchat_configs)} chat configs")
+        print(
+            f"  [OK] GroupChatFactory initialized with {len(factory.groupchat_configs)} chat configs"
+        )
 
     except Exception as e:
         print(f"  [FAIL] GroupChatFactory error: {e}")

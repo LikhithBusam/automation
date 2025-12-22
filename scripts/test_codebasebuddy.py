@@ -21,10 +21,10 @@ from pathlib import Path
 from datetime import datetime
 
 # Fix Windows console encoding
-if sys.platform == 'win32':
-    os.system('chcp 65001 >nul 2>&1')  # Set console to UTF-8
-    sys.stdout.reconfigure(encoding='utf-8')
-    sys.stderr.reconfigure(encoding='utf-8')
+if sys.platform == "win32":
+    os.system("chcp 65001 >nul 2>&1")  # Set console to UTF-8
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -49,7 +49,7 @@ class CodeBaseBuddyTester:
             "test": test_name,
             "status": status,
             "message": message,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
         self.test_results.append(result)
 
@@ -69,29 +69,20 @@ class CodeBaseBuddyTester:
                 "server_url": "http://localhost:3004",
                 "index_path": "./data/codebase_index",
                 "scan_paths": ["./src", "./mcp_servers"],
-                "timeout": 60
+                "timeout": 60,
             }
 
-            self.tool = CodeBaseBuddyMCPTool(
-                server_url=config["server_url"],
-                config=config
-            )
+            self.tool = CodeBaseBuddyMCPTool(server_url=config["server_url"], config=config)
 
             # Connect to server
             await self.tool.connect()
 
             self.log_test(
-                "Tool Initialization",
-                True,
-                f"Connected to server at {config['server_url']}"
+                "Tool Initialization", True, f"Connected to server at {config['server_url']}"
             )
 
         except Exception as e:
-            self.log_test(
-                "Tool Initialization",
-                False,
-                f"Failed to initialize: {e}"
-            )
+            self.log_test("Tool Initialization", False, f"Failed to initialize: {e}")
 
     async def test_02_health_check(self):
         """Test 2: Server health check"""
@@ -121,7 +112,7 @@ class CodeBaseBuddyTester:
             result = await self.tool.build_index(
                 root_path="./src",
                 file_extensions=[".py"],
-                rebuild=True  # Force rebuild for testing
+                rebuild=True,  # Force rebuild for testing
             )
 
             success = result.get("success", False)
@@ -171,10 +162,7 @@ class CodeBaseBuddyTester:
             query = "How does authentication work?"
             print(f"\n    Query: '{query}'")
 
-            result = await self.tool.semantic_search(
-                query=query,
-                top_k=5
-            )
+            result = await self.tool.semantic_search(query=query, top_k=5)
 
             success = result.get("success", False)
 
@@ -195,9 +183,7 @@ class CodeBaseBuddyTester:
                     print(f"       Preview: {res.get('content_preview', '')[:100]}...")
             else:
                 self.log_test(
-                    "Semantic Search (Authentication)",
-                    False,
-                    result.get("error", "Failed")
+                    "Semantic Search (Authentication)", False, result.get("error", "Failed")
                 )
 
         except Exception as e:
@@ -210,9 +196,7 @@ class CodeBaseBuddyTester:
             print(f"\n    Query: '{query}'")
 
             result = await self.tool.semantic_search(
-                query=query,
-                top_k=5,
-                file_filter=".*security.*"  # Filter to security files
+                query=query, top_k=5, file_filter=".*security.*"  # Filter to security files
             )
 
             success = result.get("success", False)
@@ -226,12 +210,12 @@ class CodeBaseBuddyTester:
                 results = result.get("results", [])
                 print(f"\n    Found {len(results)} results:")
                 for i, res in enumerate(results[:3], 1):
-                    print(f"    {i}. {res.get('name')} - Score: {res.get('similarity_score', 0):.4f}")
+                    print(
+                        f"    {i}. {res.get('name')} - Score: {res.get('similarity_score', 0):.4f}"
+                    )
             else:
                 self.log_test(
-                    "Semantic Search (Error Handling)",
-                    False,
-                    result.get("error", "Failed")
+                    "Semantic Search (Error Handling)", False, result.get("error", "Failed")
                 )
 
         except Exception as e:
@@ -249,9 +233,7 @@ async def execute(self, operation: str, params: Dict[str, Any]) -> Any:
             print(f"\n    Code snippet: {code_snippet[:80]}...")
 
             result = await self.tool.find_similar_code(
-                code_snippet=code_snippet,
-                top_k=5,
-                exclude_self=True
+                code_snippet=code_snippet, top_k=5, exclude_self=True
             )
 
             success = result.get("success", False)
@@ -283,9 +265,7 @@ async def execute(self, operation: str, params: Dict[str, Any]) -> Any:
             print(f"\n    File: {file_path}, Line: {line_number}")
 
             result = await self.tool.get_code_context(
-                file_path=file_path,
-                line_number=line_number,
-                context_lines=5
+                file_path=file_path, line_number=line_number, context_lines=5
             )
 
             success = result.get("success", False)
@@ -300,7 +280,7 @@ async def execute(self, operation: str, params: Dict[str, Any]) -> Any:
                 # Print context
                 print(f"\n    Context around line {line_number}:")
                 print("    " + "-" * 60)
-                for i, line in enumerate(result.get("context", "").split('\n')[:10], start):
+                for i, line in enumerate(result.get("context", "").split("\n")[:10], start):
                     print(f"    {i:4d} | {line}")
                 print("    " + "-" * 60)
             else:
@@ -315,10 +295,7 @@ async def execute(self, operation: str, params: Dict[str, Any]) -> Any:
             symbol = "MCPToolManager"
             print(f"\n    Symbol: '{symbol}'")
 
-            result = await self.tool.find_usages(
-                symbol_name=symbol,
-                top_k=10
-            )
+            result = await self.tool.find_usages(symbol_name=symbol, top_k=10)
 
             success = result.get("success", False)
 
@@ -341,10 +318,7 @@ async def execute(self, operation: str, params: Dict[str, Any]) -> Any:
     async def test_10_error_handling_empty_query(self):
         """Test 10: Error handling - empty query"""
         try:
-            result = await self.tool.semantic_search(
-                query="",
-                top_k=5
-            )
+            result = await self.tool.semantic_search(query="", top_k=5)
 
             # Should fail with validation error
             success = not result.get("success", True)
@@ -355,9 +329,7 @@ async def execute(self, operation: str, params: Dict[str, Any]) -> Any:
         except Exception as e:
             # Expected to raise validation error
             self.log_test(
-                "Error Handling (Empty Query)",
-                True,
-                "Raised validation error as expected"
+                "Error Handling (Empty Query)", True, "Raised validation error as expected"
             )
 
     async def test_11_caching(self):
@@ -386,24 +358,16 @@ async def execute(self, operation: str, params: Dict[str, Any]) -> Any:
             # Create a tool with invalid server URL
             fallback_tool = CodeBaseBuddyMCPTool(
                 server_url="http://localhost:9999",  # Wrong port
-                config={
-                    "index_path": "./data/codebase_index",
-                    "scan_paths": ["./src"]
-                }
+                config={"index_path": "./data/codebase_index", "scan_paths": ["./src"]},
             )
 
-            result = await fallback_tool.semantic_search(
-                query="test fallback",
-                top_k=3
-            )
+            result = await fallback_tool.semantic_search(query="test fallback", top_k=3)
 
             # Fallback should still return results
             fallback_used = result.get("fallback_used", False)
 
             self.log_test(
-                "Fallback Mode",
-                fallback_used,
-                "Fallback search activated when server unavailable"
+                "Fallback Mode", fallback_used, "Fallback search activated when server unavailable"
             )
 
         except Exception as e:
@@ -427,15 +391,19 @@ async def execute(self, operation: str, params: Dict[str, Any]) -> Any:
         report_path = Path("reports/codebasebuddy_test_report.json")
         report_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(report_path, 'w') as f:
-            json.dump({
-                "timestamp": datetime.now().isoformat(),
-                "total_tests": total,
-                "passed": self.passed,
-                "failed": self.failed,
-                "pass_rate": pass_rate,
-                "results": self.test_results
-            }, f, indent=2)
+        with open(report_path, "w") as f:
+            json.dump(
+                {
+                    "timestamp": datetime.now().isoformat(),
+                    "total_tests": total,
+                    "passed": self.passed,
+                    "failed": self.failed,
+                    "pass_rate": pass_rate,
+                    "results": self.test_results,
+                },
+                f,
+                indent=2,
+            )
 
         print(f"\n[*] Detailed report saved to: {report_path}")
 

@@ -29,111 +29,101 @@ class SensitiveDataFilter(logging.Filter):
         {
             "name": "groq_api_key",
             "pattern": r"gsk_[a-zA-Z0-9]{40,}",
-            "replacement": "gsk_***REDACTED***"
+            "replacement": "gsk_***REDACTED***",
         },
         {
             "name": "github_token",
             "pattern": r"gh[ps]_[a-zA-Z0-9]{36,}",
-            "replacement": "gh*_***REDACTED***"
+            "replacement": "gh*_***REDACTED***",
         },
         {
             "name": "github_pat",
             "pattern": r"github_pat_[a-zA-Z0-9_]{82}",
-            "replacement": "github_pat_***REDACTED***"
+            "replacement": "github_pat_***REDACTED***",
         },
         {
             "name": "slack_token",
             "pattern": r"xox[baprs]-[a-zA-Z0-9-]{10,}",
-            "replacement": "xox*-***REDACTED***"
+            "replacement": "xox*-***REDACTED***",
         },
         {
             "name": "huggingface_token",
             "pattern": r"hf_[a-zA-Z0-9]{30,}",
-            "replacement": "hf_***REDACTED***"
+            "replacement": "hf_***REDACTED***",
         },
         {
             "name": "gemini_api_key",
             "pattern": r"AIzaSy[a-zA-Z0-9_-]{33}",
-            "replacement": "AIzaSy***REDACTED***"
+            "replacement": "AIzaSy***REDACTED***",
         },
         {
             "name": "openai_api_key",
             "pattern": r"sk-[a-zA-Z0-9]{48}",
-            "replacement": "sk-***REDACTED***"
+            "replacement": "sk-***REDACTED***",
         },
         {
             "name": "anthropic_api_key",
             "pattern": r"sk-ant-[a-zA-Z0-9-]{95}",
-            "replacement": "sk-ant-***REDACTED***"
+            "replacement": "sk-ant-***REDACTED***",
         },
         {
             "name": "aws_access_key",
             "pattern": r"AKIA[0-9A-Z]{16}",
-            "replacement": "AKIA***REDACTED***"
+            "replacement": "AKIA***REDACTED***",
         },
-
         # Generic API key patterns
         {
             "name": "generic_api_key",
             "pattern": r"['\"]?api[_-]?key['\"]?\s*[:=]\s*['\"]([a-zA-Z0-9_-]{20,})['\"]",
-            "replacement": r"api_key='***REDACTED***'"
+            "replacement": r"api_key='***REDACTED***'",
         },
         {
             "name": "generic_token",
             "pattern": r"['\"]?token['\"]?\s*[:=]\s*['\"]([a-zA-Z0-9_.-]{20,})['\"]",
-            "replacement": r"token='***REDACTED***'"
+            "replacement": r"token='***REDACTED***'",
         },
         {
             "name": "bearer_token",
             "pattern": r"Bearer\s+[a-zA-Z0-9_.-]{20,}",
-            "replacement": "Bearer ***REDACTED***"
+            "replacement": "Bearer ***REDACTED***",
         },
-
         # Passwords and Secrets
         {
             "name": "password",
             "pattern": r"['\"]?password['\"]?\s*[:=]\s*['\"]([^'\"]{3,})['\"]",
-            "replacement": r"password='***REDACTED***'"
+            "replacement": r"password='***REDACTED***'",
         },
         {
             "name": "secret",
             "pattern": r"['\"]?secret['\"]?\s*[:=]\s*['\"]([a-zA-Z0-9_.-]{8,})['\"]",
-            "replacement": r"secret='***REDACTED***'"
+            "replacement": r"secret='***REDACTED***'",
         },
         {
             "name": "private_key",
             "pattern": r"-----BEGIN\s+(RSA\s+)?PRIVATE\s+KEY-----[\s\S]*?-----END\s+(RSA\s+)?PRIVATE\s+KEY-----",
-            "replacement": "-----BEGIN PRIVATE KEY-----\n***REDACTED***\n-----END PRIVATE KEY-----"
+            "replacement": "-----BEGIN PRIVATE KEY-----\n***REDACTED***\n-----END PRIVATE KEY-----",
         },
-
         # Credit Cards (basic pattern)
         {
             "name": "credit_card",
             "pattern": r"\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b",
-            "replacement": "****-****-****-****"
+            "replacement": "****-****-****-****",
         },
-
         # Social Security Numbers (US)
-        {
-            "name": "ssn",
-            "pattern": r"\b\d{3}-\d{2}-\d{4}\b",
-            "replacement": "***-**-****"
-        },
-
+        {"name": "ssn", "pattern": r"\b\d{3}-\d{2}-\d{4}\b", "replacement": "***-**-****"},
         # Email addresses (optional - can be disabled)
         {
             "name": "email",
             "pattern": r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b",
             "replacement": "***@***.***",
-            "enabled": False  # Disabled by default
+            "enabled": False,  # Disabled by default
         },
-
         # IP addresses (optional - can be disabled)
         {
             "name": "ipv4",
             "pattern": r"\b(?:\d{1,3}\.){3}\d{1,3}\b",
             "replacement": "*.*.*.*",
-            "enabled": False  # Disabled by default
+            "enabled": False,  # Disabled by default
         },
     ]
 
@@ -161,11 +151,9 @@ class SensitiveDataFilter(logging.Filter):
                     continue
 
             compiled = re.compile(pattern_config["pattern"], re.IGNORECASE)
-            self.compiled_patterns.append((
-                pattern_config["name"],
-                compiled,
-                pattern_config["replacement"]
-            ))
+            self.compiled_patterns.append(
+                (pattern_config["name"], compiled, pattern_config["replacement"])
+            )
 
     def filter(self, record: logging.LogRecord) -> bool:
         """
@@ -178,11 +166,11 @@ class SensitiveDataFilter(logging.Filter):
             True to allow record to pass through
         """
         # Sanitize message
-        if hasattr(record, 'msg') and isinstance(record.msg, str):
+        if hasattr(record, "msg") and isinstance(record.msg, str):
             record.msg = self.sanitize(record.msg)
 
         # Sanitize args if present
-        if hasattr(record, 'args') and record.args:
+        if hasattr(record, "args") and record.args:
             if isinstance(record.args, dict):
                 record.args = {
                     k: self.sanitize(str(v)) if isinstance(v, str) else v
@@ -190,8 +178,7 @@ class SensitiveDataFilter(logging.Filter):
                 }
             elif isinstance(record.args, (list, tuple)):
                 record.args = tuple(
-                    self.sanitize(str(arg)) if isinstance(arg, str) else arg
-                    for arg in record.args
+                    self.sanitize(str(arg)) if isinstance(arg, str) else arg for arg in record.args
                 )
 
         return True
@@ -221,14 +208,12 @@ class SensitiveDataFilter(logging.Filter):
 _default_filter = SensitiveDataFilter(
     name="sensitive_data_filter",
     redact_emails=False,  # Don't redact emails by default
-    redact_ips=False      # Don't redact IPs by default
+    redact_ips=False,  # Don't redact IPs by default
 )
 
 
 def install_log_filter(
-    logger: logging.Logger = None,
-    redact_emails: bool = False,
-    redact_ips: bool = False
+    logger: logging.Logger = None, redact_emails: bool = False, redact_ips: bool = False
 ):
     """
     Install sensitive data filter on logger.
@@ -255,9 +240,7 @@ def install_log_filter(
 
     # Add new filter
     filter_instance = SensitiveDataFilter(
-        name="sensitive_data_filter",
-        redact_emails=redact_emails,
-        redact_ips=redact_ips
+        name="sensitive_data_filter", redact_emails=redact_emails, redact_ips=redact_ips
     )
     logger.addFilter(filter_instance)
 
@@ -282,12 +265,21 @@ def sanitize_dict(data: Dict[str, Any], keys_to_redact: List[str] = None) -> Dic
     """
     if keys_to_redact is None:
         keys_to_redact = [
-            "api_key", "apikey", "api-key",
-            "token", "access_token", "auth_token",
-            "password", "passwd", "pwd",
-            "secret", "secret_key",
-            "private_key", "privatekey",
-            "authorization", "auth",
+            "api_key",
+            "apikey",
+            "api-key",
+            "token",
+            "access_token",
+            "auth_token",
+            "password",
+            "passwd",
+            "pwd",
+            "secret",
+            "secret_key",
+            "private_key",
+            "privatekey",
+            "authorization",
+            "auth",
         ]
 
     sanitized = data.copy()
@@ -338,6 +330,7 @@ def safe_log_decorator(func):
             logger.info(f"Calling {endpoint} with key {api_key}")
             # Logs: "Calling /api/data with key gsk_***REDACTED***"
     """
+
     @wraps(func)
     def wrapper(*args, **kwargs):
         # Sanitize kwargs for logging
@@ -355,9 +348,11 @@ def safe_log_decorator(func):
 # Aliases for backward compatibility with tests
 LogSanitizer = SensitiveDataFilter
 
+
 @dataclass
 class SanitizationConfig:
     """Configuration for log sanitization (alias for compatibility)"""
+
     redact_emails: bool = False
     redact_ips: bool = False
     custom_patterns: List[Dict[str, Any]] = None
@@ -372,8 +367,4 @@ def auto_install(enabled: bool = True):
         enabled: Whether to auto-install (default: True)
     """
     if enabled:
-        install_log_filter(
-            logger=None,  # Root logger
-            redact_emails=False,
-            redact_ips=False
-        )
+        install_log_filter(logger=None, redact_emails=False, redact_ips=False)  # Root logger

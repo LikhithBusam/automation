@@ -17,29 +17,25 @@ import httpx
 import os
 from datetime import datetime
 
-from src.mcp.base_tool import (
-    BaseMCPTool,
-    MCPConnectionError,
-    MCPValidationError,
-    MCPToolError
-)
+from src.mcp.base_tool import BaseMCPTool, MCPConnectionError, MCPValidationError, MCPToolError
 
 
 # =============================================================================
 # GitHub MCP Tool
 # =============================================================================
 
+
 class GitHubMCPTool(BaseMCPTool):
     """
     GitHub MCP Tool Wrapper.
-    
+
     Provides access to:
     - Pull request operations (create, get, review, list)
     - Issue management (create, update, search)
     - Code search
     - Repository operations
     - Deployment triggers
-    
+
     Features:
     - Smart caching for read operations (5min TTL)
     - GitHub-specific rate limiting (60/min, 1000/hour)
@@ -48,12 +44,12 @@ class GitHubMCPTool(BaseMCPTool):
 
     # Cache TTLs for different operations (in seconds)
     CACHE_TTLS = {
-        "get_pr": 300,           # 5 minutes
-        "list_prs": 120,         # 2 minutes
-        "search_code": 300,      # 5 minutes
-        "get_commit": 600,       # 10 minutes (commits don't change)
-        "list_repositories": 300, # 5 minutes
-        "get_commits": 180,      # 3 minutes
+        "get_pr": 300,  # 5 minutes
+        "list_prs": 120,  # 2 minutes
+        "search_code": 300,  # 5 minutes
+        "get_commit": 600,  # 10 minutes (commits don't change)
+        "list_repositories": 300,  # 5 minutes
+        "get_commits": 180,  # 3 minutes
     }
 
     def __init__(self, server_url: str, config: Dict[str, Any]):
@@ -61,20 +57,20 @@ class GitHubMCPTool(BaseMCPTool):
         config.setdefault("rate_limit_minute", 60)
         config.setdefault("rate_limit_hour", 1000)
         config.setdefault("cache_ttl", 300)  # 5 minutes default
-        
+
         super().__init__(
             name="github",
             server_url=server_url,
             config=config,
-            fallback_handler=self._fallback_handler
+            fallback_handler=self._fallback_handler,
         )
-        
+
         self.auth_token = config.get("auth_token", os.getenv("GITHUB_TOKEN", ""))
         self.blocked_patterns = config.get("blocked_patterns", [])
-        
+
         # HTTP client for MCP server communication
         self._client: Optional[httpx.AsyncClient] = None
-        
+
         # PyGithub instance for fallback
         self._github_fallback = None
 
@@ -87,7 +83,7 @@ class GitHubMCPTool(BaseMCPTool):
         self._client = httpx.AsyncClient(
             base_url=self.server_url,
             timeout=httpx.Timeout(30.0),
-            headers={"Authorization": f"Bearer {self.auth_token}"} if self.auth_token else {}
+            headers={"Authorization": f"Bearer {self.auth_token}"} if self.auth_token else {},
         )
 
     async def _do_disconnect(self):
@@ -106,13 +102,9 @@ class GitHubMCPTool(BaseMCPTool):
     # Operation Execution
     # =========================================================================
 
-    async def _execute_operation(
-        self,
-        operation: str,
-        params: Dict[str, Any]
-    ) -> Any:
+    async def _execute_operation(self, operation: str, params: Dict[str, Any]) -> Any:
         """Execute GitHub operation"""
-        
+
         # Map operations to handlers
         handlers = {
             "create_pr": self._create_pr,
@@ -134,13 +126,13 @@ class GitHubMCPTool(BaseMCPTool):
             "rollback_deployment": self._rollback_deployment,
             "health_check": self._health_check,
         }
-        
+
         handler = handlers.get(operation)
         if not handler:
             raise ValueError(f"Unknown operation: {operation}")
-        
+
         result = await handler(params)
-        
+
         # Parse and validate response
         return self._parse_response(operation, result)
 
@@ -150,9 +142,7 @@ class GitHubMCPTool(BaseMCPTool):
             # Check for error response
             if "error" in result:
                 raise MCPToolError(
-                    result["error"],
-                    operation=operation,
-                    details=result.get("details", {})
+                    result["error"], operation=operation, details=result.get("details", {})
                 )
         return result
 
@@ -162,12 +152,12 @@ class GitHubMCPTool(BaseMCPTool):
 
     def validate_params(self, operation: str, params: Dict[str, Any]):
         """Validate operation parameters"""
-        
+
         # Check for blocked operations
         for pattern in self.blocked_patterns:
             if pattern in operation:
                 raise PermissionError(f"Operation blocked by pattern: {pattern}")
-        
+
         # Operation-specific validation
         validators = {
             "create_pr": self._validate_create_pr,
@@ -177,7 +167,7 @@ class GitHubMCPTool(BaseMCPTool):
             "get_commit": self._validate_get_commit,
             "search_code": self._validate_search_code,
         }
-        
+
         validator = validators.get(operation)
         if validator:
             validator(params)
@@ -188,7 +178,7 @@ class GitHubMCPTool(BaseMCPTool):
         for field in required:
             if field not in params:
                 raise MCPValidationError(f"Missing required field: {field}")
-        
+
         # Validate repo format
         if "/" not in params["repo"]:
             raise MCPValidationError("repo must be in format 'owner/repo'")
@@ -199,7 +189,7 @@ class GitHubMCPTool(BaseMCPTool):
         for field in required:
             if field not in params:
                 raise MCPValidationError(f"Missing required field: {field}")
-        
+
         if not isinstance(params["pr_number"], int) or params["pr_number"] < 1:
             raise MCPValidationError("pr_number must be a positive integer")
 
@@ -209,7 +199,7 @@ class GitHubMCPTool(BaseMCPTool):
         for field in required:
             if field not in params:
                 raise MCPValidationError(f"Missing required field: {field}")
-        
+
         valid_events = ["APPROVE", "REQUEST_CHANGES", "COMMENT"]
         if params["event"] not in valid_events:
             raise MCPValidationError(f"event must be one of: {valid_events}")
@@ -244,8 +234,15 @@ class GitHubMCPTool(BaseMCPTool):
     def _is_cacheable_operation(self, operation: str) -> bool:
         """Determine if operation should be cached (read operations only)"""
         cacheable = {
-            "get_pr", "list_prs", "get_issue", "search_code", "search_issues",
-            "get_commit", "get_commits", "list_repositories", "get_repository"
+            "get_pr",
+            "list_prs",
+            "get_issue",
+            "search_code",
+            "search_issues",
+            "get_commit",
+            "get_commits",
+            "list_repositories",
+            "get_repository",
         }
         return operation in cacheable
 
@@ -264,8 +261,8 @@ class GitHubMCPTool(BaseMCPTool):
                 "head": params["head"],
                 "base": params["base"],
                 "body": params.get("body", ""),
-                "draft": params.get("draft", False)
-            }
+                "draft": params.get("draft", False),
+            },
         )
         response.raise_for_status()
         return response.json()
@@ -274,11 +271,7 @@ class GitHubMCPTool(BaseMCPTool):
         """Get pull request details"""
         client = await self._get_client()
         response = await client.get(
-            "/get_pull_request",
-            params={
-                "repo": params["repo"],
-                "pr_number": params["pr_number"]
-            }
+            "/get_pull_request", params={"repo": params["repo"], "pr_number": params["pr_number"]}
         )
         response.raise_for_status()
         return response.json()
@@ -293,8 +286,8 @@ class GitHubMCPTool(BaseMCPTool):
                 "pr_number": params["pr_number"],
                 "body": params["body"],
                 "event": params["event"],
-                "comments": params.get("comments", [])
-            }
+                "comments": params.get("comments", []),
+            },
         )
         response.raise_for_status()
         return response.json()
@@ -307,8 +300,8 @@ class GitHubMCPTool(BaseMCPTool):
             params={
                 "repo": params["repo"],
                 "state": params.get("state", "open"),
-                "per_page": params.get("per_page", 30)
-            }
+                "per_page": params.get("per_page", 30),
+            },
         )
         response.raise_for_status()
         return response.json()
@@ -323,8 +316,8 @@ class GitHubMCPTool(BaseMCPTool):
                 "pr_number": params["pr_number"],
                 "merge_method": params.get("merge_method", "merge"),
                 "commit_title": params.get("commit_title"),
-                "commit_message": params.get("commit_message")
-            }
+                "commit_message": params.get("commit_message"),
+            },
         )
         response.raise_for_status()
         return response.json()
@@ -339,8 +332,8 @@ class GitHubMCPTool(BaseMCPTool):
                 "title": params["title"],
                 "body": params.get("body", ""),
                 "labels": params.get("labels", []),
-                "assignees": params.get("assignees", [])
-            }
+                "assignees": params.get("assignees", []),
+            },
         )
         response.raise_for_status()
         return response.json()
@@ -349,11 +342,7 @@ class GitHubMCPTool(BaseMCPTool):
         """Get issue details"""
         client = await self._get_client()
         response = await client.get(
-            "/get_issue",
-            params={
-                "repo": params["repo"],
-                "issue_number": params["issue_number"]
-            }
+            "/get_issue", params={"repo": params["repo"], "issue_number": params["issue_number"]}
         )
         response.raise_for_status()
         return response.json()
@@ -370,8 +359,8 @@ class GitHubMCPTool(BaseMCPTool):
                 "body": params.get("body"),
                 "state": params.get("state"),
                 "labels": params.get("labels"),
-                "assignees": params.get("assignees")
-            }
+                "assignees": params.get("assignees"),
+            },
         )
         response.raise_for_status()
         return response.json()
@@ -381,10 +370,7 @@ class GitHubMCPTool(BaseMCPTool):
         client = await self._get_client()
         response = await client.get(
             "/search_code",
-            params={
-                "query": params["query"],
-                "per_page": params.get("per_page", 30)
-            }
+            params={"query": params["query"], "per_page": params.get("per_page", 30)},
         )
         response.raise_for_status()
         return response.json()
@@ -394,10 +380,7 @@ class GitHubMCPTool(BaseMCPTool):
         client = await self._get_client()
         response = await client.get(
             "/search_issues",
-            params={
-                "query": params["query"],
-                "per_page": params.get("per_page", 30)
-            }
+            params={"query": params["query"], "per_page": params.get("per_page", 30)},
         )
         response.raise_for_status()
         return response.json()
@@ -406,11 +389,7 @@ class GitHubMCPTool(BaseMCPTool):
         """Get commit details"""
         client = await self._get_client()
         response = await client.get(
-            "/get_commit",
-            params={
-                "repo": params["repo"],
-                "sha": params["sha"]
-            }
+            "/get_commit", params={"repo": params["repo"], "sha": params["sha"]}
         )
         response.raise_for_status()
         return response.json()
@@ -424,8 +403,8 @@ class GitHubMCPTool(BaseMCPTool):
                 "repo": params["repo"],
                 "branch": params.get("branch", "main"),
                 "since": params.get("since"),
-                "per_page": params.get("per_page", 30)
-            }
+                "per_page": params.get("per_page", 30),
+            },
         )
         response.raise_for_status()
         return response.json()
@@ -439,8 +418,8 @@ class GitHubMCPTool(BaseMCPTool):
                 "org": params.get("org"),
                 "user": params.get("user"),
                 "visibility": params.get("visibility", "all"),
-                "per_page": params.get("per_page", 30)
-            }
+                "per_page": params.get("per_page", 30),
+            },
         )
         response.raise_for_status()
         return response.json()
@@ -448,10 +427,7 @@ class GitHubMCPTool(BaseMCPTool):
     async def _get_repository(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Get repository details"""
         client = await self._get_client()
-        response = await client.get(
-            "/get_repository",
-            params={"repo": params["repo"]}
-        )
+        response = await client.get("/get_repository", params={"repo": params["repo"]})
         response.raise_for_status()
         return response.json()
 
@@ -463,8 +439,8 @@ class GitHubMCPTool(BaseMCPTool):
             json={
                 "repo": params["repo"],
                 "branch": params["branch"],
-                "from_branch": params.get("from_branch", "main")
-            }
+                "from_branch": params.get("from_branch", "main"),
+            },
         )
         response.raise_for_status()
         return response.json()
@@ -479,8 +455,8 @@ class GitHubMCPTool(BaseMCPTool):
                     "repo": params.get("repo"),
                     "environment": params.get("environment"),
                     "version": params.get("version"),
-                    "strategy": params.get("strategy", "rolling")
-                }
+                    "strategy": params.get("strategy", "rolling"),
+                },
             )
             response.raise_for_status()
             return response.json()
@@ -492,7 +468,7 @@ class GitHubMCPTool(BaseMCPTool):
                 "version": params.get("version"),
                 "strategy": params.get("strategy", "rolling"),
                 "workflow_id": f"workflow-{datetime.now().timestamp()}",
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
             }
 
     async def _rollback_deployment(self, params: Dict[str, Any]) -> Dict[str, Any]:
@@ -501,10 +477,7 @@ class GitHubMCPTool(BaseMCPTool):
         try:
             response = await client.post(
                 "/rollback_deployment",
-                json={
-                    "repo": params.get("repo"),
-                    "environment": params.get("environment")
-                }
+                json={"repo": params.get("repo"), "environment": params.get("environment")},
             )
             response.raise_for_status()
             return response.json()
@@ -514,7 +487,7 @@ class GitHubMCPTool(BaseMCPTool):
                 "status": "rollback_initiated",
                 "environment": params.get("environment"),
                 "workflow_id": f"rollback-{datetime.now().timestamp()}",
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
             }
 
     async def _health_check(self, params: Dict[str, Any]) -> Dict[str, Any]:
@@ -537,27 +510,23 @@ class GitHubMCPTool(BaseMCPTool):
         if self._github_fallback is None:
             try:
                 from github import Github
+
                 self._github_fallback = Github(self.auth_token) if self.auth_token else Github()
             except ImportError:
                 self.logger.warning("PyGithub not installed, fallback unavailable")
                 return None
         return self._github_fallback
 
-    async def _fallback_handler(
-        self,
-        operation: str,
-        params: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    async def _fallback_handler(self, operation: str, params: Dict[str, Any]) -> Dict[str, Any]:
         """Fallback to direct PyGithub operations"""
         self.logger.warning(f"Using PyGithub fallback for {operation}")
-        
+
         gh = self._get_pygithub()
         if not gh:
             raise MCPConnectionError(
-                "MCP server unavailable and PyGithub fallback not installed",
-                operation=operation
+                "MCP server unavailable and PyGithub fallback not installed", operation=operation
             )
-        
+
         try:
             # Implement fallbacks for common operations
             if operation == "get_pr":
@@ -571,9 +540,9 @@ class GitHubMCPTool(BaseMCPTool):
                     "user": pr.user.login,
                     "created_at": pr.created_at.isoformat(),
                     "updated_at": pr.updated_at.isoformat(),
-                    "fallback": True
+                    "fallback": True,
                 }
-            
+
             elif operation == "get_commit":
                 repo = gh.get_repo(params["repo"])
                 commit = repo.get_commit(params["sha"])
@@ -582,38 +551,38 @@ class GitHubMCPTool(BaseMCPTool):
                     "message": commit.commit.message,
                     "author": commit.commit.author.name,
                     "date": commit.commit.author.date.isoformat(),
-                    "fallback": True
+                    "fallback": True,
                 }
-            
+
             elif operation == "list_prs":
                 repo = gh.get_repo(params["repo"])
                 prs = repo.get_pulls(state=params.get("state", "open"))
                 return {
                     "pull_requests": [
                         {"number": pr.number, "title": pr.title, "state": pr.state}
-                        for pr in list(prs)[:params.get("per_page", 30)]
+                        for pr in list(prs)[: params.get("per_page", 30)]
                     ],
-                    "fallback": True
+                    "fallback": True,
                 }
-            
+
             elif operation == "search_code":
                 results = gh.search_code(params["query"])
                 return {
                     "total_count": results.totalCount,
                     "items": [
                         {"path": r.path, "repository": r.repository.full_name}
-                        for r in list(results)[:params.get("per_page", 30)]
+                        for r in list(results)[: params.get("per_page", 30)]
                     ],
-                    "fallback": True
+                    "fallback": True,
                 }
-            
+
             raise NotImplementedError(f"No PyGithub fallback for {operation}")
-            
+
         except Exception as e:
             raise MCPToolError(
                 f"PyGithub fallback failed: {str(e)}",
                 operation=operation,
-                details={"fallback": True}
+                details={"fallback": True},
             )
 
 
@@ -638,7 +607,6 @@ GITHUB_TOOL_DESCRIPTIONS = {
     - url (str): PR URL
     - state (str): PR state
     """,
-    
     "get_pr": """
     Get pull request details.
     
@@ -653,7 +621,6 @@ GITHUB_TOOL_DESCRIPTIONS = {
     - body (str): PR description
     - files (list): Changed files
     """,
-    
     "review_pr": """
     Submit a review on a pull request.
     
@@ -668,7 +635,6 @@ GITHUB_TOOL_DESCRIPTIONS = {
     - id (int): Review ID
     - state (str): Review state
     """,
-    
     "create_issue": """
     Create an issue on GitHub.
     
@@ -683,7 +649,6 @@ GITHUB_TOOL_DESCRIPTIONS = {
     - issue_number (int): Created issue number
     - url (str): Issue URL
     """,
-    
     "search_code": """
     Search for code across GitHub repositories.
     
@@ -695,7 +660,6 @@ GITHUB_TOOL_DESCRIPTIONS = {
     - total_count (int): Total matches
     - items (list): Code search results with path and repository
     """,
-    
     "trigger_deployment": """
     Trigger a deployment workflow.
     
@@ -708,5 +672,5 @@ GITHUB_TOOL_DESCRIPTIONS = {
     Returns:
     - workflow_id (str): Triggered workflow ID
     - status (str): Trigger status
-    """
+    """,
 }

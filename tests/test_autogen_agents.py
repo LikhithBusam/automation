@@ -1,4 +1,5 @@
 """AutoGen Agent Tests"""
+
 import pytest
 from unittest.mock import Mock, patch, MagicMock
 
@@ -8,8 +9,8 @@ pytestmark = pytest.mark.agent
 class TestAgentFactory:
     """Test AutoGen agent factory"""
 
-    @patch('src.autogen_adapters.agent_factory.HAS_AUTOGEN', True)
-    @patch('src.autogen_adapters.agent_factory.AssistantAgent')
+    @patch("src.autogen_adapters.agent_factory.HAS_AUTOGEN", True)
+    @patch("src.autogen_adapters.agent_factory.AssistantAgent")
     def test_create_assistant_agent(self, mock_assistant, mock_env):
         """Test creating an AssistantAgent from config"""
         from src.autogen_adapters.agent_factory import AutoGenAgentFactory
@@ -22,7 +23,7 @@ class TestAgentFactory:
         assert agent is not None
         assert "code_analyzer" in factory.agents
 
-    @patch('src.autogen_adapters.agent_factory.HAS_AUTOGEN', False)
+    @patch("src.autogen_adapters.agent_factory.HAS_AUTOGEN", False)
     def test_create_agent_without_autogen(self, mock_env):
         """Test that creating agent without autogen raises error"""
         from src.autogen_adapters.agent_factory import AutoGenAgentFactory
@@ -32,8 +33,8 @@ class TestAgentFactory:
         with pytest.raises(RuntimeError, match="pyautogen is not installed"):
             factory.create_agent("code_analyzer")
 
-    @patch('src.autogen_adapters.agent_factory.HAS_AUTOGEN', True)
-    @patch('src.autogen_adapters.agent_factory.UserProxyAgent')
+    @patch("src.autogen_adapters.agent_factory.HAS_AUTOGEN", True)
+    @patch("src.autogen_adapters.agent_factory.UserProxyAgent")
     def test_create_user_proxy_agent(self, mock_proxy, mock_env):
         """Test creating a UserProxyAgent"""
         from src.autogen_adapters.agent_factory import AutoGenAgentFactory
@@ -75,8 +76,8 @@ class TestAgentFunctionCalling:
     """Test function calling capabilities"""
 
     @pytest.mark.integration
-    @patch('src.autogen_adapters.agent_factory.HAS_AUTOGEN', True)
-    @patch('src.autogen_adapters.agent_factory.AssistantAgent')
+    @patch("src.autogen_adapters.agent_factory.HAS_AUTOGEN", True)
+    @patch("src.autogen_adapters.agent_factory.AssistantAgent")
     def test_register_function_with_agent(self, mock_assistant, mock_env):
         """Test registering a function with an agent"""
         from src.autogen_adapters.agent_factory import AutoGenAgentFactory

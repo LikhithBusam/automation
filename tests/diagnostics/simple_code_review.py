@@ -15,7 +15,7 @@ load_dotenv()
 def read_file(file_path: str) -> str:
     """Read file content"""
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             return f.read()
     except Exception as e:
         return f"Error reading file: {e}"
@@ -37,10 +37,7 @@ def review_code(file_path: str, focus_areas: str = "code quality, security, perf
 
     # Setup Groq client
     print(f"\n[2/3] Analyzing code with Groq...")
-    client = OpenAI(
-        api_key=os.getenv("GROQ_API_KEY"),
-        base_url="https://api.groq.com/openai/v1"
-    )
+    client = OpenAI(api_key=os.getenv("GROQ_API_KEY"), base_url="https://api.groq.com/openai/v1")
 
     # Create review prompt
     prompt = f"""You are a Senior Code Analyst. Review this code from {file_path}:
@@ -65,11 +62,14 @@ Be specific and reference actual code from the file."""
         response = client.chat.completions.create(
             model="llama-3.1-8b-instant",
             messages=[
-                {"role": "system", "content": "You are a senior code analyst providing detailed, specific code reviews."},
-                {"role": "user", "content": prompt}
+                {
+                    "role": "system",
+                    "content": "You are a senior code analyst providing detailed, specific code reviews.",
+                },
+                {"role": "user", "content": prompt},
             ],
             temperature=0.3,
-            max_tokens=2048
+            max_tokens=2048,
         )
 
         review = response.choices[0].message.content
@@ -92,7 +92,7 @@ def main():
         print("Usage: python simple_code_review.py <file_path> [focus_areas]")
         print("\nExample:")
         print("  python simple_code_review.py ./main.py")
-        print("  python simple_code_review.py ./main.py \"error handling, security\"")
+        print('  python simple_code_review.py ./main.py "error handling, security"')
         sys.exit(1)
 
     file_path = sys.argv[1]

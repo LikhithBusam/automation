@@ -9,10 +9,7 @@ from unittest.mock import Mock, AsyncMock, patch, MagicMock
 from pathlib import Path
 from datetime import datetime
 
-from src.autogen_adapters.conversation_manager import (
-    ConversationManager,
-    ConversationResult
-)
+from src.autogen_adapters.conversation_manager import ConversationManager, ConversationResult
 from src.autogen_adapters.agent_factory import AutoGenAgentFactory
 from src.autogen_adapters.groupchat_factory import GroupChatFactory
 from src.autogen_adapters.function_registry import FunctionRegistry
@@ -81,8 +78,7 @@ class TestConversationManagerInit:
     def test_init_with_config_file(self, mock_workflow_config, mock_agent_factory):
         """Test initialization with valid config file"""
         manager = ConversationManager(
-            config_path=mock_workflow_config,
-            agent_factory=mock_agent_factory
+            config_path=mock_workflow_config, agent_factory=mock_agent_factory
         )
 
         assert manager.config_path == mock_workflow_config
@@ -100,14 +96,14 @@ class TestConversationManagerInit:
         mock_workflow_config,
         mock_agent_factory,
         mock_groupchat_factory,
-        mock_function_registry
+        mock_function_registry,
     ):
         """Test initialization with custom factory instances"""
         manager = ConversationManager(
             config_path=mock_workflow_config,
             agent_factory=mock_agent_factory,
             groupchat_factory=mock_groupchat_factory,
-            function_registry=mock_function_registry
+            function_registry=mock_function_registry,
         )
 
         assert manager.agent_factory == mock_agent_factory
@@ -120,16 +116,13 @@ class TestConversationManagerInitialization:
 
     @pytest.mark.asyncio
     async def test_initialize(
-        self,
-        mock_workflow_config,
-        mock_agent_factory,
-        mock_function_registry
+        self, mock_workflow_config, mock_agent_factory, mock_function_registry
     ):
         """Test async initialization of components"""
         manager = ConversationManager(
             config_path=mock_workflow_config,
             agent_factory=mock_agent_factory,
-            function_registry=mock_function_registry
+            function_registry=mock_function_registry,
         )
 
         await manager.initialize()
@@ -140,16 +133,13 @@ class TestConversationManagerInitialization:
 
     @pytest.mark.asyncio
     async def test_register_functions_with_agents(
-        self,
-        mock_workflow_config,
-        mock_agent_factory,
-        mock_function_registry
+        self, mock_workflow_config, mock_agent_factory, mock_function_registry
     ):
         """Test function registration with agents"""
         manager = ConversationManager(
             config_path=mock_workflow_config,
             agent_factory=mock_agent_factory,
-            function_registry=mock_function_registry
+            function_registry=mock_function_registry,
         )
 
         await manager._register_functions_with_agents()
@@ -164,8 +154,7 @@ class TestVariableReplacement:
     def test_replace_variables_simple(self, mock_workflow_config, mock_agent_factory):
         """Test simple variable replacement"""
         manager = ConversationManager(
-            config_path=mock_workflow_config,
-            agent_factory=mock_agent_factory
+            config_path=mock_workflow_config, agent_factory=mock_agent_factory
         )
 
         template = "Analyze {code_path} for {focus_areas}"
@@ -177,8 +166,7 @@ class TestVariableReplacement:
     def test_replace_variables_multiple(self, mock_workflow_config, mock_agent_factory):
         """Test multiple variable replacements"""
         manager = ConversationManager(
-            config_path=mock_workflow_config,
-            agent_factory=mock_agent_factory
+            config_path=mock_workflow_config, agent_factory=mock_agent_factory
         )
 
         template = "{name} {name} {value}"
@@ -190,8 +178,7 @@ class TestVariableReplacement:
     def test_replace_variables_missing(self, mock_workflow_config, mock_agent_factory):
         """Test variable replacement with missing variables"""
         manager = ConversationManager(
-            config_path=mock_workflow_config,
-            agent_factory=mock_agent_factory
+            config_path=mock_workflow_config, agent_factory=mock_agent_factory
         )
 
         template = "Analyze {code_path}"
@@ -206,30 +193,20 @@ class TestWorkflowExecution:
     """Test workflow execution"""
 
     @pytest.mark.asyncio
-    async def test_execute_workflow_invalid_name(
-        self,
-        mock_workflow_config,
-        mock_agent_factory
-    ):
+    async def test_execute_workflow_invalid_name(self, mock_workflow_config, mock_agent_factory):
         """Test executing non-existent workflow"""
         manager = ConversationManager(
-            config_path=mock_workflow_config,
-            agent_factory=mock_agent_factory
+            config_path=mock_workflow_config, agent_factory=mock_agent_factory
         )
 
         with pytest.raises(ValueError, match="Workflow 'invalid' not found"):
             await manager.execute_workflow("invalid")
 
     @pytest.mark.asyncio
-    async def test_execute_workflow_two_agent(
-        self,
-        mock_workflow_config,
-        mock_agent_factory
-    ):
+    async def test_execute_workflow_two_agent(self, mock_workflow_config, mock_agent_factory):
         """Test executing two-agent workflow"""
         manager = ConversationManager(
-            config_path=mock_workflow_config,
-            agent_factory=mock_agent_factory
+            config_path=mock_workflow_config, agent_factory=mock_agent_factory
         )
 
         # Mock the two-agent execution
@@ -240,17 +217,12 @@ class TestWorkflowExecution:
             summary="Test completed",
             duration_seconds=0,
             tasks_completed=1,
-            tasks_failed=0
+            tasks_failed=0,
         )
 
-        with patch.object(
-            manager,
-            '_execute_two_agent_workflow',
-            return_value=mock_result
-        ):
+        with patch.object(manager, "_execute_two_agent_workflow", return_value=mock_result):
             result = await manager.execute_workflow(
-                "test_workflow",
-                variables={"code_path": "./test.py"}
+                "test_workflow", variables={"code_path": "./test.py"}
             )
 
         assert result.workflow_name == "test_workflow"
@@ -258,22 +230,15 @@ class TestWorkflowExecution:
         assert len(manager.history) == 1
 
     @pytest.mark.asyncio
-    async def test_execute_workflow_error_handling(
-        self,
-        mock_workflow_config,
-        mock_agent_factory
-    ):
+    async def test_execute_workflow_error_handling(self, mock_workflow_config, mock_agent_factory):
         """Test workflow execution error handling"""
         manager = ConversationManager(
-            config_path=mock_workflow_config,
-            agent_factory=mock_agent_factory
+            config_path=mock_workflow_config, agent_factory=mock_agent_factory
         )
 
         # Mock the execution to raise an error
         with patch.object(
-            manager,
-            '_execute_two_agent_workflow',
-            side_effect=Exception("Test error")
+            manager, "_execute_two_agent_workflow", side_effect=Exception("Test error")
         ):
             result = await manager.execute_workflow("test_workflow")
 
@@ -287,19 +252,14 @@ class TestWorkflowTypes:
     """Test different workflow types"""
 
     @pytest.mark.asyncio
-    async def test_workflow_type_detection(
-        self,
-        mock_workflow_config,
-        mock_agent_factory
-    ):
+    async def test_workflow_type_detection(self, mock_workflow_config, mock_agent_factory):
         """Test workflow type detection and routing"""
         manager = ConversationManager(
-            config_path=mock_workflow_config,
-            agent_factory=mock_agent_factory
+            config_path=mock_workflow_config, agent_factory=mock_agent_factory
         )
 
         # Test two_agent type
-        with patch.object(manager, '_execute_two_agent_workflow') as mock_two_agent:
+        with patch.object(manager, "_execute_two_agent_workflow") as mock_two_agent:
             mock_two_agent.return_value = ConversationResult(
                 workflow_name="test",
                 status="success",
@@ -307,28 +267,20 @@ class TestWorkflowTypes:
                 summary="",
                 duration_seconds=0,
                 tasks_completed=0,
-                tasks_failed=0
+                tasks_failed=0,
             )
             await manager.execute_workflow("test_workflow")
             mock_two_agent.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_invalid_workflow_type(
-        self,
-        mock_workflow_config,
-        mock_agent_factory
-    ):
+    async def test_invalid_workflow_type(self, mock_workflow_config, mock_agent_factory):
         """Test handling of invalid workflow type"""
         manager = ConversationManager(
-            config_path=mock_workflow_config,
-            agent_factory=mock_agent_factory
+            config_path=mock_workflow_config, agent_factory=mock_agent_factory
         )
 
         # Add workflow with invalid type
-        manager.workflow_configs["invalid_type"] = {
-            "type": "unknown_type",
-            "agents": ["test"]
-        }
+        manager.workflow_configs["invalid_type"] = {"type": "unknown_type", "agents": ["test"]}
 
         result = await manager.execute_workflow("invalid_type")
         assert result.status == "failed"
@@ -339,15 +291,10 @@ class TestConversationHistory:
     """Test conversation history tracking"""
 
     @pytest.mark.asyncio
-    async def test_history_tracking(
-        self,
-        mock_workflow_config,
-        mock_agent_factory
-    ):
+    async def test_history_tracking(self, mock_workflow_config, mock_agent_factory):
         """Test that execution history is tracked"""
         manager = ConversationManager(
-            config_path=mock_workflow_config,
-            agent_factory=mock_agent_factory
+            config_path=mock_workflow_config, agent_factory=mock_agent_factory
         )
 
         mock_result = ConversationResult(
@@ -357,10 +304,10 @@ class TestConversationHistory:
             summary="Test",
             duration_seconds=0,
             tasks_completed=1,
-            tasks_failed=0
+            tasks_failed=0,
         )
 
-        with patch.object(manager, '_execute_two_agent_workflow', return_value=mock_result):
+        with patch.object(manager, "_execute_two_agent_workflow", return_value=mock_result):
             await manager.execute_workflow("test_workflow")
             await manager.execute_workflow("test_workflow")
 
@@ -370,8 +317,7 @@ class TestConversationHistory:
     def test_get_history(self, mock_workflow_config, mock_agent_factory):
         """Test retrieving execution history"""
         manager = ConversationManager(
-            config_path=mock_workflow_config,
-            agent_factory=mock_agent_factory
+            config_path=mock_workflow_config, agent_factory=mock_agent_factory
         )
 
         # Add some results to history
@@ -383,7 +329,7 @@ class TestConversationHistory:
                 summary="",
                 duration_seconds=1.0,
                 tasks_completed=1,
-                tasks_failed=0
+                tasks_failed=0,
             )
         )
 
@@ -397,8 +343,7 @@ class TestWorkflowListing:
     def test_list_workflows(self, mock_workflow_config, mock_agent_factory):
         """Test listing available workflows"""
         manager = ConversationManager(
-            config_path=mock_workflow_config,
-            agent_factory=mock_agent_factory
+            config_path=mock_workflow_config, agent_factory=mock_agent_factory
         )
 
         workflows = manager.list_workflows()
@@ -410,8 +355,7 @@ class TestWorkflowListing:
     def test_get_workflow_config(self, mock_workflow_config, mock_agent_factory):
         """Test retrieving workflow configuration"""
         manager = ConversationManager(
-            config_path=mock_workflow_config,
-            agent_factory=mock_agent_factory
+            config_path=mock_workflow_config, agent_factory=mock_agent_factory
         )
 
         config = manager.workflow_configs.get("test_workflow")
@@ -433,7 +377,7 @@ class TestConversationResult:
             summary="Test completed",
             duration_seconds=1.5,
             tasks_completed=1,
-            tasks_failed=0
+            tasks_failed=0,
         )
 
         assert result.workflow_name == "test"
@@ -452,7 +396,7 @@ class TestConversationResult:
             duration_seconds=0.5,
             tasks_completed=0,
             tasks_failed=1,
-            error="Test error message"
+            error="Test error message",
         )
 
         assert result.status == "failed"

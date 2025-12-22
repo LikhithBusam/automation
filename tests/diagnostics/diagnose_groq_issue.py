@@ -19,7 +19,9 @@ print("\n[Step 1] Checking environment variables...")
 groq_key = os.getenv("GROQ_API_KEY")
 if groq_key:
     print(f"  [OK] GROQ_API_KEY loaded: {groq_key[:20]}...")
-    print(f"  [OK] Key format: {'Correct (gsk_*)' if groq_key.startswith('gsk_') else 'INCORRECT - should start with gsk_'}")
+    print(
+        f"  [OK] Key format: {'Correct (gsk_*)' if groq_key.startswith('gsk_') else 'INCORRECT - should start with gsk_'}"
+    )
 else:
     print("  [ERROR] GROQ_API_KEY not found in environment")
     sys.exit(1)
@@ -33,7 +35,7 @@ try:
     response = client.chat.completions.create(
         messages=[{"role": "user", "content": "Say 'hello' in one word"}],
         model="llama-3.1-8b-instant",
-        max_tokens=10
+        max_tokens=10,
     )
     print(f"  [OK] Direct Groq API works!")
     print(f"  Response: {response.choices[0].message.content}")
@@ -49,25 +51,26 @@ try:
     from autogen import AssistantAgent
 
     llm_config = {
-        'config_list': [{
-            'model': 'llama-3.1-8b-instant',
-            'api_key': groq_key,
-            'base_url': 'https://api.groq.com/openai/v1'
-        }],
-        'temperature': 0.3,
-        'max_tokens': 100
+        "config_list": [
+            {
+                "model": "llama-3.1-8b-instant",
+                "api_key": groq_key,
+                "base_url": "https://api.groq.com/openai/v1",
+            }
+        ],
+        "temperature": 0.3,
+        "max_tokens": 100,
     }
 
     agent = AssistantAgent(
-        name='TestAgent',
-        llm_config=llm_config,
-        system_message="You are a test agent."
+        name="TestAgent", llm_config=llm_config, system_message="You are a test agent."
     )
     print(f"  [OK] AutoGen agent created successfully")
 
 except Exception as e:
     print(f"  [ERROR] AutoGen agent creation failed: {e}")
     import traceback
+
     traceback.print_exc()
     sys.exit(1)
 
@@ -80,14 +83,11 @@ try:
         name="user",
         human_input_mode="NEVER",
         max_consecutive_auto_reply=0,
-        code_execution_config=False
+        code_execution_config=False,
     )
 
     print("  Sending test message to agent...")
-    user_proxy.initiate_chat(
-        agent,
-        message="Say 'hello' in one word and then TERMINATE"
-    )
+    user_proxy.initiate_chat(agent, message="Say 'hello' in one word and then TERMINATE")
 
     print(f"  [OK] Conversation successful!")
 
@@ -110,6 +110,7 @@ except Exception as e:
         print("  Need to configure AutoGen to use the correct client for custom base_url")
 
     import traceback
+
     print("\n  Full traceback:")
     traceback.print_exc()
     sys.exit(1)
@@ -124,16 +125,18 @@ try:
     print(f"  [OK] Factory loaded {len(factory.llm_configs)} LLM configs")
 
     # Check code_analysis_config
-    code_cfg = factory.llm_configs.get('code_analysis_config')
+    code_cfg = factory.llm_configs.get("code_analysis_config")
     if code_cfg:
         print(f"  [OK] code_analysis_config found:")
         print(f"      model: {code_cfg.get('model')}")
         print(f"      base_url: {code_cfg.get('base_url')}")
-        print(f"      api_key: {code_cfg.get('api_key')[:20] if code_cfg.get('api_key') else 'NOT SET'}...")
+        print(
+            f"      api_key: {code_cfg.get('api_key')[:20] if code_cfg.get('api_key') else 'NOT SET'}..."
+        )
 
         # Create agent using factory
         print("\n  Creating code_analyzer agent...")
-        code_analyzer = factory.create_agent('code_analyzer')
+        code_analyzer = factory.create_agent("code_analyzer")
         print(f"  [OK] Agent created: {code_analyzer.name}")
 
         # Test conversation
@@ -142,19 +145,17 @@ try:
             name="user",
             human_input_mode="NEVER",
             max_consecutive_auto_reply=0,
-            code_execution_config=False
+            code_execution_config=False,
         )
 
-        user.initiate_chat(
-            code_analyzer,
-            message="Say 'hello' in one word and then TERMINATE"
-        )
+        user.initiate_chat(code_analyzer, message="Say 'hello' in one word and then TERMINATE")
 
         print(f"  [OK] Conversation with factory-created agent successful!")
 
 except Exception as e:
     print(f"  [ERROR] Factory test failed: {type(e).__name__}: {e}")
     import traceback
+
     traceback.print_exc()
     sys.exit(1)
 

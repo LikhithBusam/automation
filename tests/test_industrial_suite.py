@@ -25,6 +25,7 @@ from src.security.input_validator import InputValidator
 # PERFORMANCE-OPTIMIZED GROUPCHAT FACTORY TESTS
 # ============================================================================
 
+
 class TestGroupChatFactoryFast:
     """Fast, accurate GroupChat factory tests"""
 
@@ -47,7 +48,7 @@ class TestGroupChatFactoryFast:
             "documentation_chat",
             "deployment_chat",
             "research_chat",
-            "full_team_chat"
+            "full_team_chat",
         ]
 
         for chat_name in expected:
@@ -61,7 +62,7 @@ class TestGroupChatFactoryFast:
             "check_documentation_complete",
             "check_deployment_complete",
             "check_research_complete",
-            "check_full_team_complete"
+            "check_full_team_complete",
         ]
 
         for condition in conditions:
@@ -131,6 +132,7 @@ class TestGroupChatFactoryFast:
 # ============================================================================
 # PERFORMANCE-OPTIMIZED MCP TOOLS TESTS
 # ============================================================================
+
 
 class TestTokenBucketFast:
     """Fast TokenBucket tests with actual timings"""
@@ -301,11 +303,7 @@ class TestCacheEntryFast:
     def test_entry_creation(self):
         """Test CacheEntry creation"""
         now = time.time()
-        entry = CacheEntry(
-            data="test_data",
-            created_at=now,
-            expires_at=now + 60
-        )
+        entry = CacheEntry(data="test_data", created_at=now, expires_at=now + 60)
 
         assert entry.data == "test_data"
         assert entry.access_count == 0
@@ -340,6 +338,7 @@ class TestCacheEntryFast:
 # ============================================================================
 # SECURITY TESTS - FAST & COMPREHENSIVE
 # ============================================================================
+
 
 class TestInputValidatorFast:
     """Fast security validation tests"""
@@ -404,6 +403,7 @@ class TestInputValidatorFast:
 # ============================================================================
 # INTEGRATION TESTS - REALISTIC SCENARIOS
 # ============================================================================
+
 
 class TestRealWorldScenarios:
     """Test real-world usage patterns"""
@@ -475,6 +475,7 @@ class TestRealWorldScenarios:
 # ============================================================================
 # PERFORMANCE BENCHMARK TESTS
 # ============================================================================
+
 
 class TestPerformanceBenchmarks:
     """Benchmark critical operations"""

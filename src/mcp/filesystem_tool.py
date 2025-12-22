@@ -22,29 +22,25 @@ import shutil
 import mimetypes
 from datetime import datetime
 
-from src.mcp.base_tool import (
-    BaseMCPTool,
-    MCPConnectionError,
-    MCPValidationError,
-    MCPToolError
-)
+from src.mcp.base_tool import BaseMCPTool, MCPConnectionError, MCPValidationError, MCPToolError
 
 
 # =============================================================================
 # Filesystem MCP Tool
 # =============================================================================
 
+
 class FilesystemMCPTool(BaseMCPTool):
     """
     Filesystem MCP Tool Wrapper.
-    
+
     Provides safe file operations with security boundaries:
     - Read/write files with size limits
     - List directories with caching
     - Search content with filters
     - Code file analysis
     - Atomic write operations
-    
+
     Features:
     - File type detection and filtering
     - Size checks before operations (default 10MB limit)
@@ -54,15 +50,20 @@ class FilesystemMCPTool(BaseMCPTool):
 
     # Cache TTLs for different operations (in seconds)
     CACHE_TTLS = {
-        "list_directory": 60,     # 1 minute
+        "list_directory": 60,  # 1 minute
         "analyze_structure": 120,  # 2 minutes
-        "get_code_files": 60,     # 1 minute
+        "get_code_files": 60,  # 1 minute
     }
 
     # Maximum file size for operations (default 10MB)
     MAX_FILE_SIZE = 10 * 1024 * 1024
 
-    def __init__(self, server_url: str = "http://localhost:3001", config: Optional[Dict[str, Any]] = None, allowed_paths: Optional[List[str]] = None):
+    def __init__(
+        self,
+        server_url: str = "http://localhost:3001",
+        config: Optional[Dict[str, Any]] = None,
+        allowed_paths: Optional[List[str]] = None,
+    ):
         # Set filesystem-specific defaults
         if config is None:
             config = {}
@@ -79,30 +80,60 @@ class FilesystemMCPTool(BaseMCPTool):
             name="filesystem",
             server_url=server_url,
             config=config,
-            fallback_handler=self._fallback_handler
+            fallback_handler=self._fallback_handler,
         )
 
         self.allowed_paths = [Path(p).resolve() for p in config.get("allowed_paths", [])]
-        self.blocked_patterns = config.get("blocked_patterns", [
-            r"\.git/config",
-            r"\.env",
-            r"secrets?\.ya?ml",
-            r"credentials",
-            r"\.pem$",
-            r"\.key$",
-            r"id_rsa",
-            r"\.ssh/"
-        ])
+        self.blocked_patterns = config.get(
+            "blocked_patterns",
+            [
+                r"\.git/config",
+                r"\.env",
+                r"secrets?\.ya?ml",
+                r"credentials",
+                r"\.pem$",
+                r"\.key$",
+                r"id_rsa",
+                r"\.ssh/",
+            ],
+        )
         self.max_file_size = config.get("max_file_size", self.MAX_FILE_SIZE)
-        
+
         # File type filters for code analysis
         self.code_extensions = {
-            ".py", ".js", ".ts", ".jsx", ".tsx", ".java", ".cpp", ".c", ".h",
-            ".cs", ".go", ".rs", ".rb", ".php", ".swift", ".kt", ".scala",
-            ".yaml", ".yml", ".json", ".xml", ".toml", ".ini", ".cfg",
-            ".md", ".rst", ".txt", ".html", ".css", ".scss", ".sass"
+            ".py",
+            ".js",
+            ".ts",
+            ".jsx",
+            ".tsx",
+            ".java",
+            ".cpp",
+            ".c",
+            ".h",
+            ".cs",
+            ".go",
+            ".rs",
+            ".rb",
+            ".php",
+            ".swift",
+            ".kt",
+            ".scala",
+            ".yaml",
+            ".yml",
+            ".json",
+            ".xml",
+            ".toml",
+            ".ini",
+            ".cfg",
+            ".md",
+            ".rst",
+            ".txt",
+            ".html",
+            ".css",
+            ".scss",
+            ".sass",
         }
-        
+
         # HTTP client for MCP server communication
         self._client: Optional[httpx.AsyncClient] = None
 
@@ -112,10 +143,7 @@ class FilesystemMCPTool(BaseMCPTool):
 
     async def _do_connect(self):
         """Establish connection to Filesystem MCP server"""
-        self._client = httpx.AsyncClient(
-            base_url=self.server_url,
-            timeout=httpx.Timeout(30.0)
-        )
+        self._client = httpx.AsyncClient(base_url=self.server_url, timeout=httpx.Timeout(30.0))
 
     async def _do_disconnect(self):
         """Close connection to Filesystem MCP server"""
@@ -133,13 +161,9 @@ class FilesystemMCPTool(BaseMCPTool):
     # Operation Execution
     # =========================================================================
 
-    async def _execute_operation(
-        self,
-        operation: str,
-        params: Dict[str, Any]
-    ) -> Any:
+    async def _execute_operation(self, operation: str, params: Dict[str, Any]) -> Any:
         """Execute filesystem operation"""
-        
+
         handlers = {
             "read_file": self._read_file,
             "write_file": self._write_file,
@@ -154,11 +178,11 @@ class FilesystemMCPTool(BaseMCPTool):
             "move_file": self._move_file,
             "health_check": self._health_check,
         }
-        
+
         handler = handlers.get(operation)
         if not handler:
             raise ValueError(f"Unknown operation: {operation}")
-        
+
         return await handler(params)
 
     # =========================================================================
@@ -167,23 +191,25 @@ class FilesystemMCPTool(BaseMCPTool):
 
     def validate_params(self, operation: str, params: Dict[str, Any]):
         """Validate operation parameters and security"""
-        
+
         path = params.get("path", "")
-        
+
         # Check blocked patterns
         for pattern in self.blocked_patterns:
             if re.search(pattern, str(path), re.IGNORECASE):
                 raise MCPValidationError(f"Path blocked by security pattern: {pattern}")
-        
+
         # Check if path is within allowed directories
         if self.allowed_paths and path:
             try:
                 resolved = Path(path).resolve()
-                if not any(self._is_path_allowed(resolved, allowed) for allowed in self.allowed_paths):
+                if not any(
+                    self._is_path_allowed(resolved, allowed) for allowed in self.allowed_paths
+                ):
                     raise MCPValidationError(f"Path {path} is outside allowed directories")
             except Exception as e:
                 raise MCPValidationError(f"Invalid path: {path} - {str(e)}")
-        
+
         # Operation-specific validation
         if operation == "write_file":
             content = params.get("content", "")
@@ -191,7 +217,7 @@ class FilesystemMCPTool(BaseMCPTool):
                 raise MCPValidationError(
                     f"Content size ({len(content)} bytes) exceeds limit ({self.max_file_size} bytes)"
                 )
-        
+
         if operation == "read_file":
             if path and Path(path).exists():
                 size = Path(path).stat().st_size
@@ -229,40 +255,41 @@ class FilesystemMCPTool(BaseMCPTool):
         """Detect file type and MIME type"""
         p = Path(path)
         mime_type, encoding = mimetypes.guess_type(str(p))
-        
+
         return {
             "extension": p.suffix.lower(),
             "mime_type": mime_type or "application/octet-stream",
             "encoding": encoding,
             "is_code": p.suffix.lower() in self.code_extensions,
-            "is_text": mime_type and mime_type.startswith("text/") if mime_type else p.suffix.lower() in self.code_extensions
+            "is_text": (
+                mime_type and mime_type.startswith("text/")
+                if mime_type
+                else p.suffix.lower() in self.code_extensions
+            ),
         }
 
     def filter_files_by_type(
-        self,
-        files: List[Dict[str, Any]],
-        extensions: List[str] = None,
-        code_only: bool = False
+        self, files: List[Dict[str, Any]], extensions: List[str] = None, code_only: bool = False
     ) -> List[Dict[str, Any]]:
         """Filter files by type"""
         result = []
-        
+
         for file_info in files:
             if file_info.get("type") == "directory":
                 result.append(file_info)
                 continue
-            
+
             name = file_info.get("name", "")
             ext = Path(name).suffix.lower()
-            
+
             if code_only and ext not in self.code_extensions:
                 continue
-            
+
             if extensions and ext not in extensions:
                 continue
-            
+
             result.append(file_info)
-        
+
         return result
 
     # =========================================================================
@@ -273,10 +300,7 @@ class FilesystemMCPTool(BaseMCPTool):
         """Read file contents"""
         try:
             client = await self._get_client()
-            response = await client.post(
-                "/read_file",
-                json={"path": params["path"]}
-            )
+            response = await client.post("/read_file", json={"path": params["path"]})
             response.raise_for_status()
             return response.json()
         except Exception as e:
@@ -288,16 +312,11 @@ class FilesystemMCPTool(BaseMCPTool):
         path = params["path"]
         content = params["content"]
         atomic = params.get("atomic", True)
-        
+
         try:
             client = await self._get_client()
             response = await client.post(
-                "/write_file",
-                json={
-                    "path": path,
-                    "content": content,
-                    "atomic": atomic
-                }
+                "/write_file", json={"path": path, "content": content, "atomic": atomic}
             )
             response.raise_for_status()
             return response.json()
@@ -309,16 +328,13 @@ class FilesystemMCPTool(BaseMCPTool):
         """Delete a file"""
         path = params["path"]
         confirm = params.get("confirm", False)
-        
+
         if not confirm:
             raise MCPValidationError("Delete operation requires confirm=True")
-        
+
         try:
             client = await self._get_client()
-            response = await client.post(
-                "/delete_file",
-                json={"path": path, "confirm": True}
-            )
+            response = await client.post("/delete_file", json={"path": path, "confirm": True})
             response.raise_for_status()
             return response.json()
         except Exception as e:
@@ -331,22 +347,19 @@ class FilesystemMCPTool(BaseMCPTool):
             client = await self._get_client()
             response = await client.post(
                 "/list_directory",
-                json={
-                    "path": params["path"],
-                    "recursive": params.get("recursive", False)
-                }
+                json={"path": params["path"], "recursive": params.get("recursive", False)},
             )
             response.raise_for_status()
             result = response.json()
-            
+
             # Apply type filtering if requested
             if params.get("extensions") or params.get("code_only"):
                 result["files"] = self.filter_files_by_type(
                     result.get("files", []),
                     extensions=params.get("extensions"),
-                    code_only=params.get("code_only", False)
+                    code_only=params.get("code_only", False),
                 )
-            
+
             return result
         except Exception as e:
             # Fallback to direct listing
@@ -356,12 +369,11 @@ class FilesystemMCPTool(BaseMCPTool):
         """Create a directory"""
         path = Path(params["path"])
         parents = params.get("parents", True)
-        
+
         try:
             client = await self._get_client()
             response = await client.post(
-                "/create_directory",
-                json={"path": str(path), "parents": parents}
+                "/create_directory", json={"path": str(path), "parents": parents}
             )
             response.raise_for_status()
             return response.json()
@@ -381,8 +393,8 @@ class FilesystemMCPTool(BaseMCPTool):
                     "pattern": params["pattern"],
                     "file_types": params.get("file_types"),
                     "case_sensitive": params.get("case_sensitive", False),
-                    "max_results": params.get("max_results", 100)
-                }
+                    "max_results": params.get("max_results", 100),
+                },
             )
             response.raise_for_status()
             return response.json()
@@ -393,30 +405,31 @@ class FilesystemMCPTool(BaseMCPTool):
     async def _get_code_files(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Get all code files in directory"""
         # List directory and filter by extension
-        dir_result = await self._list_directory({
-            **params,
-            "code_only": True
-        })
+        dir_result = await self._list_directory({**params, "code_only": True})
         files = dir_result.get("files", [])
-        
+
         code_files = [
-            f for f in files
-            if f.get("type") != "directory" and Path(f.get("name", "")).suffix.lower() in self.code_extensions
+            f
+            for f in files
+            if f.get("type") != "directory"
+            and Path(f.get("name", "")).suffix.lower() in self.code_extensions
         ]
-        
+
         return {
             "path": params.get("path"),
             "code_files": code_files,
             "total_files": len(dir_result.get("files", [])),
             "code_file_count": len(code_files),
-            "extensions_found": list(set(Path(f.get("name", "")).suffix.lower() for f in code_files))
+            "extensions_found": list(
+                set(Path(f.get("name", "")).suffix.lower() for f in code_files)
+            ),
         }
 
     async def _analyze_structure(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Analyze project structure"""
         path = params.get("path", ".")
         max_depth = params.get("max_depth", 5)
-        
+
         structure = {
             "root": path,
             "directories": [],
@@ -424,65 +437,71 @@ class FilesystemMCPTool(BaseMCPTool):
             "config_files": [],
             "documentation": [],
             "tests": [],
-            "summary": {}
+            "summary": {},
         }
-        
+
         # Recursive directory traversal
         async def traverse(current_path: str, depth: int = 0):
             if depth > max_depth:
                 return
-            
+
             try:
                 result = await self._list_directory({"path": current_path})
                 files = result.get("files", [])
-                
+
                 for file_info in files:
                     file_name = file_info.get("name", "")
                     file_path = str(Path(current_path) / file_name)
-                    
+
                     if file_info.get("type") == "directory":
                         structure["directories"].append(file_path)
                         await traverse(file_path, depth + 1)
                     else:
                         # Categorize file
                         ext = Path(file_name).suffix.lower()
-                        
+
                         if ext in self.code_extensions:
                             structure["code_files"].append(file_path)
-                        
-                        if file_name.lower() in ["readme.md", "changelog.md", "contributing.md", "license", "license.md"]:
+
+                        if file_name.lower() in [
+                            "readme.md",
+                            "changelog.md",
+                            "contributing.md",
+                            "license",
+                            "license.md",
+                        ]:
                             structure["documentation"].append(file_path)
                         elif "test" in file_name.lower() or file_path.startswith("test"):
                             structure["tests"].append(file_path)
                         elif ext in [".yaml", ".yml", ".json", ".toml", ".ini", ".cfg"]:
                             structure["config_files"].append(file_path)
-            
+
             except Exception as e:
                 self.logger.warning(f"Error traversing {current_path}: {e}")
-        
+
         await traverse(path)
-        
+
         # Generate summary
         structure["summary"] = {
             "total_directories": len(structure["directories"]),
             "total_code_files": len(structure["code_files"]),
             "total_config_files": len(structure["config_files"]),
             "total_documentation": len(structure["documentation"]),
-            "total_tests": len(structure["tests"])
+            "total_tests": len(structure["tests"]),
         }
-        
+
         return structure
 
     async def _get_file_info(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Get detailed file information"""
         path = Path(params["path"])
-        
+
         if not path.exists():
             raise MCPValidationError(f"File not found: {path}")
-        
+
         stat = path.stat()
         type_info = self.detect_file_type(str(path))
-        
+
         return {
             "path": str(path),
             "name": path.name,
@@ -491,42 +510,34 @@ class FilesystemMCPTool(BaseMCPTool):
             "modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
             "is_file": path.is_file(),
             "is_directory": path.is_dir(),
-            **type_info
+            **type_info,
         }
 
     async def _copy_file(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Copy a file"""
         src = Path(params["src"])
         dst = Path(params["dst"])
-        
+
         # Validate both paths
         self.validate_params("copy_file", {"path": str(src)})
         self.validate_params("copy_file", {"path": str(dst)})
-        
+
         shutil.copy2(src, dst)
-        
-        return {
-            "success": True,
-            "src": str(src),
-            "dst": str(dst)
-        }
+
+        return {"success": True, "src": str(src), "dst": str(dst)}
 
     async def _move_file(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Move a file"""
         src = Path(params["src"])
         dst = Path(params["dst"])
-        
+
         # Validate both paths
         self.validate_params("move_file", {"path": str(src)})
         self.validate_params("move_file", {"path": str(dst)})
-        
+
         shutil.move(src, dst)
-        
-        return {
-            "success": True,
-            "src": str(src),
-            "dst": str(dst)
-        }
+
+        return {"success": True, "src": str(src), "dst": str(dst)}
 
     async def _health_check(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Health check"""
@@ -543,14 +554,10 @@ class FilesystemMCPTool(BaseMCPTool):
     # Fallback Handlers (Direct File I/O)
     # =========================================================================
 
-    async def _fallback_handler(
-        self,
-        operation: str,
-        params: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    async def _fallback_handler(self, operation: str, params: Dict[str, Any]) -> Dict[str, Any]:
         """Fallback to direct file I/O"""
         self.logger.warning(f"Using fallback for {operation}")
-        
+
         fallback_ops = {
             "read_file": self._fallback_read_file,
             "write_file": self._fallback_write_file,
@@ -558,38 +565,33 @@ class FilesystemMCPTool(BaseMCPTool):
             "list_directory": self._fallback_list_directory,
             "search_content": self._fallback_search_content,
         }
-        
+
         handler = fallback_ops.get(operation)
         if handler:
             return await handler(params)
-        
+
         raise NotImplementedError(f"No fallback for {operation}")
 
     async def _fallback_read_file(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Direct file read fallback"""
         path = Path(params["path"])
-        content = path.read_text(encoding='utf-8')
-        return {
-            "content": content,
-            "size": len(content),
-            "path": str(path),
-            "fallback": True
-        }
+        content = path.read_text(encoding="utf-8")
+        return {"content": content, "size": len(content), "path": str(path), "fallback": True}
 
     async def _fallback_write_file(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Direct file write fallback with atomic operation"""
         path = Path(params["path"])
         content = params["content"]
         atomic = params.get("atomic", True)
-        
+
         # Create parent directories
         path.parent.mkdir(parents=True, exist_ok=True)
-        
+
         if atomic:
             # Atomic write using temp file
             fd, temp_path = tempfile.mkstemp(dir=path.parent)
             try:
-                with os.fdopen(fd, 'w', encoding='utf-8') as f:
+                with os.fdopen(fd, "w", encoding="utf-8") as f:
                     f.write(content)
                 shutil.move(temp_path, path)
             except Exception:
@@ -597,14 +599,9 @@ class FilesystemMCPTool(BaseMCPTool):
                     os.unlink(temp_path)
                 raise
         else:
-            path.write_text(content, encoding='utf-8')
-        
-        return {
-            "success": True,
-            "path": str(path),
-            "size": len(content),
-            "fallback": True
-        }
+            path.write_text(content, encoding="utf-8")
+
+        return {"success": True, "path": str(path), "size": len(content), "fallback": True}
 
     async def _fallback_delete_file(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Direct file delete fallback"""
@@ -614,36 +611,36 @@ class FilesystemMCPTool(BaseMCPTool):
                 path.unlink()
             else:
                 shutil.rmtree(path)
-        return {
-            "success": True,
-            "path": str(path),
-            "fallback": True
-        }
+        return {"success": True, "path": str(path), "fallback": True}
 
     async def _fallback_list_directory(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Direct directory listing fallback"""
         path = Path(params["path"])
         recursive = params.get("recursive", False)
-        
+
         files = []
-        
+
         if recursive:
             for item in path.rglob("*"):
-                files.append({
-                    "name": str(item.relative_to(path)),
-                    "path": str(item),
-                    "type": "directory" if item.is_dir() else "file",
-                    "size": item.stat().st_size if item.is_file() else 0
-                })
+                files.append(
+                    {
+                        "name": str(item.relative_to(path)),
+                        "path": str(item),
+                        "type": "directory" if item.is_dir() else "file",
+                        "size": item.stat().st_size if item.is_file() else 0,
+                    }
+                )
         else:
             for item in path.iterdir():
-                files.append({
-                    "name": item.name,
-                    "path": str(item),
-                    "type": "directory" if item.is_dir() else "file",
-                    "size": item.stat().st_size if item.is_file() else 0
-                })
-        
+                files.append(
+                    {
+                        "name": item.name,
+                        "path": str(item),
+                        "type": "directory" if item.is_dir() else "file",
+                        "size": item.stat().st_size if item.is_file() else 0,
+                    }
+                )
+
         return {"files": files, "path": str(path), "fallback": True}
 
     async def _fallback_search_content(self, params: Dict[str, Any]) -> Dict[str, Any]:
@@ -653,40 +650,42 @@ class FilesystemMCPTool(BaseMCPTool):
         file_types = params.get("file_types", list(self.code_extensions))
         case_sensitive = params.get("case_sensitive", False)
         max_results = params.get("max_results", 100)
-        
+
         flags = 0 if case_sensitive else re.IGNORECASE
         regex = re.compile(pattern, flags)
-        
+
         matches = []
-        
+
         for file_path in path.rglob("*"):
             if not file_path.is_file():
                 continue
             if file_path.suffix.lower() not in file_types:
                 continue
-            
+
             try:
-                content = file_path.read_text(encoding='utf-8')
+                content = file_path.read_text(encoding="utf-8")
                 for i, line in enumerate(content.splitlines(), 1):
                     if regex.search(line):
-                        matches.append({
-                            "file": str(file_path),
-                            "line_number": i,
-                            "line": line.strip()[:200]  # Truncate long lines
-                        })
+                        matches.append(
+                            {
+                                "file": str(file_path),
+                                "line_number": i,
+                                "line": line.strip()[:200],  # Truncate long lines
+                            }
+                        )
                         if len(matches) >= max_results:
                             break
             except Exception:
                 continue
-            
+
             if len(matches) >= max_results:
                 break
-        
+
         return {
             "matches": matches,
             "total_matches": len(matches),
             "pattern": pattern,
-            "fallback": True
+            "fallback": True,
         }
 
     # =========================================================================
@@ -699,8 +698,9 @@ class FilesystemMCPTool(BaseMCPTool):
         actual_path = file_path or path
         if not actual_path:
             raise ValueError("Either 'path' or 'file_path' parameter is required")
-            
+
         import asyncio
+
         try:
             loop = asyncio.get_event_loop()
             if loop.is_running():
@@ -715,6 +715,7 @@ class FilesystemMCPTool(BaseMCPTool):
     def write_file(self, path: str, content: str) -> bool:
         """Synchronous wrapper for writing files (for testing)"""
         import asyncio
+
         try:
             loop = asyncio.get_event_loop()
             if loop.is_running():
@@ -729,6 +730,7 @@ class FilesystemMCPTool(BaseMCPTool):
     def list_directory(self, path: str) -> List[Dict[str, Any]]:
         """Synchronous wrapper for listing directories (for testing)"""
         import asyncio
+
         try:
             loop = asyncio.get_event_loop()
             if loop.is_running():
@@ -759,7 +761,6 @@ FILESYSTEM_TOOL_DESCRIPTIONS = {
     
     Note: Files larger than 10MB will be rejected.
     """,
-    
     "write_file": """
     Write content to a file.
     
@@ -774,7 +775,6 @@ FILESYSTEM_TOOL_DESCRIPTIONS = {
     
     Note: Atomic writes use temp file + rename for safety.
     """,
-    
     "list_directory": """
     List contents of a directory.
     
@@ -788,7 +788,6 @@ FILESYSTEM_TOOL_DESCRIPTIONS = {
     - files (list): List of file/directory info
     - total_count (int): Total items
     """,
-    
     "search_content": """
     Search for text patterns in files.
     
@@ -803,7 +802,6 @@ FILESYSTEM_TOOL_DESCRIPTIONS = {
     - matches (list): Matches with file paths and line numbers
     - total_matches (int): Total number of matches
     """,
-    
     "analyze_structure": """
     Analyze project structure to understand codebase organization.
     
@@ -818,5 +816,5 @@ FILESYSTEM_TOOL_DESCRIPTIONS = {
     - documentation (list): Documentation files
     - tests (list): Test files
     - summary (dict): Counts of each category
-    """
+    """,
 }

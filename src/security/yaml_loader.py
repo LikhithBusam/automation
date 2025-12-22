@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 class YAMLSecurityError(Exception):
     """Raised when YAML loading security checks fail"""
+
     pass
 
 
@@ -25,11 +26,7 @@ class SecureYAMLLoader:
     - Schema validation (optional)
     """
 
-    def __init__(
-        self,
-        max_file_size_mb: int = 10,
-        allowed_directories: Optional[list] = None
-    ):
+    def __init__(self, max_file_size_mb: int = 10, allowed_directories: Optional[list] = None):
         """
         Initialize secure YAML loader.
 
@@ -79,9 +76,7 @@ class SecureYAMLLoader:
                     continue
 
             if not allowed:
-                raise YAMLSecurityError(
-                    f"File path outside allowed directories: {file_path}"
-                )
+                raise YAMLSecurityError(f"File path outside allowed directories: {file_path}")
 
         # Check file size
         file_size = path.stat().st_size
@@ -93,7 +88,7 @@ class SecureYAMLLoader:
 
         # Load YAML using safe_load (prevents code execution)
         try:
-            with open(path, 'r', encoding='utf-8') as f:
+            with open(path, "r", encoding="utf-8") as f:
                 data = yaml.safe_load(f)
 
             if data is None:
@@ -130,8 +125,7 @@ class SecureYAMLLoader:
         # Check string length
         if len(yaml_string) > max_length:
             raise YAMLSecurityError(
-                f"YAML string too large: {len(yaml_string)} chars "
-                f"(max: {max_length})"
+                f"YAML string too large: {len(yaml_string)} chars " f"(max: {max_length})"
             )
 
         # Load YAML using safe_load
@@ -172,25 +166,20 @@ class SecureYAMLLoader:
                 missing_keys.append(key)
 
         if missing_keys:
-            raise YAMLSecurityError(
-                f"YAML missing required keys: {', '.join(missing_keys)}"
-            )
+            raise YAMLSecurityError(f"YAML missing required keys: {', '.join(missing_keys)}")
 
         return True
 
 
 # Global loader instance with default settings
 _default_loader = SecureYAMLLoader(
-    max_file_size_mb=10,
-    allowed_directories=None  # No restriction by default
+    max_file_size_mb=10, allowed_directories=None  # No restriction by default
 )
 
 
 # Convenience functions
 def load_yaml_file(
-    file_path: str,
-    max_size_mb: int = 10,
-    allowed_dirs: Optional[list] = None
+    file_path: str, max_size_mb: int = 10, allowed_dirs: Optional[list] = None
 ) -> Dict[str, Any]:
     """
     Load YAML file securely.

@@ -35,7 +35,7 @@ class FunctionRegistry:
     def __init__(
         self,
         config_path: str = "config/function_schemas.yaml",
-        tool_manager: Optional[MCPToolManager] = None
+        tool_manager: Optional[MCPToolManager] = None,
     ):
         """
         Initialize the function registry.
@@ -56,15 +56,15 @@ class FunctionRegistry:
         self.registration_config = self.config.get("function_registration", {})
 
         # Initialize tool manager
-        self.tool_manager = tool_manager or MCPToolManager(
-            config=self._load_tool_manager_config()
-        )
+        self.tool_manager = tool_manager or MCPToolManager(config=self._load_tool_manager_config())
 
         # Storage for registered functions
         self.functions: Dict[str, Callable] = {}
         self.function_schemas: Dict[str, Dict[str, Any]] = {}
 
-        self.logger.info(f"FunctionRegistry initialized with {len(self.tool_configs)} tool categories")
+        self.logger.info(
+            f"FunctionRegistry initialized with {len(self.tool_configs)} tool categories"
+        )
 
     def _load_config(self) -> Dict[str, Any]:
         """Load configuration from YAML file"""
@@ -73,7 +73,7 @@ class FunctionRegistry:
         if not config_file.exists():
             raise FileNotFoundError(f"Config file not found: {self.config_path}")
 
-        with open(config_file, 'r', encoding='utf-8') as f:
+        with open(config_file, "r", encoding="utf-8") as f:
             config = yaml.safe_load(f)
 
         return config
@@ -83,7 +83,7 @@ class FunctionRegistry:
         main_config_path = Path("config/config.yaml")
 
         if main_config_path.exists():
-            with open(main_config_path, 'r', encoding='utf-8') as f:
+            with open(main_config_path, "r", encoding="utf-8") as f:
                 return yaml.safe_load(f)
 
         return {}
@@ -92,16 +92,12 @@ class FunctionRegistry:
         """Initialize MCP tool manager and connections"""
         await self.tool_manager.initialize()
         self.logger.info("MCP tools initialized")
-        
+
         # Register all MCP tool functions
         self.register_all_functions()
         self.logger.info(f"Registered {len(self.functions)} MCP tool functions")
 
-    def create_function_wrapper(
-        self,
-        tool_name: str,
-        function_config: Dict[str, Any]
-    ) -> Callable:
+    def create_function_wrapper(self, tool_name: str, function_config: Dict[str, Any]) -> Callable:
         """
         Create an async wrapper function for an MCP tool operation.
 
@@ -135,22 +131,18 @@ class FunctionRegistry:
                     "create_issue": "create_issue",
                     "search_code": "search_code",
                     "get_file_contents": "get_file_contents",
-
                     # Filesystem operations
                     "read_file": "read_file",
                     "write_file": "write_file",
                     "list_directory": "list_directory",
                     "search_files": "search_files",
-
                     # Memory operations
                     "store_memory": "store_memory",
                     "retrieve_memory": "retrieve_memory",
                     "search_memory": "search_memory",
-
                     # Slack operations
                     "send_slack_message": "send_message",
                     "send_slack_notification": "send_notification",
-
                     # CodeBaseBuddy operations
                     "semantic_code_search": "semantic_search",
                     "find_similar_code": "find_similar_code",
@@ -314,7 +306,7 @@ class FunctionRegistry:
 
         self.logger.debug(f"Got {len(schemas)} function schemas for agent: {agent_name}")
         return schemas
-    
+
     def get_tools_for_llm_config(self, agent_name: str) -> List[Dict[str, Any]]:
         """
         Get function schemas in the format required for llm_config['tools'].
@@ -342,17 +334,19 @@ class FunctionRegistry:
             # Fallback if import fails
             UserProxyAgent = type(None)
             AssistantAgent = type(None)
-        
+
         # Get functions for this agent
         agent_functions = self.get_functions_for_agent(agent_name)
 
         # For UserProxyAgent, register ALL functions for execution
-        if isinstance(agent, UserProxyAgent) or agent.__class__.__name__ == 'UserProxyAgent':
+        if isinstance(agent, UserProxyAgent) or agent.__class__.__name__ == "UserProxyAgent":
             # UserProxyAgent needs all functions to execute them
             all_functions = self.functions.copy()
             if all_functions:
                 agent.register_function(function_map=all_functions)
-                self.logger.info(f"Registered {len(all_functions)} functions for execution with UserProxyAgent: {agent_name}")
+                self.logger.info(
+                    f"Registered {len(all_functions)} functions for execution with UserProxyAgent: {agent_name}"
+                )
             return
 
         # For AssistantAgent or other types
@@ -364,10 +358,8 @@ class FunctionRegistry:
         for func_name, func in agent_functions.items():
             try:
                 # AutoGen uses register_function method
-                if hasattr(agent, 'register_function'):
-                    agent.register_function(
-                        function_map={func_name: func}
-                    )
+                if hasattr(agent, "register_function"):
+                    agent.register_function(function_map={func_name: func})
                     self.logger.info(f"Registered {func_name} for calling with agent: {agent_name}")
             except Exception as e:
                 self.logger.error(f"Failed to register {func_name} with {agent_name}: {e}")
@@ -429,8 +421,7 @@ class FunctionRegistry:
 
 # Convenience function
 def create_function_registry(
-    config_path: str = "config/function_schemas.yaml",
-    tool_manager: Optional[MCPToolManager] = None
+    config_path: str = "config/function_schemas.yaml", tool_manager: Optional[MCPToolManager] = None
 ) -> FunctionRegistry:
     """
     Create a FunctionRegistry instance.

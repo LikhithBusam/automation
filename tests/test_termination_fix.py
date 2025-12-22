@@ -55,8 +55,9 @@ def test_multiple_terminate_detection(groupchat_factory):
 **TERMINATE**"""
     }
 
-    assert termination_func(msg_with_multiple_terminates) == True, \
-        "Should detect multiple TERMINATE messages and force termination"
+    assert (
+        termination_func(msg_with_multiple_terminates) == True
+    ), "Should detect multiple TERMINATE messages and force termination"
 
 
 def test_empty_or_none_content(groupchat_factory):
@@ -84,17 +85,20 @@ def test_all_termination_conditions(groupchat_factory):
         "check_documentation_complete",
         "check_deployment_complete",
         "check_research_complete",
-        "check_full_team_complete"
+        "check_full_team_complete",
     ]
 
     for condition_name in conditions:
         termination_func = groupchat_factory._create_termination_function(condition_name)
-        assert termination_func is not None, f"Should create termination function for {condition_name}"
+        assert (
+            termination_func is not None
+        ), f"Should create termination function for {condition_name}"
 
         # Test TERMINATE keyword (common to all)
         msg = {"content": "TERMINATE"}
-        assert termination_func(msg) == True, \
-            f"Termination function for {condition_name} should detect TERMINATE"
+        assert (
+            termination_func(msg) == True
+        ), f"Termination function for {condition_name} should detect TERMINATE"
 
 
 def test_groupchat_configs_have_termination_conditions(groupchat_factory):
@@ -102,62 +106,52 @@ def test_groupchat_configs_have_termination_conditions(groupchat_factory):
     groupchats = groupchat_factory.groupchat_configs
 
     for chat_name, chat_config in groupchats.items():
-        assert "termination_condition" in chat_config, \
-            f"GroupChat {chat_name} should have termination_condition configured"
+        assert (
+            "termination_condition" in chat_config
+        ), f"GroupChat {chat_name} should have termination_condition configured"
 
         condition_name = chat_config["termination_condition"]
-        assert condition_name in groupchat_factory.termination_configs, \
-            f"Termination condition {condition_name} should be defined"
+        assert (
+            condition_name in groupchat_factory.termination_configs
+        ), f"Termination condition {condition_name} should be defined"
 
 
 def test_security_audit_termination_keywords(groupchat_factory):
     """Test security audit specific termination keywords"""
-    termination_func = groupchat_factory._create_termination_function("check_security_audit_complete")
+    termination_func = groupchat_factory._create_termination_function(
+        "check_security_audit_complete"
+    )
 
     # Test specific keywords
-    keywords = [
-        "SECURITY_AUDIT_COMPLETE",
-        "NO_VULNERABILITIES_FOUND",
-        "TERMINATE"
-    ]
+    keywords = ["SECURITY_AUDIT_COMPLETE", "NO_VULNERABILITIES_FOUND", "TERMINATE"]
 
     for keyword in keywords:
         msg = {"content": f"Analysis complete: {keyword}"}
-        assert termination_func(msg) == True, \
-            f"Should detect security audit keyword: {keyword}"
+        assert termination_func(msg) == True, f"Should detect security audit keyword: {keyword}"
 
 
 def test_documentation_termination_keywords(groupchat_factory):
     """Test documentation generation specific termination keywords"""
-    termination_func = groupchat_factory._create_termination_function("check_documentation_complete")
+    termination_func = groupchat_factory._create_termination_function(
+        "check_documentation_complete"
+    )
 
-    keywords = [
-        "DOCUMENTATION_COMPLETE",
-        "DOCS_GENERATED",
-        "TERMINATE"
-    ]
+    keywords = ["DOCUMENTATION_COMPLETE", "DOCS_GENERATED", "TERMINATE"]
 
     for keyword in keywords:
         msg = {"content": f"{keyword} - all docs ready"}
-        assert termination_func(msg) == True, \
-            f"Should detect documentation keyword: {keyword}"
+        assert termination_func(msg) == True, f"Should detect documentation keyword: {keyword}"
 
 
 def test_deployment_termination_keywords(groupchat_factory):
     """Test deployment workflow termination keywords"""
     termination_func = groupchat_factory._create_termination_function("check_deployment_complete")
 
-    keywords = [
-        "DEPLOYMENT_COMPLETE",
-        "DEPLOYMENT_SUCCESS",
-        "DEPLOYMENT_FAILED",
-        "TERMINATE"
-    ]
+    keywords = ["DEPLOYMENT_COMPLETE", "DEPLOYMENT_SUCCESS", "DEPLOYMENT_FAILED", "TERMINATE"]
 
     for keyword in keywords:
         msg = {"content": f"Status: {keyword}"}
-        assert termination_func(msg) == True, \
-            f"Should detect deployment keyword: {keyword}"
+        assert termination_func(msg) == True, f"Should detect deployment keyword: {keyword}"
 
 
 if __name__ == "__main__":

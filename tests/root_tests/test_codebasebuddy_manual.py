@@ -2,11 +2,13 @@
 Manual CodeBaseBuddy Test - Step by Step Guide
 This script shows you how to manually test CodeBaseBuddy functionality
 """
+
 import sys
 import io
 
 # Fix encoding for Windows console
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
+
 
 def print_test_guide():
     """Print manual testing guide"""
@@ -30,8 +32,8 @@ def print_test_guide():
             "params": {
                 "root_path": "Path to scan (e.g., './src')",
                 "file_extensions": "List of extensions (e.g., ['.py', '.js'])",
-                "rebuild": "True to rebuild, False to update"
-            }
+                "rebuild": "True to rebuild, False to update",
+            },
         },
         {
             "name": "semantic_search",
@@ -40,8 +42,8 @@ def print_test_guide():
                 "query": "Natural language query",
                 "top_k": "Number of results (default: 5)",
                 "file_filter": "Optional file pattern filter",
-                "chunk_type_filter": "Optional: 'function', 'class', 'file'"
-            }
+                "chunk_type_filter": "Optional: 'function', 'class', 'file'",
+            },
         },
         {
             "name": "find_functions",
@@ -49,16 +51,16 @@ def print_test_guide():
             "params": {
                 "pattern": "Function name pattern to search",
                 "file_filter": "Optional file pattern",
-                "max_results": "Max results to return"
-            }
+                "max_results": "Max results to return",
+            },
         },
         {
             "name": "find_similar_code",
             "description": "Find similar code snippets",
             "params": {
                 "code_snippet": "Code to find similar to",
-                "top_k": "Number of similar results"
-            }
+                "top_k": "Number of similar results",
+            },
         },
         {
             "name": "get_code_context",
@@ -66,22 +68,18 @@ def print_test_guide():
             "params": {
                 "file_path": "Path to file",
                 "start_line": "Starting line number",
-                "end_line": "Ending line number"
-            }
+                "end_line": "Ending line number",
+            },
         },
-        {
-            "name": "get_index_stats",
-            "description": "Get index statistics",
-            "params": {}
-        }
+        {"name": "get_index_stats", "description": "Get index statistics", "params": {}},
     ]
 
     for i, tool in enumerate(tools, 1):
         print(f"\n{i}. {tool['name']}")
         print(f"   {tool['description']}")
-        if tool['params']:
+        if tool["params"]:
             print("   Parameters:")
-            for param, desc in tool['params'].items():
+            for param, desc in tool["params"].items():
                 print(f"     - {param}: {desc}")
 
     print("\n" + "=" * 70)
@@ -90,7 +88,8 @@ def print_test_guide():
 
     print("\n📝 Method 1: Via MCP Client (Recommended)")
     print("=" * 50)
-    print("""
+    print(
+        """
 1. Install MCP Python SDK:
    pip install mcp
 
@@ -118,11 +117,13 @@ def print_test_guide():
 
    asyncio.run(use_codebasebuddy())
    ```
-""")
+"""
+    )
 
     print("\n📝 Method 2: Via AutoGen Agents")
     print("=" * 50)
-    print("""
+    print(
+        """
 Your AutoGen agents can use CodeBaseBuddy through the MCP integration:
 
 1. The MCP Tool Manager in src/mcp/tool_manager.py connects to all MCP servers
@@ -136,18 +137,21 @@ Your AutoGen agents can use CodeBaseBuddy through the MCP integration:
    b. Tool Manager calls CodeBaseBuddy's semantic_search
    c. Returns relevant code snippets
    d. Agent analyzes the code
-""")
+"""
+    )
 
     print("\n📝 Method 3: Manual HTTP Testing (Advanced)")
     print("=" * 50)
-    print("""
+    print(
+        """
 For low-level testing, you can use curl or httpx:
 
 # Test SSE endpoint (will stream events)
 curl http://localhost:3004/sse
 
 # The server is running and accessible!
-""")
+"""
+    )
 
     print("\n" + "=" * 70)
     print("Quick Verification Test")
@@ -157,6 +161,7 @@ curl http://localhost:3004/sse
 
     try:
         import urllib.request
+
         with urllib.request.urlopen("http://localhost:3004/sse", timeout=1) as response:
             print(f"✅ SUCCESS! Server responded with status {response.status}")
     except Exception as e:
@@ -169,7 +174,8 @@ curl http://localhost:3004/sse
     print("Summary")
     print("=" * 70)
 
-    print("""
+    print(
+        """
 ✅ CodeBaseBuddy Server: RUNNING
 ✅ Port 3004: LISTENING
 ✅ SSE Endpoint: ACCESSIBLE
@@ -188,13 +194,15 @@ Example agent queries:
 
 The semantic search uses AI embeddings to understand context,
 not just keyword matching!
-""")
+"""
+    )
 
     print("\n" + "=" * 70)
     print("Next Steps")
     print("=" * 70)
 
-    print("""
+    print(
+        """
 1. ✅ Servers are running - no action needed
 2. Run your main AutoGen application:
    python main.py
@@ -205,7 +213,9 @@ not just keyword matching!
 4. Agents will automatically use CodeBaseBuddy when analyzing code!
 
 Happy coding! 🚀
-""")
+"""
+    )
+
 
 if __name__ == "__main__":
     print_test_guide()

@@ -2,6 +2,7 @@
 Verification script to confirm all bugs are fixed
 Run this to verify the system is working correctly
 """
+
 import os
 import sys
 from pathlib import Path
@@ -12,16 +13,19 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 load_dotenv()
 
+
 def print_header(text):
     print("\n" + "=" * 70)
     print(f"  {text}")
     print("=" * 70)
+
 
 def print_test(name, passed):
     status = "[OK]  " if passed else "[FAIL]"
     symbol = "+" if passed else "X"
     print(f"  {symbol} {status} {name}")
     return passed
+
 
 all_passed = True
 
@@ -38,17 +42,13 @@ all_passed &= print_test("GEMINI_API_KEY loaded", bool(gemini_key))
 print("\n2. Groq Model Availability")
 try:
     from openai import OpenAI
-    client = OpenAI(
-        api_key=groq_key,
-        base_url="https://api.groq.com/openai/v1"
-    )
+
+    client = OpenAI(api_key=groq_key, base_url="https://api.groq.com/openai/v1")
 
     # Test routing model
     try:
         response = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
-            messages=[{"role": "user", "content": "Hi"}],
-            max_tokens=5
+            model="llama-3.1-8b-instant", messages=[{"role": "user", "content": "Hi"}], max_tokens=5
         )
         all_passed &= print_test("llama-3.1-8b-instant (routing model)", True)
     except Exception as e:
@@ -59,7 +59,7 @@ try:
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[{"role": "user", "content": "Hi"}],
-            max_tokens=5
+            max_tokens=5,
         )
         all_passed &= print_test("llama-3.3-70b-versatile (research model)", True)
     except Exception as e:
@@ -72,6 +72,7 @@ except Exception as e:
 print("\n3. AutoGen Imports")
 try:
     from autogen import AssistantAgent, UserProxyAgent, GroupChatManager
+
     all_passed &= print_test("Core AutoGen classes", True)
 except Exception as e:
     all_passed &= print_test(f"Core AutoGen classes: {e}", False)
@@ -83,8 +84,12 @@ try:
 
     factory = AutoGenAgentFactory("config/autogen_agents.yaml")
     all_passed &= print_test("AgentFactory initialization", True)
-    all_passed &= print_test(f"Loaded {len(factory.agent_configs)} agent configs", len(factory.agent_configs) == 8)
-    all_passed &= print_test(f"Loaded {len(factory.llm_configs)} LLM configs", len(factory.llm_configs) == 6)
+    all_passed &= print_test(
+        f"Loaded {len(factory.agent_configs)} agent configs", len(factory.agent_configs) == 8
+    )
+    all_passed &= print_test(
+        f"Loaded {len(factory.llm_configs)} LLM configs", len(factory.llm_configs) == 6
+    )
 
     # Try creating an agent with Groq
     try:
@@ -103,6 +108,7 @@ try:
 except Exception as e:
     all_passed &= print_test(f"AgentFactory: {e}", False)
     import traceback
+
     traceback.print_exc()
 
 # Test 5: GroupChat Factory
@@ -112,7 +118,9 @@ try:
 
     gcf = GroupChatFactory("config/autogen_groupchats.yaml")
     all_passed &= print_test("GroupChatFactory initialization", True)
-    all_passed &= print_test(f"Loaded {len(gcf.groupchat_configs)} chat configs", len(gcf.groupchat_configs) > 0)
+    all_passed &= print_test(
+        f"Loaded {len(gcf.groupchat_configs)} chat configs", len(gcf.groupchat_configs) > 0
+    )
 
 except Exception as e:
     all_passed &= print_test(f"GroupChatFactory: {e}", False)
@@ -123,7 +131,7 @@ configs = [
     "config/autogen_agents.yaml",
     "config/autogen_workflows.yaml",
     "config/autogen_groupchats.yaml",
-    ".env"
+    ".env",
 ]
 for config in configs:
     exists = Path(config).exists()

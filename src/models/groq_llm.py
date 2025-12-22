@@ -50,10 +50,7 @@ class GroqLLM(BaseLLM):
             data["stop"] = stop
 
         response = requests.post(
-            f"{self.api_base}/chat/completions",
-            headers=headers,
-            json=data,
-            timeout=60
+            f"{self.api_base}/chat/completions", headers=headers, json=data, timeout=60
         )
         response.raise_for_status()
 
@@ -81,7 +78,7 @@ def create_groq_llm(
     temperature: float = 0.7,
     max_tokens: int = 2048,
     api_key: Optional[str] = None,
-    **kwargs
+    **kwargs,
 ) -> BaseLLM:
     """
     Create a Groq LLM instance compatible with AutoGen
@@ -111,11 +108,7 @@ def create_groq_llm(
 
     # Create GroqLLM instance
     llm = GroqLLM(
-        model=model,
-        temperature=temperature,
-        max_tokens=max_tokens,
-        api_key=groq_api_key,
-        **kwargs
+        model=model, temperature=temperature, max_tokens=max_tokens, api_key=groq_api_key, **kwargs
     )
 
     logger.info("Groq LLM created successfully")

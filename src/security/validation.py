@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ValidationResult:
     """Result of validation check"""
+
     is_valid: bool
     error_message: Optional[str] = None
     sanitized_value: Optional[Any] = None
@@ -96,7 +97,7 @@ class InputValidator:
                 logger.warning(f"Potential SQL injection detected: {value[:50]}")
                 return ValidationResult(
                     is_valid=False,
-                    error_message="Input contains potentially dangerous SQL patterns"
+                    error_message="Input contains potentially dangerous SQL patterns",
                 )
 
         return ValidationResult(is_valid=True, sanitized_value=value)
@@ -111,7 +112,7 @@ class InputValidator:
                 logger.warning(f"Potential command injection detected: {value[:50]}")
                 return ValidationResult(
                     is_valid=False,
-                    error_message="Input contains potentially dangerous command characters"
+                    error_message="Input contains potentially dangerous command characters",
                 )
 
         return ValidationResult(is_valid=True, sanitized_value=value)
@@ -126,7 +127,7 @@ class InputValidator:
                 logger.warning(f"Potential XSS detected: {value[:50]}")
                 return ValidationResult(
                     is_valid=False,
-                    error_message="Input contains potentially dangerous HTML/JavaScript"
+                    error_message="Input contains potentially dangerous HTML/JavaScript",
                 )
 
         # Sanitize by escaping HTML
@@ -141,10 +142,7 @@ class InputValidator:
         return ValidationResult(is_valid=True, sanitized_value=sanitized)
 
     def validate_file_path(
-        self,
-        path: str,
-        allowed_paths: Optional[List[str]] = None,
-        allow_creation: bool = False
+        self, path: str, allowed_paths: Optional[List[str]] = None, allow_creation: bool = False
     ) -> ValidationResult:
         """Validate file path for security issues"""
         if not path:
@@ -159,8 +157,7 @@ class InputValidator:
                 if pattern.search(normalized_path):
                     logger.warning(f"Dangerous path pattern detected: {normalized_path}")
                     return ValidationResult(
-                        is_valid=False,
-                        error_message="Path contains dangerous patterns"
+                        is_valid=False, error_message="Path contains dangerous patterns"
                     )
 
             # Check for sensitive files
@@ -168,8 +165,7 @@ class InputValidator:
                 if pattern.search(normalized_path):
                     logger.warning(f"Sensitive file access attempt: {normalized_path}")
                     return ValidationResult(
-                        is_valid=False,
-                        error_message="Access to sensitive files is not allowed"
+                        is_valid=False, error_message="Access to sensitive files is not allowed"
                     )
 
             # Check against whitelist
@@ -189,16 +185,12 @@ class InputValidator:
                 if not is_allowed:
                     logger.warning(f"Path not in whitelist: {normalized_path}")
                     return ValidationResult(
-                        is_valid=False,
-                        error_message="Path is not in allowed directories"
+                        is_valid=False, error_message="Path is not in allowed directories"
                     )
 
             # Check if path exists (unless creation is allowed)
             if not allow_creation and not os.path.exists(normalized_path):
-                return ValidationResult(
-                    is_valid=False,
-                    error_message="Path does not exist"
-                )
+                return ValidationResult(is_valid=False, error_message="Path does not exist")
 
             return ValidationResult(is_valid=True, sanitized_value=normalized_path)
 
@@ -207,10 +199,7 @@ class InputValidator:
             return ValidationResult(is_valid=False, error_message=str(e))
 
     def validate_integer(
-        self,
-        value: Any,
-        min_value: Optional[int] = None,
-        max_value: Optional[int] = None
+        self, value: Any, min_value: Optional[int] = None, max_value: Optional[int] = None
     ) -> ValidationResult:
         """Validate integer input"""
         try:
@@ -218,14 +207,12 @@ class InputValidator:
 
             if min_value is not None and int_value < min_value:
                 return ValidationResult(
-                    is_valid=False,
-                    error_message=f"Value must be at least {min_value}"
+                    is_valid=False, error_message=f"Value must be at least {min_value}"
                 )
 
             if max_value is not None and int_value > max_value:
                 return ValidationResult(
-                    is_valid=False,
-                    error_message=f"Value must be at most {max_value}"
+                    is_valid=False, error_message=f"Value must be at most {max_value}"
                 )
 
             return ValidationResult(is_valid=True, sanitized_value=int_value)
@@ -238,7 +225,7 @@ class InputValidator:
         value: str,
         min_length: Optional[int] = None,
         max_length: Optional[int] = None,
-        pattern: Optional[str] = None
+        pattern: Optional[str] = None,
     ) -> ValidationResult:
         """Validate string input"""
         if not isinstance(value, str):
@@ -246,37 +233,36 @@ class InputValidator:
 
         if min_length is not None and len(value) < min_length:
             return ValidationResult(
-                is_valid=False,
-                error_message=f"String must be at least {min_length} characters"
+                is_valid=False, error_message=f"String must be at least {min_length} characters"
             )
 
         if max_length is not None and len(value) > max_length:
             return ValidationResult(
-                is_valid=False,
-                error_message=f"String must be at most {max_length} characters"
+                is_valid=False, error_message=f"String must be at most {max_length} characters"
             )
 
         if pattern:
             if not re.match(pattern, value):
                 return ValidationResult(
-                    is_valid=False,
-                    error_message="String does not match required pattern"
+                    is_valid=False, error_message="String does not match required pattern"
                 )
 
         return ValidationResult(is_valid=True, sanitized_value=value)
 
     def validate_email(self, email: str) -> ValidationResult:
         """Validate email address"""
-        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        email_pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
 
         if not re.match(email_pattern, email):
             return ValidationResult(is_valid=False, error_message="Invalid email address")
 
         return ValidationResult(is_valid=True, sanitized_value=email.lower())
 
-    def validate_url(self, url: str, allowed_schemes: Optional[List[str]] = None) -> ValidationResult:
+    def validate_url(
+        self, url: str, allowed_schemes: Optional[List[str]] = None
+    ) -> ValidationResult:
         """Validate URL"""
-        url_pattern = r'^(https?|ftp)://[^\s/$.?#].[^\s]*$'
+        url_pattern = r"^(https?|ftp)://[^\s/$.?#].[^\s]*$"
 
         if not re.match(url_pattern, url, re.IGNORECASE):
             return ValidationResult(is_valid=False, error_message="Invalid URL format")
@@ -286,7 +272,7 @@ class InputValidator:
             if scheme not in allowed_schemes:
                 return ValidationResult(
                     is_valid=False,
-                    error_message=f"URL scheme must be one of: {', '.join(allowed_schemes)}"
+                    error_message=f"URL scheme must be one of: {', '.join(allowed_schemes)}",
                 )
 
         return ValidationResult(is_valid=True, sanitized_value=url)
@@ -297,15 +283,15 @@ class InputValidator:
         filename = os.path.basename(filename)
 
         # Remove dangerous characters
-        sanitized = re.sub(r'[<>:"/\\|?*]', '_', filename)
+        sanitized = re.sub(r'[<>:"/\\|?*]', "_", filename)
 
         # Remove leading/trailing dots and spaces
-        sanitized = sanitized.strip('. ')
+        sanitized = sanitized.strip(". ")
 
         # Limit length
         if len(sanitized) > 255:
             name, ext = os.path.splitext(sanitized)
-            sanitized = name[:255 - len(ext)] + ext
+            sanitized = name[: 255 - len(ext)] + ext
 
         if not sanitized:
             return ValidationResult(is_valid=False, error_message="Invalid filename")
@@ -318,8 +304,7 @@ class InputValidator:
 
         if invalid_keys:
             return ValidationResult(
-                is_valid=False,
-                error_message=f"Invalid keys: {', '.join(invalid_keys)}"
+                is_valid=False, error_message=f"Invalid keys: {', '.join(invalid_keys)}"
             )
 
         return ValidationResult(is_valid=True, sanitized_value=data)

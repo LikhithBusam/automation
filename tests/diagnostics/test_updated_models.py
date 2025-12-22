@@ -1,6 +1,7 @@
 """
 Test script to verify updated Groq models work correctly
 """
+
 import os
 from dotenv import load_dotenv
 
@@ -27,15 +28,12 @@ for model_id, description in models_to_test:
     try:
         from openai import OpenAI
 
-        client = OpenAI(
-            api_key=groq_key,
-            base_url="https://api.groq.com/openai/v1"
-        )
+        client = OpenAI(api_key=groq_key, base_url="https://api.groq.com/openai/v1")
 
         response = client.chat.completions.create(
             model=model_id,
             messages=[{"role": "user", "content": "Say 'Hello' in one word."}],
-            max_tokens=10
+            max_tokens=10,
         )
 
         result = response.choices[0].message.content

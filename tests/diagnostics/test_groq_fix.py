@@ -49,7 +49,9 @@ def test_llm_config_has_base_url():
             config_entry = config_list[0]
             print(f"\n5. Config Entry Details:")
             print(f"   model: {config_entry.get('model')}")
-            print(f"   api_key: {'***' + config_entry.get('api_key', '')[-8:] if config_entry.get('api_key') else 'NOT SET'}")
+            print(
+                f"   api_key: {'***' + config_entry.get('api_key', '')[-8:] if config_entry.get('api_key') else 'NOT SET'}"
+            )
 
             # THE CRITICAL CHECK
             base_url = config_entry.get("base_url")
@@ -77,13 +79,13 @@ def test_llm_config_has_base_url():
                 all_passed = False
 
             # Check 3: model should use LiteLLM format
-            if config_entry.get('model', '').startswith('groq/'):
+            if config_entry.get("model", "").startswith("groq/"):
                 print(f"   [PASS] Model uses LiteLLM format (groq/...)")
             else:
                 print(f"   [WARNING] Model doesn't use LiteLLM format")
 
             # Check 4: API key is set
-            if config_entry.get('api_key'):
+            if config_entry.get("api_key"):
                 print(f"   [PASS] API key is set")
             else:
                 print(f"   [FAIL] API key is missing")
@@ -115,5 +117,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n[ERROR] {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

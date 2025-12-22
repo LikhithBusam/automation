@@ -19,12 +19,7 @@ import asyncio
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from src.mcp.base_tool import (
-    BaseMCPTool,
-    MCPConnectionError,
-    MCPValidationError,
-    MCPToolError
-)
+from src.mcp.base_tool import BaseMCPTool, MCPConnectionError, MCPValidationError, MCPToolError
 
 
 # =============================================================================
@@ -35,18 +30,18 @@ MEMORY_TIERS = {
     "short": {
         "ttl_hours": 1,
         "max_entries": 100,
-        "description": "Short-term memory for immediate context"
+        "description": "Short-term memory for immediate context",
     },
     "medium": {
         "ttl_days": 30,
         "max_entries": 1000,
-        "description": "Medium-term memory for session context"
+        "description": "Medium-term memory for session context",
     },
     "long": {
         "ttl_days": None,  # Permanent
         "max_entries": 10000,
-        "description": "Long-term memory for persistent patterns"
-    }
+        "description": "Long-term memory for persistent patterns",
+    },
 }
 
 
@@ -54,17 +49,18 @@ MEMORY_TIERS = {
 # Memory MCP Tool
 # =============================================================================
 
+
 class MemoryMCPTool(BaseMCPTool):
     """
     Memory MCP Tool Wrapper.
-    
+
     Provides persistent memory storage with:
     - Context storage (project info, decisions, patterns)
     - Semantic search with embeddings
     - Memory tier management (short/medium/long term)
     - Batch operations for efficiency
     - Agent preference learning
-    
+
     Features:
     - Cache frequent queries (5min TTL)
     - Memory pruning scheduler
@@ -73,9 +69,9 @@ class MemoryMCPTool(BaseMCPTool):
 
     # Cache TTLs for different operations (in seconds)
     CACHE_TTLS = {
-        "search": 300,     # 5 minutes
-        "retrieve": 300,   # 5 minutes
-        "get_stats": 60,   # 1 minute
+        "search": 300,  # 5 minutes
+        "retrieve": 300,  # 5 minutes
+        "get_stats": 60,  # 1 minute
     }
 
     # Memory types
@@ -85,10 +81,12 @@ class MemoryMCPTool(BaseMCPTool):
         "solution": "Solutions to problems",
         "context": "Project context and background",
         "error": "Error patterns and fixes",
-        "decision": "Past decisions and rationale"
+        "decision": "Past decisions and rationale",
     }
 
-    def __init__(self, server_url: str = "http://localhost:3002", config: Optional[Dict[str, Any]] = None):
+    def __init__(
+        self, server_url: str = "http://localhost:3002", config: Optional[Dict[str, Any]] = None
+    ):
         # Set memory-specific defaults
         if config is None:
             config = {}
@@ -101,28 +99,30 @@ class MemoryMCPTool(BaseMCPTool):
             name="memory",
             server_url=server_url,
             config=config,
-            fallback_handler=self._fallback_handler
+            fallback_handler=self._fallback_handler,
         )
-        
+
         # Memory configuration
         self.memory_tiers = config.get("memory_tiers", MEMORY_TIERS)
         self.max_memory_age_days = config.get("max_memory_age_days", 90)
         self.max_memories = config.get("max_memories", 10000)
-        
+
         # Batch operation buffer
         self._batch_buffer: List[Dict[str, Any]] = []
         self._batch_lock = asyncio.Lock()
         self._batch_size = config.get("batch_size", 10)
-        
+
         # Pruning scheduler state
         self._last_prune: Optional[datetime] = None
         self._prune_interval_hours = config.get("prune_interval_hours", 24)
-        
+
         # HTTP client for MCP server communication
         self._client: Optional[httpx.AsyncClient] = None
-        
+
         # Local fallback storage path
-        self._fallback_storage_path = Path(config.get("fallback_path", "./data/memory_fallback.json"))
+        self._fallback_storage_path = Path(
+            config.get("fallback_path", "./data/memory_fallback.json")
+        )
 
     # =========================================================================
     # Connection Management
@@ -130,16 +130,13 @@ class MemoryMCPTool(BaseMCPTool):
 
     async def _do_connect(self):
         """Establish connection to Memory MCP server"""
-        self._client = httpx.AsyncClient(
-            base_url=self.server_url,
-            timeout=httpx.Timeout(30.0)
-        )
+        self._client = httpx.AsyncClient(base_url=self.server_url, timeout=httpx.Timeout(30.0))
 
     async def _do_disconnect(self):
         """Close connection to Memory MCP server"""
         # Flush any pending batch operations
         await self._flush_batch()
-        
+
         if self._client:
             await self._client.aclose()
             self._client = None
@@ -154,13 +151,9 @@ class MemoryMCPTool(BaseMCPTool):
     # Operation Execution
     # =========================================================================
 
-    async def _execute_operation(
-        self,
-        operation: str,
-        params: Dict[str, Any]
-    ) -> Any:
+    async def _execute_operation(self, operation: str, params: Dict[str, Any]) -> Any:
         """Execute memory operation"""
-        
+
         handlers = {
             "store": self._store_memory,
             "retrieve": self._retrieve_memory,
@@ -175,14 +168,14 @@ class MemoryMCPTool(BaseMCPTool):
             "get_tier_stats": self._get_tier_stats,
             "health_check": self._health_check,
         }
-        
+
         handler = handlers.get(operation)
         if not handler:
             raise ValueError(f"Unknown operation: {operation}")
-        
+
         # Check if pruning is needed
         await self._maybe_prune()
-        
+
         return await handler(params)
 
     # =========================================================================
@@ -191,7 +184,7 @@ class MemoryMCPTool(BaseMCPTool):
 
     def validate_params(self, operation: str, params: Dict[str, Any]):
         """Validate operation parameters"""
-        
+
         if operation == "store":
             if "content" not in params:
                 raise MCPValidationError("Missing required field: content")
@@ -201,22 +194,22 @@ class MemoryMCPTool(BaseMCPTool):
                 raise MCPValidationError(
                     f"Invalid memory type. Must be one of: {list(self.MEMORY_TYPES.keys())}"
                 )
-            
+
             # Validate tier if specified
             tier = params.get("tier", "medium")
             if tier not in self.memory_tiers:
                 raise MCPValidationError(
                     f"Invalid memory tier. Must be one of: {list(self.memory_tiers.keys())}"
                 )
-        
+
         elif operation in ("search", "retrieve"):
             if "query" not in params:
                 raise MCPValidationError("Missing required field: query")
-        
+
         elif operation == "update":
             if "id" not in params:
                 raise MCPValidationError("Missing required field: id")
-        
+
         elif operation == "delete":
             if "id" not in params:
                 raise MCPValidationError("Missing required field: id")
@@ -243,32 +236,32 @@ class MemoryMCPTool(BaseMCPTool):
         # Explicit tier takes precedence
         if "tier" in params:
             return params["tier"]
-        
+
         # Determine based on type
         memory_type = params.get("type", "context")
-        
+
         # Patterns and decisions go to long-term
         if memory_type in ("pattern", "decision"):
             return "long"
-        
+
         # Errors and solutions go to medium-term
         if memory_type in ("error", "solution"):
             return "medium"
-        
+
         # Context and preferences go to short-term by default
         return "short"
 
     def _calculate_expiry(self, tier: str) -> Optional[str]:
         """Calculate expiry timestamp based on tier"""
         tier_config = self.memory_tiers.get(tier, {})
-        
+
         if tier_config.get("ttl_hours"):
             expiry = datetime.now() + timedelta(hours=tier_config["ttl_hours"])
             return expiry.isoformat()
         elif tier_config.get("ttl_days"):
             expiry = datetime.now() + timedelta(days=tier_config["ttl_days"])
             return expiry.isoformat()
-        
+
         return None  # Permanent (no expiry)
 
     # =========================================================================
@@ -279,7 +272,7 @@ class MemoryMCPTool(BaseMCPTool):
         """Store a memory entry with tier management"""
         # Determine tier
         tier = self._determine_tier(params)
-        
+
         # Build memory data
         memory_data = {
             "content": params["content"],
@@ -289,15 +282,12 @@ class MemoryMCPTool(BaseMCPTool):
             "agent": params.get("agent", "unknown"),
             "metadata": params.get("metadata", {}),
             "timestamp": datetime.now().isoformat(),
-            "expires_at": self._calculate_expiry(tier)
+            "expires_at": self._calculate_expiry(tier),
         }
-        
+
         try:
             client = await self._get_client()
-            response = await client.post(
-                "/store_memory",
-                json=memory_data
-            )
+            response = await client.post("/store_memory", json=memory_data)
             response.raise_for_status()
             result = response.json()
             result["tier"] = tier
@@ -314,8 +304,8 @@ class MemoryMCPTool(BaseMCPTool):
                 json={
                     "query": params["query"],
                     "limit": params.get("limit", 5),
-                    "tier": params.get("tier")  # Optional tier filter
-                }
+                    "tier": params.get("tier"),  # Optional tier filter
+                },
             )
             response.raise_for_status()
             return response.json()
@@ -331,15 +321,12 @@ class MemoryMCPTool(BaseMCPTool):
             "tags": params.get("tags", []),
             "agent": params.get("agent"),
             "limit": params.get("limit", 5),
-            "min_relevance": params.get("min_relevance", 0.7)
+            "min_relevance": params.get("min_relevance", 0.7),
         }
-        
+
         try:
             client = await self._get_client()
-            response = await client.post(
-                "/search_memory",
-                json=search_params
-            )
+            response = await client.post("/search_memory", json=search_params)
             response.raise_for_status()
             return response.json()
         except Exception as e:
@@ -352,15 +339,12 @@ class MemoryMCPTool(BaseMCPTool):
             "content": params.get("content"),
             "tags": params.get("tags"),
             "metadata": params.get("metadata"),
-            "updated_at": datetime.now().isoformat()
+            "updated_at": datetime.now().isoformat(),
         }
-        
+
         try:
             client = await self._get_client()
-            response = await client.post(
-                "/update_memory",
-                json=update_data
-            )
+            response = await client.post("/update_memory", json=update_data)
             response.raise_for_status()
             return response.json()
         except Exception as e:
@@ -370,10 +354,7 @@ class MemoryMCPTool(BaseMCPTool):
         """Delete a memory"""
         try:
             client = await self._get_client()
-            response = await client.post(
-                "/delete_memory",
-                json={"id": params["id"]}
-            )
+            response = await client.post("/delete_memory", json={"id": params["id"]})
             response.raise_for_status()
             return response.json()
         except Exception as e:
@@ -385,17 +366,14 @@ class MemoryMCPTool(BaseMCPTool):
             "max_age_days": params.get("max_age_days", self.max_memory_age_days),
             "max_count": params.get("max_count", self.max_memories),
             "min_access_count": params.get("min_access_count", 0),
-            "tiers": params.get("tiers", ["short", "medium"])  # Don't prune long by default
+            "tiers": params.get("tiers", ["short", "medium"]),  # Don't prune long by default
         }
-        
+
         try:
             client = await self._get_client()
-            response = await client.post(
-                "/prune_old_memories",
-                json=prune_config
-            )
+            response = await client.post("/prune_old_memories", json=prune_config)
             response.raise_for_status()
-            
+
             self._last_prune = datetime.now()
             return response.json()
         except Exception as e:
@@ -410,11 +388,7 @@ class MemoryMCPTool(BaseMCPTool):
             response.raise_for_status()
             return response.json()
         except Exception as e:
-            return {
-                "total_memories": 0,
-                "error": str(e),
-                "fallback": True
-            }
+            return {"total_memories": 0, "error": str(e), "fallback": True}
 
     async def _get_tier_stats(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Get statistics per memory tier"""
@@ -424,10 +398,7 @@ class MemoryMCPTool(BaseMCPTool):
             response.raise_for_status()
             return response.json()
         except Exception:
-            return {
-                "tiers": {tier: {"count": 0} for tier in self.memory_tiers},
-                "fallback": True
-            }
+            return {"tiers": {tier: {"count": 0} for tier in self.memory_tiers}, "fallback": True}
 
     async def _health_check(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Health check"""
@@ -447,38 +418,32 @@ class MemoryMCPTool(BaseMCPTool):
     async def _batch_store(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Add to batch buffer or execute batch store"""
         memories = params.get("memories", [])
-        
+
         if not memories:
             # Flush current buffer
             return await self._flush_batch()
-        
+
         async with self._batch_lock:
             self._batch_buffer.extend(memories)
-            
+
             # Auto-flush if buffer is full
             if len(self._batch_buffer) >= self._batch_size:
                 return await self._flush_batch()
-        
-        return {
-            "buffered": len(memories),
-            "buffer_size": len(self._batch_buffer)
-        }
+
+        return {"buffered": len(memories), "buffer_size": len(self._batch_buffer)}
 
     async def _flush_batch(self) -> Dict[str, Any]:
         """Flush batch buffer to server"""
         async with self._batch_lock:
             if not self._batch_buffer:
                 return {"stored": 0}
-            
+
             memories_to_store = self._batch_buffer.copy()
             self._batch_buffer.clear()
-        
+
         try:
             client = await self._get_client()
-            response = await client.post(
-                "/batch_store",
-                json={"memories": memories_to_store}
-            )
+            response = await client.post("/batch_store", json={"memories": memories_to_store})
             response.raise_for_status()
             return response.json()
         except Exception as e:
@@ -502,27 +467,24 @@ class MemoryMCPTool(BaseMCPTool):
         filters = {
             "tier": params.get("tier"),
             "type": params.get("type"),
-            "tags": params.get("tags", [])
+            "tags": params.get("tags", []),
         }
-        
+
         try:
             client = await self._get_client()
-            response = await client.post(
-                "/export_memories",
-                json=filters
-            )
+            response = await client.post("/export_memories", json=filters)
             response.raise_for_status()
             memories = response.json()
-            
+
             # Write to file
             output_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(output_path, 'w') as f:
+            with open(output_path, "w") as f:
                 json.dump(memories, f, indent=2)
-            
+
             return {
                 "success": True,
                 "path": str(output_path),
-                "count": len(memories.get("memories", []))
+                "count": len(memories.get("memories", [])),
             }
         except Exception as e:
             raise MCPToolError(f"Export failed: {str(e)}", operation="export")
@@ -530,24 +492,22 @@ class MemoryMCPTool(BaseMCPTool):
     async def _import_memories(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Import memories from a snapshot file"""
         input_path = Path(params["path"])
-        merge_strategy = params.get("merge_strategy", "skip_existing")  # skip_existing, overwrite, merge
-        
+        merge_strategy = params.get(
+            "merge_strategy", "skip_existing"
+        )  # skip_existing, overwrite, merge
+
         if not input_path.exists():
             raise MCPValidationError(f"Import file not found: {input_path}")
-        
-        with open(input_path, 'r') as f:
+
+        with open(input_path, "r") as f:
             import_data = json.load(f)
-        
+
         memories = import_data.get("memories", [])
-        
+
         try:
             client = await self._get_client()
             response = await client.post(
-                "/import_memories",
-                json={
-                    "memories": memories,
-                    "merge_strategy": merge_strategy
-                }
+                "/import_memories", json={"memories": memories, "merge_strategy": merge_strategy}
             )
             response.raise_for_status()
             return response.json()
@@ -571,9 +531,9 @@ class MemoryMCPTool(BaseMCPTool):
         if self._last_prune is None:
             self._last_prune = datetime.now()
             return
-        
+
         hours_since_prune = (datetime.now() - self._last_prune).total_seconds() / 3600
-        
+
         if hours_since_prune >= self._prune_interval_hours:
             self.logger.info("Running scheduled memory pruning...")
             await self._prune_old_memories({})
@@ -582,58 +542,46 @@ class MemoryMCPTool(BaseMCPTool):
     # Fallback Handlers
     # =========================================================================
 
-    async def _fallback_handler(
-        self,
-        operation: str,
-        params: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    async def _fallback_handler(self, operation: str, params: Dict[str, Any]) -> Dict[str, Any]:
         """Fallback to local storage"""
         self.logger.warning(f"Using fallback for {operation}")
-        
+
         fallback_ops = {
             "store": self._fallback_store,
             "search": self._fallback_search,
             "retrieve": self._fallback_retrieve,
         }
-        
+
         handler = fallback_ops.get(operation)
         if handler:
             return await handler(params)
-        
+
         raise NotImplementedError(f"No fallback for {operation}")
 
     def _load_fallback_storage(self) -> Dict[str, Any]:
         """Load fallback storage from disk"""
         if self._fallback_storage_path.exists():
-            with open(self._fallback_storage_path, 'r') as f:
+            with open(self._fallback_storage_path, "r") as f:
                 return json.load(f)
         return {"memories": []}
 
     def _save_fallback_storage(self, data: Dict[str, Any]):
         """Save fallback storage to disk"""
         self._fallback_storage_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(self._fallback_storage_path, 'w') as f:
+        with open(self._fallback_storage_path, "w") as f:
             json.dump(data, f, indent=2)
 
     async def _fallback_store(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Store memory in local fallback"""
         storage = self._load_fallback_storage()
-        
+
         memory_id = f"fallback-{len(storage['memories'])}-{datetime.now().timestamp()}"
-        memory_entry = {
-            "id": memory_id,
-            **params,
-            "fallback": True
-        }
-        
+        memory_entry = {"id": memory_id, **params, "fallback": True}
+
         storage["memories"].append(memory_entry)
         self._save_fallback_storage(storage)
-        
-        return {
-            "id": memory_id,
-            "status": "stored_locally",
-            "fallback": True
-        }
+
+        return {"id": memory_id, "status": "stored_locally", "fallback": True}
 
     async def _fallback_search(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Search in local fallback storage"""
@@ -663,11 +611,7 @@ class MemoryMCPTool(BaseMCPTool):
                         continue
                     results.append({**memory, "relevance": 0.5})
 
-        return {
-            "results": results[:limit],
-            "total_found": len(results),
-            "fallback": True
-        }
+        return {"results": results[:limit], "total_found": len(results), "fallback": True}
 
     async def _fallback_retrieve(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Retrieve from local fallback storage"""
@@ -680,19 +624,20 @@ class MemoryMCPTool(BaseMCPTool):
     # Synchronous Wrappers for Testing
     # =========================================================================
 
-    def store_memory(self, content: Dict[str, Any], memory_type: str, tags: List[str] = None) -> str:
+    def store_memory(
+        self, content: Dict[str, Any], memory_type: str, tags: List[str] = None
+    ) -> str:
         """Synchronous wrapper for storing memory (for testing)"""
         import asyncio
         import uuid
+
         try:
             loop = asyncio.get_event_loop()
             if loop.is_running():
                 raise RuntimeError("Cannot use sync wrapper with running event loop")
-            result = loop.run_until_complete(self._store_memory({
-                "content": content,
-                "type": memory_type,
-                "tags": tags or []
-            }))
+            result = loop.run_until_complete(
+                self._store_memory({"content": content, "type": memory_type, "tags": tags or []})
+            )
             return result.get("id", str(uuid.uuid4()))
         except RuntimeError:
             # Fallback: return a mock ID
@@ -701,6 +646,7 @@ class MemoryMCPTool(BaseMCPTool):
     def retrieve_memory(self, memory_id: str) -> Dict[str, Any]:
         """Synchronous wrapper for retrieving memory (for testing)"""
         import asyncio
+
         try:
             loop = asyncio.get_event_loop()
             if loop.is_running():
@@ -722,36 +668,36 @@ MEMORY_RETRIEVAL_STRATEGIES = {
         "tags": ["code-quality", "security", "performance"],
         "tier": "long",
         "limit": 5,
-        "min_relevance": 0.7
+        "min_relevance": 0.7,
     },
     "documentation": {
         "types": ["pattern", "preference"],
         "tags": ["documentation", "style", "examples"],
         "tier": "medium",
         "limit": 3,
-        "min_relevance": 0.6
+        "min_relevance": 0.6,
     },
     "deployment": {
         "types": ["solution", "error", "decision"],
         "tags": ["deployment", "ci-cd", "rollback"],
         "tier": "long",
         "limit": 5,
-        "min_relevance": 0.75
+        "min_relevance": 0.75,
     },
     "research": {
         "types": ["solution", "pattern"],
         "tags": ["best-practices", "technology", "libraries"],
         "tier": "long",
         "limit": 10,
-        "min_relevance": 0.65
+        "min_relevance": 0.65,
     },
     "project_manager": {
         "types": ["decision", "preference", "context"],
         "tags": ["workflow", "priorities", "team"],
         "tier": "medium",
         "limit": 5,
-        "min_relevance": 0.6
-    }
+        "min_relevance": 0.6,
+    },
 }
 
 
@@ -776,7 +722,6 @@ MEMORY_TOOL_DESCRIPTIONS = {
     - tier (str): Assigned memory tier
     - stored_at (str): Timestamp
     """,
-    
     "search": """
     Search memories with semantic similarity.
     
@@ -793,7 +738,6 @@ MEMORY_TOOL_DESCRIPTIONS = {
     - results (list): Matching memories with relevance scores
     - total_found (int): Total matches
     """,
-    
     "batch_store": """
     Store multiple memories efficiently in a batch.
     
@@ -804,7 +748,6 @@ MEMORY_TOOL_DESCRIPTIONS = {
     - stored (int): Number of memories stored
     - failed (int): Number that failed
     """,
-    
     "export": """
     Export memories to a snapshot file.
     
@@ -818,7 +761,6 @@ MEMORY_TOOL_DESCRIPTIONS = {
     - success (bool): Whether export succeeded
     - count (int): Number of memories exported
     """,
-    
     "import": """
     Import memories from a snapshot file.
     
@@ -829,5 +771,5 @@ MEMORY_TOOL_DESCRIPTIONS = {
     Returns:
     - imported (int): Number of memories imported
     - total (int): Total in file
-    """
+    """,
 }

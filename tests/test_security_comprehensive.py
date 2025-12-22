@@ -19,11 +19,17 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from src.security.input_validator import InputValidator, ValidationError
 from src.security.rate_limiter import (
-    RateLimiter, RateLimitConfig, ServiceRateLimiters, RateLimitExceeded
+    RateLimiter,
+    RateLimitConfig,
+    ServiceRateLimiters,
+    RateLimitExceeded,
 )
 from src.security.circuit_breaker import (
-    CircuitBreaker, CircuitBreakerConfig, CircuitState, CircuitBreakerOpenError,
-    ServiceCircuitBreakers
+    CircuitBreaker,
+    CircuitBreakerConfig,
+    CircuitState,
+    CircuitBreakerOpenError,
+    ServiceCircuitBreakers,
 )
 from src.security.log_sanitizer import LogSanitizer, SanitizationConfig
 
@@ -31,6 +37,7 @@ from src.security.log_sanitizer import LogSanitizer, SanitizationConfig
 # ============================================================================
 # INPUT VALIDATOR TESTS
 # ============================================================================
+
 
 class TestInputValidator:
     """Test input validation and sanitization"""
@@ -63,7 +70,7 @@ class TestInputValidator:
             "uploads/file.txt",
             "data/user_123/document.pdf",
             "images/photo.jpg",
-            "config/settings.yaml"
+            "config/settings.yaml",
         ]
 
         base_dir = "/var/www/app"
@@ -132,10 +139,7 @@ class TestInputValidator:
 
         for attack in command_attacks:
             is_safe = validator.validate_param(
-                param_name="command",
-                value=attack,
-                param_type=str,
-                max_length=100
+                param_name="command", value=attack, param_type=str, max_length=100
             )
             # Should detect shell metacharacters
             assert is_safe == False or pytest.raises(ValidationError)
@@ -154,10 +158,7 @@ class TestInputValidator:
         for attack in template_attacks:
             # Should detect template syntax
             result = validator.validate_param(
-                param_name="template",
-                value=attack,
-                param_type=str,
-                max_length=100
+                param_name="template", value=attack, param_type=str, max_length=100
             )
             # Implementation may vary - check what your validator does
 
@@ -183,28 +184,20 @@ class TestInputValidator:
         allowed_values = ["admin", "user", "guest"]
 
         # Valid value
-        assert validator.validate_param(
-            "role", "admin", str, allowed_values=allowed_values
-        ) == True
+        assert validator.validate_param("role", "admin", str, allowed_values=allowed_values) == True
 
         # Invalid value
         with pytest.raises(ValidationError, match="not in allowed values"):
-            validator.validate_param(
-                "role", "superuser", str, allowed_values=allowed_values
-            )
+            validator.validate_param("role", "superuser", str, allowed_values=allowed_values)
 
     def test_validate_all_params(self, validator):
         """Test validating multiple parameters"""
-        params = {
-            "username": "john_doe",
-            "email": "john@example.com",
-            "age": 25
-        }
+        params = {"username": "john_doe", "email": "john@example.com", "age": 25}
 
         rules = {
             "username": {"type": str, "max_length": 50},
             "email": {"type": str, "max_length": 100},
-            "age": {"type": int, "min_value": 0, "max_value": 150}
+            "age": {"type": int, "min_value": 0, "max_value": 150},
         }
 
         # Should validate successfully
@@ -214,6 +207,7 @@ class TestInputValidator:
 # ============================================================================
 # RATE LIMITER TESTS
 # ============================================================================
+
 
 class TestRateLimiter:
     """Test rate limiting functionality"""
@@ -338,19 +332,18 @@ class TestRateLimiter:
 # CIRCUIT BREAKER TESTS
 # ============================================================================
 
+
 class TestCircuitBreaker:
     """Test circuit breaker pattern"""
 
     def test_circuit_breaker_initialization(self):
         """Test CircuitBreaker initializes in CLOSED state"""
-        config = CircuitBreakerConfig(
-            failure_threshold=5,
-            recovery_timeout=60,
-            success_threshold=2
-        )
+        config = CircuitBreakerConfig(failure_threshold=5, recovery_timeout=60, success_threshold=2)
         breaker = CircuitBreaker(config)
 
-        assert breaker.state == "CLOSED"  # CircuitBreakerState not available in current implementation
+        assert (
+            breaker.state == "CLOSED"
+        )  # CircuitBreakerState not available in current implementation
         assert breaker.failure_count == 0
 
     @pytest.mark.asyncio
@@ -414,9 +407,7 @@ class TestCircuitBreaker:
     async def test_circuit_breaker_half_open_transition(self):
         """Test transition to HALF_OPEN after recovery timeout"""
         config = CircuitBreakerConfig(
-            failure_threshold=2,
-            recovery_timeout=1,  # 1 second
-            success_threshold=1
+            failure_threshold=2, recovery_timeout=1, success_threshold=1  # 1 second
         )
         breaker = CircuitBreaker(config)
 
@@ -497,6 +488,7 @@ class TestCircuitBreaker:
 # ============================================================================
 # LOG SANITIZER TESTS
 # ============================================================================
+
 
 class TestLogSanitizer:
     """Test log sanitization and PII redaction"""

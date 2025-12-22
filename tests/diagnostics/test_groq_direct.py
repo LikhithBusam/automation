@@ -15,18 +15,13 @@ print("Testing Groq API with llama-3.1-8b-instant...")
 print(f"API Key: {api_key[:20]}...")
 
 try:
-    client = OpenAI(
-        api_key=api_key,
-        base_url="https://api.groq.com/openai/v1"
-    )
+    client = OpenAI(api_key=api_key, base_url="https://api.groq.com/openai/v1")
 
     response = client.chat.completions.create(
         model="llama-3.1-8b-instant",
-        messages=[
-            {"role": "user", "content": "Say 'Hello, Groq is working!' in one sentence."}
-        ],
+        messages=[{"role": "user", "content": "Say 'Hello, Groq is working!' in one sentence."}],
         temperature=0.3,
-        max_tokens=50
+        max_tokens=50,
     )
 
     print("\n[SUCCESS] Groq API call successful!")

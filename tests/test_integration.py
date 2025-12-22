@@ -1,4 +1,5 @@
 """Integration Tests for Agent-MCP Communication"""
+
 import pytest
 from unittest.mock import Mock, patch, MagicMock
 
@@ -8,8 +9,8 @@ pytestmark = pytest.mark.integration
 class TestAgentMCPIntegration:
     """Test agents using MCP tools"""
 
-    @patch('src.autogen_adapters.agent_factory.HAS_AUTOGEN', True)
-    @patch('src.autogen_adapters.agent_factory.AssistantAgent')
+    @patch("src.autogen_adapters.agent_factory.HAS_AUTOGEN", True)
+    @patch("src.autogen_adapters.agent_factory.AssistantAgent")
     def test_agent_uses_filesystem_tool(self, mock_assistant, temp_workspace, sample_code_file):
         """Test agent can use filesystem tool to read files"""
         from src.autogen_adapters.agent_factory import AutoGenAgentFactory
@@ -26,8 +27,8 @@ class TestAgentMCPIntegration:
         content = tool.read_file(str(sample_code_file))
         assert "hello_world" in content
 
-    @patch('src.autogen_adapters.agent_factory.HAS_AUTOGEN', True)
-    @patch('src.autogen_adapters.agent_factory.AssistantAgent')
+    @patch("src.autogen_adapters.agent_factory.HAS_AUTOGEN", True)
+    @patch("src.autogen_adapters.agent_factory.AssistantAgent")
     def test_agent_uses_memory_tool(self, mock_assistant, mock_env):
         """Test agent can use memory tool"""
         from src.autogen_adapters.agent_factory import AutoGenAgentFactory
@@ -42,9 +43,7 @@ class TestAgentMCPIntegration:
 
         # Test tool can store and retrieve
         memory_id = tool.store_memory(
-            content={"test": "data"},
-            memory_type="short_term",
-            tags=["test"]
+            content={"test": "data"}, memory_type="short_term", tags=["test"]
         )
         assert memory_id is not None
 
@@ -55,7 +54,7 @@ class TestAgentMCPIntegration:
 class TestConversationManager:
     """Test conversation manager"""
 
-    @patch('src.autogen_adapters.agent_factory.HAS_AUTOGEN', True)
+    @patch("src.autogen_adapters.agent_factory.HAS_AUTOGEN", True)
     def test_create_conversation_manager(self, mock_env):
         """Test creating conversation manager"""
         from src.autogen_adapters.conversation_manager import create_conversation_manager

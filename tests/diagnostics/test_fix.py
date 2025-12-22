@@ -6,6 +6,7 @@ import asyncio
 import sys
 from src.autogen_adapters.conversation_manager import create_conversation_manager
 
+
 async def test_workflow():
     """Test the quick_code_review workflow"""
     print("Testing AutoGen api_base fix...")
@@ -25,8 +26,7 @@ async def test_workflow():
         # Execute quick_code_review
         print("\n3. Testing quick_code_review workflow...")
         result = await manager.execute_workflow(
-            "quick_code_review",
-            {"code_path": "./main.py", "focus_areas": "structure, imports"}
+            "quick_code_review", {"code_path": "./main.py", "focus_areas": "structure, imports"}
         )
 
         print(f"\n4. Workflow execution result:")
@@ -47,8 +47,10 @@ async def test_workflow():
     except Exception as e:
         print(f"\n[ERROR] Test failed: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
+
 
 if __name__ == "__main__":
     exit_code = asyncio.run(test_workflow())

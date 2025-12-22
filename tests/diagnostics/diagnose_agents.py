@@ -35,26 +35,26 @@ async def main():
     import yaml
 
     # Load agent config
-    with open("config/autogen_agents.yaml", 'r') as f:
+    with open("config/autogen_agents.yaml", "r") as f:
         agent_config = yaml.safe_load(f)
 
-    agents_defined = list(agent_config.get('agents', {}).keys())
+    agents_defined = list(agent_config.get("agents", {}).keys())
     print(f"[1] Agents defined in autogen_agents.yaml:")
     for agent_name in agents_defined:
-        agent_cfg = agent_config['agents'][agent_name]
-        display_name = agent_cfg.get('name', 'N/A')
-        agent_type = agent_cfg.get('agent_type', 'N/A')
+        agent_cfg = agent_config["agents"][agent_name]
+        display_name = agent_cfg.get("name", "N/A")
+        agent_type = agent_cfg.get("agent_type", "N/A")
         print(f"    - YAML key: '{agent_name}'")
         print(f"      Display name: '{display_name}'")
         print(f"      Type: {agent_type}")
 
     # Load workflow config
-    with open("config/autogen_workflows.yaml", 'r') as f:
+    with open("config/autogen_workflows.yaml", "r") as f:
         workflow_config = yaml.safe_load(f)
 
     print(f"\n[2] Agents required by workflows:")
-    for workflow_name, workflow_cfg in workflow_config.get('workflows', {}).items():
-        agent_names = workflow_cfg.get('agents', [])
+    for workflow_name, workflow_cfg in workflow_config.get("workflows", {}).items():
+        agent_names = workflow_cfg.get("agents", [])
         if agent_names:
             print(f"    - {workflow_name}: {agent_names}")
 
@@ -72,6 +72,7 @@ async def main():
     except Exception as e:
         print(f"[ERROR] Failed to create factory: {e}")
         import traceback
+
         traceback.print_exc()
         return
 
@@ -99,6 +100,7 @@ async def main():
         except Exception as e:
             print(f"    [ERROR] Exception: {e}")
             import traceback
+
             traceback.print_exc()
             failed_agents.append(agent_name)
 
@@ -116,7 +118,7 @@ async def main():
     # Phase 5: Test agent retrieval
     print_section("Phase 5: Agent Retrieval Test")
 
-    test_names = ['code_analyzer', 'user_proxy_executor', 'CodeAnalyzer', 'Executor']
+    test_names = ["code_analyzer", "user_proxy_executor", "CodeAnalyzer", "Executor"]
 
     for test_name in test_names:
         agent = factory.get_agent(test_name)
@@ -135,8 +137,8 @@ async def main():
         print(f"    Registered agents: {manager.agent_factory.list_agents()}")
 
         print(f"\n[3] Testing workflow agent retrieval:")
-        workflow_cfg = workflow_config['workflows']['quick_code_review']
-        required_agents = workflow_cfg.get('agents', [])
+        workflow_cfg = workflow_config["workflows"]["quick_code_review"]
+        required_agents = workflow_cfg.get("agents", [])
 
         print(f"    Workflow requires: {required_agents}")
 
@@ -151,6 +153,7 @@ async def main():
     except Exception as e:
         print(f"[ERROR] Failed to create manager: {e}")
         import traceback
+
         traceback.print_exc()
 
     # Phase 7: Summary and Recommendations
@@ -171,8 +174,8 @@ async def main():
 
         registry_keys = set(factory.list_agents())
         workflow_needs = set()
-        for wf_cfg in workflow_config.get('workflows', {}).values():
-            workflow_needs.update(wf_cfg.get('agents', []))
+        for wf_cfg in workflow_config.get("workflows", {}).values():
+            workflow_needs.update(wf_cfg.get("agents", []))
 
         missing = workflow_needs - registry_keys
 
@@ -188,7 +191,7 @@ async def main():
         else:
             print("\n[OK] All workflow agent names match registry!")
 
-    print("\n" + "="*80 + "\n")
+    print("\n" + "=" * 80 + "\n")
 
 
 if __name__ == "__main__":

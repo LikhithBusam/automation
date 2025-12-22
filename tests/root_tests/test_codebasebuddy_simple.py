@@ -2,13 +2,15 @@
 Simple test for CodeBaseBuddy server
 Tests basic connectivity and SSE endpoint
 """
+
 import sys
 import io
 import urllib.request
 import urllib.error
 
 # Fix encoding for Windows console
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
+
 
 def test_simple():
     """Simple synchronous test"""
@@ -45,6 +47,7 @@ def test_simple():
     print("✅ Test passed! Server is accessible.")
     print("=" * 60)
     return True
+
 
 if __name__ == "__main__":
     test_simple()

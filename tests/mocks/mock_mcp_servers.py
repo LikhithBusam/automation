@@ -32,15 +32,12 @@ class MockMCPServer:
         return {
             "status": "healthy" if self.is_running else "stopped",
             "server": self.server_name,
-            "port": self.port
+            "port": self.port,
         }
 
     def record_call(self, method: str, params: Dict[str, Any]):
         """Record a call for testing verification"""
-        self.call_history.append({
-            "method": method,
-            "params": params
-        })
+        self.call_history.append({"method": method, "params": params})
 
 
 class MockGitHubServer(MockMCPServer):
@@ -53,12 +50,7 @@ class MockGitHubServer(MockMCPServer):
         self.issues = {}
 
     async def create_pull_request(
-        self,
-        repo: str,
-        title: str,
-        body: str,
-        head: str,
-        base: str = "main"
+        self, repo: str, title: str, body: str, head: str, base: str = "main"
     ) -> Dict[str, Any]:
         """Mock create pull request"""
         self.record_call("create_pull_request", locals())
@@ -72,7 +64,7 @@ class MockGitHubServer(MockMCPServer):
             "head": head,
             "base": base,
             "state": "open",
-            "url": f"https://github.com/{repo}/pull/{pr_id}"
+            "url": f"https://github.com/{repo}/pull/{pr_id}",
         }
         self.pull_requests[pr_id] = pr
         return pr
@@ -91,41 +83,25 @@ class MockGitHubServer(MockMCPServer):
             "description": f"Mock repository {repo}",
             "url": f"https://github.com/{repo}",
             "stars": 100,
-            "forks": 50
+            "forks": 50,
         }
         self.repositories[repo] = repo_data
         return repo_data
 
-    async def search_code(
-        self,
-        query: str,
-        repo: Optional[str] = None
-    ) -> Dict[str, Any]:
+    async def search_code(self, query: str, repo: Optional[str] = None) -> Dict[str, Any]:
         """Mock search code"""
         self.record_call("search_code", {"query": query, "repo": repo})
 
         return {
             "total_count": 2,
             "items": [
-                {
-                    "path": "src/main.py",
-                    "repository": repo or "test/repo",
-                    "score": 1.0
-                },
-                {
-                    "path": "tests/test_main.py",
-                    "repository": repo or "test/repo",
-                    "score": 0.8
-                }
-            ]
+                {"path": "src/main.py", "repository": repo or "test/repo", "score": 1.0},
+                {"path": "tests/test_main.py", "repository": repo or "test/repo", "score": 0.8},
+            ],
         }
 
     async def create_issue(
-        self,
-        repo: str,
-        title: str,
-        body: str,
-        labels: Optional[list] = None
+        self, repo: str, title: str, body: str, labels: Optional[list] = None
     ) -> Dict[str, Any]:
         """Mock create issue"""
         self.record_call("create_issue", locals())
@@ -138,7 +114,7 @@ class MockGitHubServer(MockMCPServer):
             "body": body,
             "labels": labels or [],
             "state": "open",
-            "url": f"https://github.com/{repo}/issues/{issue_id}"
+            "url": f"https://github.com/{repo}/issues/{issue_id}",
         }
         self.issues[issue_id] = issue
         return issue
@@ -152,7 +128,7 @@ class MockFilesystemServer(MockMCPServer):
         self.files = {
             "/test/file.txt": "Test file content",
             "/test/code.py": "def hello():\n    return 'world'",
-            "/test/data.json": '{"key": "value"}'
+            "/test/data.json": '{"key": "value"}',
         }
 
     async def read_file(self, path: str) -> Dict[str, Any]:
@@ -164,7 +140,7 @@ class MockFilesystemServer(MockMCPServer):
                 "path": path,
                 "content": self.files[path],
                 "size": len(self.files[path]),
-                "exists": True
+                "exists": True,
             }
 
         return {
@@ -172,7 +148,7 @@ class MockFilesystemServer(MockMCPServer):
             "content": None,
             "size": 0,
             "exists": False,
-            "error": "File not found"
+            "error": "File not found",
         }
 
     async def write_file(self, path: str, content: str) -> Dict[str, Any]:
@@ -180,11 +156,7 @@ class MockFilesystemServer(MockMCPServer):
         self.record_call("write_file", {"path": path, "content": content})
 
         self.files[path] = content
-        return {
-            "path": path,
-            "size": len(content),
-            "success": True
-        }
+        return {"path": path, "size": len(content), "success": True}
 
     async def list_directory(self, path: str) -> Dict[str, Any]:
         """Mock list directory"""
@@ -195,11 +167,8 @@ class MockFilesystemServer(MockMCPServer):
 
         return {
             "path": path,
-            "files": [
-                {"name": f.split("/")[-1], "path": f, "type": "file"}
-                for f in files
-            ],
-            "count": len(files)
+            "files": [{"name": f.split("/")[-1], "path": f, "type": "file"} for f in files],
+            "count": len(files),
         }
 
     async def delete_file(self, path: str) -> Dict[str, Any]:
@@ -222,10 +191,7 @@ class MockMemoryServer(MockMCPServer):
         self.memory_index = {}
 
     async def store_memory(
-        self,
-        content: str,
-        category: str = "general",
-        metadata: Optional[Dict] = None
+        self, content: str, category: str = "general", metadata: Optional[Dict] = None
     ) -> Dict[str, Any]:
         """Mock store memory"""
         self.record_call("store_memory", locals())
@@ -236,21 +202,15 @@ class MockMemoryServer(MockMCPServer):
             "content": content,
             "category": category,
             "metadata": metadata or {},
-            "timestamp": "2024-12-18T00:00:00Z"
+            "timestamp": "2024-12-18T00:00:00Z",
         }
         self.memories.append(memory)
         self.memory_index[memory_id] = memory
 
-        return {
-            "id": memory_id,
-            "stored": True
-        }
+        return {"id": memory_id, "stored": True}
 
     async def search_memory(
-        self,
-        query: str,
-        category: Optional[str] = None,
-        top_k: int = 5
+        self, query: str, category: Optional[str] = None, top_k: int = 5
     ) -> Dict[str, Any]:
         """Mock search memory"""
         self.record_call("search_memory", locals())
@@ -263,11 +223,7 @@ class MockMemoryServer(MockMCPServer):
         # Return top_k results
         results = results[:top_k]
 
-        return {
-            "query": query,
-            "results": results,
-            "count": len(results)
-        }
+        return {"query": query, "results": results, "count": len(results)}
 
     async def get_memory(self, memory_id: int) -> Dict[str, Any]:
         """Mock get memory by ID"""
@@ -302,61 +258,45 @@ class MockCodeBaseBuddyServer(MockMCPServer):
                     "name": "calculate_total",
                     "file": "src/utils.py",
                     "line": 10,
-                    "signature": "def calculate_total(items: list) -> float"
+                    "signature": "def calculate_total(items: list) -> float",
                 },
                 {
                     "name": "validate_input",
                     "file": "src/validators.py",
                     "line": 5,
-                    "signature": "def validate_input(data: dict) -> bool"
-                }
+                    "signature": "def validate_input(data: dict) -> bool",
+                },
             ],
             "classes": [
                 {
                     "name": "UserManager",
                     "file": "src/models.py",
                     "line": 20,
-                    "methods": ["create", "update", "delete"]
+                    "methods": ["create", "update", "delete"],
                 }
-            ]
+            ],
         }
 
     async def semantic_search(
-        self,
-        query: str,
-        file_pattern: Optional[str] = None,
-        top_k: int = 5
+        self, query: str, file_pattern: Optional[str] = None, top_k: int = 5
     ) -> Dict[str, Any]:
         """Mock semantic search"""
         self.record_call("semantic_search", locals())
 
         # Return mock search results
         results = [
-            {
-                "file": "src/main.py",
-                "line": 15,
-                "content": "def main():",
-                "score": 0.95
-            },
+            {"file": "src/main.py", "line": 15, "content": "def main():", "score": 0.95},
             {
                 "file": "src/utils.py",
                 "line": 10,
                 "content": "def calculate_total():",
-                "score": 0.85
-            }
+                "score": 0.85,
+            },
         ]
 
-        return {
-            "query": query,
-            "results": results[:top_k],
-            "count": len(results)
-        }
+        return {"query": query, "results": results[:top_k], "count": len(results)}
 
-    async def find_definition(
-        self,
-        symbol: str,
-        symbol_type: str = "function"
-    ) -> Dict[str, Any]:
+    async def find_definition(self, symbol: str, symbol_type: str = "function") -> Dict[str, Any]:
         """Mock find definition"""
         self.record_call("find_definition", {"symbol": symbol, "type": symbol_type})
 
@@ -372,10 +312,7 @@ class MockCodeBaseBuddyServer(MockMCPServer):
 
         return {"error": "Definition not found", "symbol": symbol}
 
-    async def analyze_dependencies(
-        self,
-        file_path: str
-    ) -> Dict[str, Any]:
+    async def analyze_dependencies(self, file_path: str) -> Dict[str, Any]:
         """Mock analyze dependencies"""
         self.record_call("analyze_dependencies", {"file_path": file_path})
 
@@ -383,7 +320,7 @@ class MockCodeBaseBuddyServer(MockMCPServer):
             "file": file_path,
             "imports": ["os", "sys", "typing"],
             "dependencies": ["utils", "models"],
-            "external_packages": ["requests", "pytest"]
+            "external_packages": ["requests", "pytest"],
         }
 
 
@@ -400,7 +337,7 @@ class MockMCPServerManager:
             "github": self.github,
             "filesystem": self.filesystem,
             "memory": self.memory,
-            "codebasebuddy": self.codebasebuddy
+            "codebasebuddy": self.codebasebuddy,
         }
 
     async def start_all(self):

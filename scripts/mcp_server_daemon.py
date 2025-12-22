@@ -67,13 +67,14 @@ SERVERS_CONFIG = [
         "display_name": "CodeBaseBuddy Server",
         "script": PROJECT_ROOT / "mcp_servers/codebasebuddy_server.py",
         "port": 3004,
-    }
+    },
 ]
 
 
 @dataclass
 class ServerState:
     """State information for a server"""
+
     name: str
     pid: Optional[int] = None
     port: int = 0
@@ -95,7 +96,7 @@ class DaemonState:
         """Load state from file"""
         if self.state_file.exists():
             try:
-                with open(self.state_file, 'r') as f:
+                with open(self.state_file, "r") as f:
                     data = json.load(f)
                     for name, state_dict in data.items():
                         self.servers[name] = ServerState(**state_dict)
@@ -106,7 +107,7 @@ class DaemonState:
         """Save state to file"""
         try:
             data = {name: asdict(state) for name, state in self.servers.items()}
-            with open(self.state_file, 'w') as f:
+            with open(self.state_file, "w") as f:
                 json.dump(data, f, indent=2)
         except Exception as e:
             print(f"Warning: Could not save state: {e}")
@@ -140,10 +141,11 @@ class ServerDaemon:
 
         log_file = LOG_DIR / f"daemon_{datetime.now().strftime('%Y%m%d')}.log"
         handler = logging.FileHandler(log_file)
-        handler.setFormatter(logging.Formatter(
-            '[%(asctime)s] [%(levelname)s] %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S'
-        ))
+        handler.setFormatter(
+            logging.Formatter(
+                "[%(asctime)s] [%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+            )
+        )
         logger.addHandler(handler)
 
         return logger
@@ -155,7 +157,7 @@ class ServerDaemon:
     def write_pid(self, server_name: str, pid: int):
         """Write PID to file"""
         pid_file = self.get_pid_file(server_name)
-        with open(pid_file, 'w') as f:
+        with open(pid_file, "w") as f:
             f.write(str(pid))
 
     def read_pid(self, server_name: str) -> Optional[int]:
@@ -163,7 +165,7 @@ class ServerDaemon:
         pid_file = self.get_pid_file(server_name)
         if pid_file.exists():
             try:
-                with open(pid_file, 'r') as f:
+                with open(pid_file, "r") as f:
                     return int(f.read().strip())
             except:
                 return None
@@ -181,12 +183,10 @@ class ServerDaemon:
             return False
 
         try:
-            if sys.platform == 'win32':
+            if sys.platform == "win32":
                 # Windows: use tasklist
                 result = subprocess.run(
-                    ['tasklist', '/FI', f'PID eq {pid}'],
-                    capture_output=True,
-                    text=True
+                    ["tasklist", "/FI", f"PID eq {pid}"], capture_output=True, text=True
                 )
                 return str(pid) in result.stdout
             else:
@@ -198,8 +198,8 @@ class ServerDaemon:
 
     def start_server(self, config: Dict[str, Any], detached: bool = True) -> bool:
         """Start a server process"""
-        name = config['name']
-        script = Path(config['script'])
+        name = config["name"]
+        script = Path(config["script"])
 
         if not script.exists():
             self.logger.error(f"Script not found: {script}")
@@ -219,39 +219,39 @@ class ServerDaemon:
 
             if detached:
                 # Start detached process (survives terminal closure)
-                if sys.platform == 'win32':
+                if sys.platform == "win32":
                     # Windows: use CREATE_NEW_PROCESS_GROUP and CREATE_NO_WINDOW
                     DETACHED_PROCESS = 0x00000008
                     CREATE_NEW_PROCESS_GROUP = 0x00000200
                     CREATE_NO_WINDOW = 0x08000000
 
-                    with open(log_file, 'a') as log:
+                    with open(log_file, "a") as log:
                         process = subprocess.Popen(
                             [sys.executable, "-u", str(script)],
                             stdout=log,
                             stderr=subprocess.STDOUT,
                             stdin=subprocess.DEVNULL,
-                            creationflags=DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW,
-                            close_fds=True
+                            creationflags=DETACHED_PROCESS
+                            | CREATE_NEW_PROCESS_GROUP
+                            | CREATE_NO_WINDOW,
+                            close_fds=True,
                         )
                 else:
                     # Unix: use nohup and setsid for full detachment
-                    with open(log_file, 'a') as log:
+                    with open(log_file, "a") as log:
                         process = subprocess.Popen(
                             [sys.executable, "-u", str(script)],
                             stdout=log,
                             stderr=subprocess.STDOUT,
                             stdin=subprocess.DEVNULL,
                             start_new_session=True,  # Detach from terminal
-                            close_fds=True
+                            close_fds=True,
                         )
             else:
                 # Start attached process (for debugging)
-                with open(log_file, 'a') as log:
+                with open(log_file, "a") as log:
                     process = subprocess.Popen(
-                        [sys.executable, "-u", str(script)],
-                        stdout=log,
-                        stderr=subprocess.STDOUT
+                        [sys.executable, "-u", str(script)], stdout=log, stderr=subprocess.STDOUT
                     )
 
             pid = process.pid
@@ -261,9 +261,9 @@ class ServerDaemon:
             self.state.update_server(
                 name,
                 pid=pid,
-                port=config['port'],
+                port=config["port"],
                 status="running",
-                start_time=datetime.now().isoformat()
+                start_time=datetime.now().isoformat(),
             )
 
             self.logger.info(f"{config['display_name']} started (PID: {pid})")
@@ -287,7 +287,7 @@ class ServerDaemon:
 
     def stop_server(self, config: Dict[str, Any]) -> bool:
         """Stop a server process"""
-        name = config['name']
+        name = config["name"]
         pid = self.read_pid(name)
 
         if not pid:
@@ -304,12 +304,9 @@ class ServerDaemon:
         try:
             self.logger.info(f"Stopping {config['display_name']} (PID: {pid})")
 
-            if sys.platform == 'win32':
+            if sys.platform == "win32":
                 # Windows: use taskkill
-                subprocess.run(
-                    ['taskkill', '/F', '/PID', str(pid), '/T'],
-                    capture_output=True
-                )
+                subprocess.run(["taskkill", "/F", "/PID", str(pid), "/T"], capture_output=True)
             else:
                 # Unix: send SIGTERM, then SIGKILL if needed
                 os.kill(pid, signal.SIGTERM)
@@ -350,7 +347,7 @@ class ServerDaemon:
         print("-" * 70)
 
         for config in SERVERS_CONFIG:
-            name = config['name']
+            name = config["name"]
             state = self.state.get_server(name)
             pid = self.read_pid(name)
 
@@ -367,8 +364,10 @@ class ServerDaemon:
             if state and state.status != status:
                 self.state.update_server(name, status=status, pid=pid)
 
-            print(f"{config['display_name']:<25} {str(pid) if pid else '-':<10} "
-                  f"{config['port']:<8} {status:<12} {uptime:<15}")
+            print(
+                f"{config['display_name']:<25} {str(pid) if pid else '-':<10} "
+                f"{config['port']:<8} {status:<12} {uptime:<15}"
+            )
 
         print("=" * 70)
         print(f"\nPID files: {PID_DIR}")
@@ -400,25 +399,17 @@ class ServerDaemon:
     def find_server_pid(self, port: int) -> Optional[int]:
         """Find PID of process listening on a specific port"""
         try:
-            if sys.platform == 'win32':
+            if sys.platform == "win32":
                 # Windows: use netstat
-                result = subprocess.run(
-                    ['netstat', '-ano'],
-                    capture_output=True,
-                    text=True
-                )
-                for line in result.stdout.split('\n'):
-                    if f':{port}' in line and 'LISTENING' in line:
+                result = subprocess.run(["netstat", "-ano"], capture_output=True, text=True)
+                for line in result.stdout.split("\n"):
+                    if f":{port}" in line and "LISTENING" in line:
                         parts = line.split()
                         pid = int(parts[-1])
                         return pid
             else:
                 # Unix: use lsof
-                result = subprocess.run(
-                    ['lsof', '-ti', f':{port}'],
-                    capture_output=True,
-                    text=True
-                )
+                result = subprocess.run(["lsof", "-ti", f":{port}"], capture_output=True, text=True)
                 if result.stdout.strip():
                     return int(result.stdout.strip().split()[0])
         except:
@@ -431,8 +422,8 @@ class ServerDaemon:
         adopted_count = 0
 
         for config in SERVERS_CONFIG:
-            name = config['name']
-            port = config['port']
+            name = config["name"]
+            port = config["port"]
 
             # Check if we already have a PID
             existing_pid = self.read_pid(name)
@@ -450,7 +441,7 @@ class ServerDaemon:
                     pid=pid,
                     port=port,
                     status="running",
-                    start_time=datetime.now().isoformat()
+                    start_time=datetime.now().isoformat(),
                 )
                 adopted_count += 1
             else:
@@ -471,7 +462,7 @@ class ServerDaemon:
 
         for config in SERVERS_CONFIG:
             # Check if already running (either adopted or previously started)
-            pid = self.read_pid(config['name'])
+            pid = self.read_pid(config["name"])
             if pid and self.is_process_running(pid):
                 success_count += 1
                 continue

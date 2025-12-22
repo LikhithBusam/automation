@@ -20,7 +20,7 @@ from prometheus_client import (
     Histogram,
     Summary,
     generate_latest,
-    CONTENT_TYPE_LATEST
+    CONTENT_TYPE_LATEST,
 )
 
 logger = logging.getLogger(__name__)
@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 
 class HealthStatus(str, Enum):
     """Health check status"""
+
     HEALTHY = "healthy"
     DEGRADED = "degraded"
     UNHEALTHY = "unhealthy"
@@ -36,6 +37,7 @@ class HealthStatus(str, Enum):
 @dataclass
 class ComponentHealth:
     """Health status of a component"""
+
     name: str
     status: HealthStatus
     message: str
@@ -46,6 +48,7 @@ class ComponentHealth:
 @dataclass
 class HealthCheckResponse:
     """Overall health check response"""
+
     status: HealthStatus
     timestamp: str
     uptime_seconds: float
@@ -60,116 +63,88 @@ class PrometheusMetrics:
     def __init__(self):
         # Request metrics
         self.request_count = Counter(
-            'automaton_requests_total',
-            'Total number of requests',
-            ['endpoint', 'method', 'status']
+            "automaton_requests_total", "Total number of requests", ["endpoint", "method", "status"]
         )
 
         self.request_duration = Histogram(
-            'automaton_request_duration_seconds',
-            'Request duration in seconds',
-            ['endpoint', 'method']
+            "automaton_request_duration_seconds",
+            "Request duration in seconds",
+            ["endpoint", "method"],
         )
 
         # Agent metrics
         self.agent_task_count = Counter(
-            'automaton_agent_tasks_total',
-            'Total number of agent tasks',
-            ['agent', 'status']
+            "automaton_agent_tasks_total", "Total number of agent tasks", ["agent", "status"]
         )
 
         self.agent_task_duration = Histogram(
-            'automaton_agent_task_duration_seconds',
-            'Agent task duration in seconds',
-            ['agent']
+            "automaton_agent_task_duration_seconds", "Agent task duration in seconds", ["agent"]
         )
 
         # MCP tool metrics
         self.mcp_call_count = Counter(
-            'automaton_mcp_calls_total',
-            'Total number of MCP tool calls',
-            ['tool', 'operation', 'status']
+            "automaton_mcp_calls_total",
+            "Total number of MCP tool calls",
+            ["tool", "operation", "status"],
         )
 
         self.mcp_call_duration = Histogram(
-            'automaton_mcp_call_duration_seconds',
-            'MCP call duration in seconds',
-            ['tool', 'operation']
+            "automaton_mcp_call_duration_seconds",
+            "MCP call duration in seconds",
+            ["tool", "operation"],
         )
 
         # Memory metrics
         self.memory_entries = Gauge(
-            'automaton_memory_entries',
-            'Number of memory entries',
-            ['tier', 'type']
+            "automaton_memory_entries", "Number of memory entries", ["tier", "type"]
         )
 
         self.memory_access_count = Counter(
-            'automaton_memory_accesses_total',
-            'Total number of memory accesses',
-            ['tier', 'operation']
+            "automaton_memory_accesses_total",
+            "Total number of memory accesses",
+            ["tier", "operation"],
         )
 
         # Model metrics
         self.model_inference_count = Counter(
-            'automaton_model_inferences_total',
-            'Total number of model inferences',
-            ['model', 'status']
+            "automaton_model_inferences_total",
+            "Total number of model inferences",
+            ["model", "status"],
         )
 
         self.model_inference_duration = Histogram(
-            'automaton_model_inference_duration_seconds',
-            'Model inference duration in seconds',
-            ['model']
+            "automaton_model_inference_duration_seconds",
+            "Model inference duration in seconds",
+            ["model"],
         )
 
         self.model_tokens_generated = Counter(
-            'automaton_model_tokens_total',
-            'Total number of tokens generated',
-            ['model']
+            "automaton_model_tokens_total", "Total number of tokens generated", ["model"]
         )
 
         # System metrics
-        self.cpu_usage = Gauge(
-            'automaton_cpu_usage_percent',
-            'CPU usage percentage'
-        )
+        self.cpu_usage = Gauge("automaton_cpu_usage_percent", "CPU usage percentage")
 
-        self.memory_usage = Gauge(
-            'automaton_memory_usage_bytes',
-            'Memory usage in bytes'
-        )
+        self.memory_usage = Gauge("automaton_memory_usage_bytes", "Memory usage in bytes")
 
-        self.gpu_usage = Gauge(
-            'automaton_gpu_usage_percent',
-            'GPU usage percentage',
-            ['device']
-        )
+        self.gpu_usage = Gauge("automaton_gpu_usage_percent", "GPU usage percentage", ["device"])
 
         self.gpu_memory_usage = Gauge(
-            'automaton_gpu_memory_usage_bytes',
-            'GPU memory usage in bytes',
-            ['device']
+            "automaton_gpu_memory_usage_bytes", "GPU memory usage in bytes", ["device"]
         )
 
         # Error metrics
         self.error_count = Counter(
-            'automaton_errors_total',
-            'Total number of errors',
-            ['component', 'error_type']
+            "automaton_errors_total", "Total number of errors", ["component", "error_type"]
         )
 
         # Cache metrics
         self.cache_hits = Counter(
-            'automaton_cache_hits_total',
-            'Total number of cache hits',
-            ['cache_name']
+            "automaton_cache_hits_total", "Total number of cache hits", ["cache_name"]
         )
 
         self.cache_misses = Counter(
-            'automaton_cache_misses_total',
-            'Total number of cache misses',
-            ['cache_name']
+            "automaton_cache_misses_total", "Total number of cache misses", ["cache_name"]
         )
 
     def update_system_metrics(self):
@@ -185,6 +160,7 @@ class PrometheusMetrics:
             # GPU usage (if available)
             try:
                 import pynvml
+
                 pynvml.nvmlInit()
                 device_count = pynvml.nvmlDeviceGetCount()
 
@@ -232,7 +208,7 @@ class HealthChecker:
                 name="database",
                 status=HealthStatus.HEALTHY,
                 message="Database is accessible",
-                response_time_ms=response_time
+                response_time_ms=response_time,
             )
 
         except Exception as e:
@@ -243,7 +219,7 @@ class HealthChecker:
                 name="database",
                 status=HealthStatus.UNHEALTHY,
                 message=f"Database error: {str(e)[:100]}",
-                response_time_ms=response_time
+                response_time_ms=response_time,
             )
 
     async def check_redis(self) -> ComponentHealth:
@@ -266,7 +242,7 @@ class HealthChecker:
                 name="redis",
                 status=HealthStatus.HEALTHY,
                 message="Redis is accessible",
-                response_time_ms=response_time
+                response_time_ms=response_time,
             )
 
         except Exception as e:
@@ -277,7 +253,7 @@ class HealthChecker:
                 name="redis",
                 status=HealthStatus.DEGRADED,
                 message=f"Redis unavailable: {str(e)[:100]}",
-                response_time_ms=response_time
+                response_time_ms=response_time,
             )
 
     async def check_mcp_servers(self) -> List[ComponentHealth]:
@@ -301,30 +277,36 @@ class HealthChecker:
                         response_time = (time.time() - start_time) * 1000
 
                         if response.status == 200:
-                            results.append(ComponentHealth(
-                                name=f"mcp_{name}",
-                                status=HealthStatus.HEALTHY,
-                                message=f"{name.capitalize()} MCP server is healthy",
-                                response_time_ms=response_time
-                            ))
+                            results.append(
+                                ComponentHealth(
+                                    name=f"mcp_{name}",
+                                    status=HealthStatus.HEALTHY,
+                                    message=f"{name.capitalize()} MCP server is healthy",
+                                    response_time_ms=response_time,
+                                )
+                            )
                         else:
-                            results.append(ComponentHealth(
-                                name=f"mcp_{name}",
-                                status=HealthStatus.UNHEALTHY,
-                                message=f"{name.capitalize()} MCP server returned {response.status}",
-                                response_time_ms=response_time
-                            ))
+                            results.append(
+                                ComponentHealth(
+                                    name=f"mcp_{name}",
+                                    status=HealthStatus.UNHEALTHY,
+                                    message=f"{name.capitalize()} MCP server returned {response.status}",
+                                    response_time_ms=response_time,
+                                )
+                            )
 
             except Exception as e:
                 response_time = (time.time() - start_time) * 1000
                 logger.warning(f"MCP server {name} health check failed: {e}")
 
-                results.append(ComponentHealth(
-                    name=f"mcp_{name}",
-                    status=HealthStatus.DEGRADED,
-                    message=f"{name.capitalize()} MCP server unavailable",
-                    response_time_ms=response_time
-                ))
+                results.append(
+                    ComponentHealth(
+                        name=f"mcp_{name}",
+                        status=HealthStatus.DEGRADED,
+                        message=f"{name.capitalize()} MCP server unavailable",
+                        response_time_ms=response_time,
+                    )
+                )
 
         return results
 
@@ -333,7 +315,7 @@ class HealthChecker:
         return {
             "status": "alive",
             "timestamp": datetime.utcnow().isoformat(),
-            "uptime": time.time() - self.start_time
+            "uptime": time.time() - self.start_time,
         }
 
     async def readiness_check(self) -> HealthCheckResponse:
@@ -362,14 +344,14 @@ class HealthChecker:
 
         # System metrics
         memory = psutil.virtual_memory()
-        disk = psutil.disk_usage('/')
+        disk = psutil.disk_usage("/")
 
         system_info = {
             "cpu_percent": psutil.cpu_percent(),
             "memory_percent": memory.percent,
-            "memory_available_gb": memory.available / (1024 ** 3),
+            "memory_available_gb": memory.available / (1024**3),
             "disk_percent": disk.percent,
-            "disk_free_gb": disk.free / (1024 ** 3)
+            "disk_free_gb": disk.free / (1024**3),
         }
 
         return HealthCheckResponse(
@@ -378,7 +360,7 @@ class HealthChecker:
             uptime_seconds=time.time() - self.start_time,
             version=self.version,
             components=components,
-            system=system_info
+            system=system_info,
         )
 
     def get_metrics(self) -> bytes:

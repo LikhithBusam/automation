@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 class Role(str, Enum):
     """User roles for RBAC"""
+
     ADMIN = "admin"
     DEVELOPER = "developer"
     VIEWER = "viewer"
@@ -28,6 +29,7 @@ class Role(str, Enum):
 
 class Permission(str, Enum):
     """Granular permissions"""
+
     # GitHub operations
     GITHUB_READ = "github:read"
     GITHUB_WRITE = "github:write"
@@ -84,6 +86,7 @@ ROLE_PERMISSIONS: Dict[Role, List[Permission]] = {
 @dataclass
 class User:
     """User data model"""
+
     user_id: str
     username: str
     email: Optional[str]
@@ -113,7 +116,7 @@ class AuthManager:
         self,
         secret_key: Optional[str] = None,
         token_expiry_hours: int = 24,
-        api_key_prefix: str = "ak_"
+        api_key_prefix: str = "ak_",
     ):
         self.secret_key = secret_key or os.getenv("JWT_SECRET_KEY", self._generate_secret())
         self.token_expiry_hours = token_expiry_hours
@@ -141,17 +144,12 @@ class AuthManager:
                 role=Role.ADMIN,
                 api_keys=[],
                 created_at=datetime.utcnow(),
-                is_active=True
+                is_active=True,
             )
             self._users[admin_user.user_id] = admin_user
             logger.info("Default admin user created")
 
-    def create_user(
-        self,
-        username: str,
-        email: Optional[str],
-        role: Role = Role.DEVELOPER
-    ) -> User:
+    def create_user(self, username: str, email: Optional[str], role: Role = Role.DEVELOPER) -> User:
         """Create a new user"""
         user_id = hashlib.sha256(f"{username}:{datetime.utcnow()}".encode()).hexdigest()[:16]
 
@@ -161,7 +159,7 @@ class AuthManager:
             email=email,
             role=role,
             api_keys=[],
-            created_at=datetime.utcnow()
+            created_at=datetime.utcnow(),
         )
 
         self._users[user_id] = user
@@ -236,7 +234,7 @@ class AuthManager:
             "username": user.username,
             "role": user.role.value,
             "exp": datetime.utcnow() + timedelta(hours=self.token_expiry_hours),
-            "iat": datetime.utcnow()
+            "iat": datetime.utcnow(),
         }
 
         token = jwt.encode(payload, self.secret_key, algorithm=self.algorithm)
@@ -315,6 +313,7 @@ def get_auth_manager() -> AuthManager:
 
 def require_auth(auth_type: str = "api_key"):
     """Decorator to require authentication"""
+
     def decorator(func):
         @wraps(func)
         async def wrapper(*args, **kwargs):
@@ -335,11 +334,13 @@ def require_auth(auth_type: str = "api_key"):
             return await func(*args, **kwargs)
 
         return wrapper
+
     return decorator
 
 
 def require_permission(permission: Permission):
     """Decorator to require specific permission"""
+
     def decorator(func):
         @wraps(func)
         async def wrapper(*args, **kwargs):
@@ -355,11 +356,13 @@ def require_permission(permission: Permission):
             return await func(*args, **kwargs)
 
         return wrapper
+
     return decorator
 
 
 def require_role(role: Role):
     """Decorator to require specific role"""
+
     def decorator(func):
         @wraps(func)
         async def wrapper(*args, **kwargs):
@@ -374,4 +377,5 @@ def require_role(role: Role):
             return await func(*args, **kwargs)
 
         return wrapper
+
     return decorator

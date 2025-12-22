@@ -22,14 +22,19 @@ from datetime import datetime, timedelta
 
 # Import MCP components
 from src.mcp.base_tool import (
-    BaseMCPTool, TokenBucket, TTLCache, CacheEntry,
-    ExponentialBackoff, ToolStatistics
+    BaseMCPTool,
+    TokenBucket,
+    TTLCache,
+    CacheEntry,
+    ExponentialBackoff,
+    ToolStatistics,
 )
 
 
 # ============================================================================
 # BASE MCP TOOL TESTS
 # ============================================================================
+
 
 class TestTokenBucket:
     """Test TokenBucket rate limiting algorithm"""
@@ -151,7 +156,9 @@ class TestTTLCache:
 
     def test_cache_entry_touch(self):
         """Test touching cache entry updates access time"""
-        entry = CacheEntry(data="test", created_at=time.time(), expires_at=time.time() + 300, ttl=60)
+        entry = CacheEntry(
+            data="test", created_at=time.time(), expires_at=time.time() + 300, ttl=60
+        )
 
         original_access = entry.last_accessed
         time.sleep(0.1)
@@ -221,17 +228,13 @@ class TestTTLCache:
         assert stats["size"] == 1
         assert 0.0 <= stats["hit_rate"] <= 1.0
 
-
-# class TestExponentialBackoff:
+    # class TestExponentialBackoff:
     """Test exponential backoff retry logic"""
 
     def test_exponential_backoff_initialization(self):
         """Test ExponentialBackoff initializes correctly"""
         backoff = ExponentialBackoff(
-            initial_delay=1.0,
-            max_delay=60.0,
-            max_retries=5,
-            backoff_factor=2.0
+            initial_delay=1.0, max_delay=60.0, max_retries=5, backoff_factor=2.0
         )
 
         assert backoff.initial_delay == 1.0
@@ -251,11 +254,7 @@ class TestTTLCache:
 
     def test_max_delay_cap(self):
         """Test delay is capped at max_delay"""
-        backoff = ExponentialBackoff(
-            initial_delay=1.0,
-            max_delay=10.0,
-            backoff_factor=2.0
-        )
+        backoff = ExponentialBackoff(initial_delay=1.0, max_delay=10.0, backoff_factor=2.0)
 
         # After many retries, should cap at max_delay
         delay = backoff.get_delay(10)
@@ -303,8 +302,7 @@ class TestTTLCache:
         with pytest.raises(Exception, match="Permanent failure"):
             await backoff.execute(always_fail)
 
-
-  # ExponentialBackoff API changed, tests need rewriteclass TestToolStatistics:
+    # ExponentialBackoff API changed, tests need rewriteclass TestToolStatistics:
     """Test tool statistics tracking"""
 
     def test_statistics_initialization(self):
@@ -374,6 +372,7 @@ class TestTTLCache:
 # MCP SERVER SPECIFIC TESTS
 # ============================================================================
 
+
 class TestFilesystemServer:
     """Test Filesystem MCP Server operations"""
 
@@ -408,11 +407,11 @@ class TestFilesystemServer:
         test_content = "Hello, World!"
 
         # Write file
-        with open(test_file, 'w') as f:
+        with open(test_file, "w") as f:
             f.write(test_content)
 
         # Read file
-        with open(test_file, 'r') as f:
+        with open(test_file, "r") as f:
             content = f.read()
 
         assert content == test_content
@@ -422,7 +421,7 @@ class TestFilesystemServer:
         # Create test files
         for i in range(3):
             Path(temp_dir) / f"file{i}.txt"
-            with open(os.path.join(temp_dir, f"file{i}.txt"), 'w') as f:
+            with open(os.path.join(temp_dir, f"file{i}.txt"), "w") as f:
                 f.write(f"Content {i}")
 
         # List directory
@@ -437,29 +436,29 @@ class TestFilesystemServer:
 class TestGitHubServer:
     """Test GitHub MCP Server operations"""
 
-    @patch('requests.get')
+    @patch("requests.get")
     def test_rate_limit_headers(self, mock_get):
         """Test GitHub rate limit header parsing"""
         mock_response = Mock()
         mock_response.headers = {
-            'X-RateLimit-Limit': '5000',
-            'X-RateLimit-Remaining': '4999',
-            'X-RateLimit-Reset': str(int(time.time()) + 3600)
+            "X-RateLimit-Limit": "5000",
+            "X-RateLimit-Remaining": "4999",
+            "X-RateLimit-Reset": str(int(time.time()) + 3600),
         }
         mock_response.status_code = 200
         mock_get.return_value = mock_response
 
         # Simulate request
-        response = mock_get('https://api.github.com/rate_limit')
+        response = mock_get("https://api.github.com/rate_limit")
 
-        assert response.headers['X-RateLimit-Limit'] == '5000'
-        assert response.headers['X-RateLimit-Remaining'] == '4999'
+        assert response.headers["X-RateLimit-Limit"] == "5000"
+        assert response.headers["X-RateLimit-Remaining"] == "4999"
 
     def test_github_url_parsing(self):
         """Test parsing GitHub repository URLs"""
         url = "https://github.com/owner/repo"
 
-        parts = url.rstrip('/').split('/')
+        parts = url.rstrip("/").split("/")
         owner = parts[-2]
         repo = parts[-1]
 
@@ -477,7 +476,7 @@ class TestMemoryServer:
             "timestamp": datetime.now().isoformat(),
             "tier": "SHORT_TERM",
             "access_count": 1,
-            "metadata": {"type": "DECISION"}
+            "metadata": {"type": "DECISION"},
         }
 
         assert "content" in entry
@@ -514,8 +513,9 @@ class MyClass:
 
         # Extract function names
         import re
-        functions = re.findall(r'def\s+(\w+)\s*\(', sample_code)
-        classes = re.findall(r'class\s+(\w+)\s*[:(]', sample_code)
+
+        functions = re.findall(r"def\s+(\w+)\s*\(", sample_code)
+        classes = re.findall(r"class\s+(\w+)\s*[:(]", sample_code)
 
         assert "hello_world" in functions
         assert "method" in functions

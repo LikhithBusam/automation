@@ -22,6 +22,7 @@ from src.exceptions import *
 # GitHub MCP Server Feature Tests
 # =============================================================================
 
+
 class TestGitHubMCPFeatures:
     """Test all GitHub MCP server features"""
 
@@ -33,7 +34,7 @@ class TestGitHubMCPFeatures:
             "auth_token": "test_token_12345",
             "timeout": 30,
             "rate_limit_minute": 60,
-            "rate_limit_hour": 1000
+            "rate_limit_hour": 1000,
         }
         return GitHubMCPTool(server_url=config["server_url"], config=config)
 
@@ -46,16 +47,12 @@ class TestGitHubMCPFeatures:
             "title": "Test PR",
             "body": "This is a test PR",
             "head": "feature-branch",
-            "base": "main"
+            "base": "main",
         }
 
         # Mock the HTTP request
-        with patch.object(github_tool, '_make_request', new_callable=AsyncMock) as mock_request:
-            mock_request.return_value = {
-                "number": 123,
-                "state": "open",
-                "title": "Test PR"
-            }
+        with patch.object(github_tool, "_make_request", new_callable=AsyncMock) as mock_request:
+            mock_request.return_value = {"number": 123, "state": "open", "title": "Test PR"}
 
             result = await github_tool.execute("create_pr", params)
 
@@ -66,18 +63,14 @@ class TestGitHubMCPFeatures:
     @pytest.mark.asyncio
     async def test_github_get_pull_request(self, github_tool):
         """Test getting pull request details"""
-        params = {
-            "owner": "testorg",
-            "repo": "testrepo",
-            "pr_number": 123
-        }
+        params = {"owner": "testorg", "repo": "testrepo", "pr_number": 123}
 
-        with patch.object(github_tool, '_make_request', new_callable=AsyncMock) as mock_request:
+        with patch.object(github_tool, "_make_request", new_callable=AsyncMock) as mock_request:
             mock_request.return_value = {
                 "number": 123,
                 "state": "open",
                 "title": "Test PR",
-                "user": {"login": "testuser"}
+                "user": {"login": "testuser"},
             }
 
             result = await github_tool.execute("get_pr", params)
@@ -93,15 +86,11 @@ class TestGitHubMCPFeatures:
             "repo": "testrepo",
             "title": "Bug report",
             "body": "Found a bug",
-            "labels": ["bug", "high-priority"]
+            "labels": ["bug", "high-priority"],
         }
 
-        with patch.object(github_tool, '_make_request', new_callable=AsyncMock) as mock_request:
-            mock_request.return_value = {
-                "number": 456,
-                "state": "open",
-                "title": "Bug report"
-            }
+        with patch.object(github_tool, "_make_request", new_callable=AsyncMock) as mock_request:
+            mock_request.return_value = {"number": 456, "state": "open", "title": "Bug report"}
 
             result = await github_tool.execute("create_issue", params)
 
@@ -111,19 +100,15 @@ class TestGitHubMCPFeatures:
     @pytest.mark.asyncio
     async def test_github_search_code(self, github_tool):
         """Test searching code in GitHub"""
-        params = {
-            "query": "function authenticate",
-            "owner": "testorg",
-            "repo": "testrepo"
-        }
+        params = {"query": "function authenticate", "owner": "testorg", "repo": "testrepo"}
 
-        with patch.object(github_tool, '_make_request', new_callable=AsyncMock) as mock_request:
+        with patch.object(github_tool, "_make_request", new_callable=AsyncMock) as mock_request:
             mock_request.return_value = {
                 "total_count": 3,
                 "items": [
                     {"name": "auth.py", "path": "src/auth.py"},
-                    {"name": "utils.py", "path": "src/utils.py"}
-                ]
+                    {"name": "utils.py", "path": "src/utils.py"},
+                ],
             }
 
             result = await github_tool.execute("search_code", params)
@@ -134,19 +119,14 @@ class TestGitHubMCPFeatures:
     @pytest.mark.asyncio
     async def test_github_get_file_contents(self, github_tool):
         """Test getting file contents from GitHub"""
-        params = {
-            "owner": "testorg",
-            "repo": "testrepo",
-            "path": "README.md",
-            "ref": "main"
-        }
+        params = {"owner": "testorg", "repo": "testrepo", "path": "README.md", "ref": "main"}
 
-        with patch.object(github_tool, '_make_request', new_callable=AsyncMock) as mock_request:
+        with patch.object(github_tool, "_make_request", new_callable=AsyncMock) as mock_request:
             mock_request.return_value = {
                 "name": "README.md",
                 "path": "README.md",
                 "content": "IyBUZXN0IFByb2plY3Q=",  # Base64 encoded "# Test Project"
-                "encoding": "base64"
+                "encoding": "base64",
             }
 
             result = await github_tool.execute("get_file_contents", params)
@@ -168,6 +148,7 @@ class TestGitHubMCPFeatures:
 # Filesystem MCP Server Feature Tests
 # =============================================================================
 
+
 class TestFilesystemMCPFeatures:
     """Test all Filesystem MCP server features"""
 
@@ -185,7 +166,7 @@ class TestFilesystemMCPFeatures:
             "timeout": 10,
             "allowed_paths": [temp_workspace],
             "blocked_patterns": [r"\.\.\/", r"\/etc\/", r"\.ssh\/"],
-            "max_file_size_mb": 10
+            "max_file_size_mb": 10,
         }
         return FilesystemMCPTool(server_url=config["server_url"], config=config)
 
@@ -198,11 +179,11 @@ class TestFilesystemMCPFeatures:
 
         params = {"file_path": str(test_file)}
 
-        with patch.object(filesystem_tool, '_make_request', new_callable=AsyncMock) as mock_request:
+        with patch.object(filesystem_tool, "_make_request", new_callable=AsyncMock) as mock_request:
             mock_request.return_value = {
                 "content": "Hello, World!",
                 "path": str(test_file),
-                "size": 13
+                "size": 13,
             }
 
             result = await filesystem_tool.execute("read_file", params)
@@ -215,16 +196,13 @@ class TestFilesystemMCPFeatures:
         """Test writing a file"""
         test_file = Path(temp_workspace) / "output.txt"
 
-        params = {
-            "path": str(test_file),
-            "content": "Test content"
-        }
+        params = {"path": str(test_file), "content": "Test content"}
 
-        with patch.object(filesystem_tool, '_make_request', new_callable=AsyncMock) as mock_request:
+        with patch.object(filesystem_tool, "_make_request", new_callable=AsyncMock) as mock_request:
             mock_request.return_value = {
                 "success": True,
                 "path": str(test_file),
-                "bytes_written": 12
+                "bytes_written": 12,
             }
 
             result = await filesystem_tool.execute("write_file", params)
@@ -239,18 +217,15 @@ class TestFilesystemMCPFeatures:
         (Path(temp_workspace) / "file1.txt").write_text("Content 1")
         (Path(temp_workspace) / "file2.py").write_text("# Python file")
 
-        params = {
-            "path": temp_workspace,
-            "recursive": False
-        }
+        params = {"path": temp_workspace, "recursive": False}
 
-        with patch.object(filesystem_tool, '_make_request', new_callable=AsyncMock) as mock_request:
+        with patch.object(filesystem_tool, "_make_request", new_callable=AsyncMock) as mock_request:
             mock_request.return_value = {
                 "path": temp_workspace,
                 "files": [
                     {"name": "file1.txt", "type": "file"},
-                    {"name": "file2.py", "type": "file"}
-                ]
+                    {"name": "file2.py", "type": "file"},
+                ],
             }
 
             result = await filesystem_tool.execute("list_directory", params)
@@ -261,18 +236,15 @@ class TestFilesystemMCPFeatures:
     @pytest.mark.asyncio
     async def test_filesystem_search_files(self, filesystem_tool, temp_workspace):
         """Test searching for files"""
-        params = {
-            "path": temp_workspace,
-            "pattern": "*.py"
-        }
+        params = {"path": temp_workspace, "pattern": "*.py"}
 
-        with patch.object(filesystem_tool, '_make_request', new_callable=AsyncMock) as mock_request:
+        with patch.object(filesystem_tool, "_make_request", new_callable=AsyncMock) as mock_request:
             mock_request.return_value = {
                 "matches": [
                     {"path": "src/main.py", "name": "main.py"},
-                    {"path": "tests/test_main.py", "name": "test_main.py"}
+                    {"path": "tests/test_main.py", "name": "test_main.py"},
                 ],
-                "total": 2
+                "total": 2,
             }
 
             result = await filesystem_tool.execute("search_files", params)
@@ -299,6 +271,7 @@ class TestFilesystemMCPFeatures:
 # Memory MCP Server Feature Tests
 # =============================================================================
 
+
 class TestMemoryMCPFeatures:
     """Test all Memory MCP server features"""
 
@@ -310,7 +283,7 @@ class TestMemoryMCPFeatures:
             "storage_backend": "sqlite",
             "sqlite_path": ":memory:",  # In-memory database for testing
             "embedding_model": "all-MiniLM-L6-v2",
-            "timeout": 5
+            "timeout": 5,
         }
         return MemoryMCPTool(server_url=config["server_url"], config=config)
 
@@ -321,14 +294,14 @@ class TestMemoryMCPFeatures:
             "content": "User prefers verbose logging",
             "memory_type": "preference",
             "tags": ["logging", "configuration"],
-            "metadata": {"priority": "high"}
+            "metadata": {"priority": "high"},
         }
 
-        with patch.object(memory_tool, '_make_request', new_callable=AsyncMock) as mock_request:
+        with patch.object(memory_tool, "_make_request", new_callable=AsyncMock) as mock_request:
             mock_request.return_value = {
                 "success": True,
                 "memory_id": "mem_12345",
-                "type": "preference"
+                "type": "preference",
             }
 
             result = await memory_tool.execute("store", params)
@@ -342,12 +315,12 @@ class TestMemoryMCPFeatures:
         """Test retrieving memory by ID"""
         params = {"memory_id": "mem_12345"}
 
-        with patch.object(memory_tool, '_make_request', new_callable=AsyncMock) as mock_request:
+        with patch.object(memory_tool, "_make_request", new_callable=AsyncMock) as mock_request:
             mock_request.return_value = {
                 "memory_id": "mem_12345",
                 "content": "User prefers verbose logging",
                 "type": "preference",
-                "tags": ["logging", "configuration"]
+                "tags": ["logging", "configuration"],
             }
 
             result = await memory_tool.execute("retrieve", params)
@@ -362,24 +335,24 @@ class TestMemoryMCPFeatures:
             "query": "logging preferences",
             "limit": 10,
             "memory_type": "preference",
-            "min_relevance": 0.7
+            "min_relevance": 0.7,
         }
 
-        with patch.object(memory_tool, '_make_request', new_callable=AsyncMock) as mock_request:
+        with patch.object(memory_tool, "_make_request", new_callable=AsyncMock) as mock_request:
             mock_request.return_value = {
                 "results": [
                     {
                         "memory_id": "mem_12345",
                         "content": "User prefers verbose logging",
-                        "relevance_score": 0.95
+                        "relevance_score": 0.95,
                     },
                     {
                         "memory_id": "mem_67890",
                         "content": "Logging level set to DEBUG",
-                        "relevance_score": 0.82
-                    }
+                        "relevance_score": 0.82,
+                    },
                 ],
-                "total": 2
+                "total": 2,
             }
 
             result = await memory_tool.execute("search", params)
@@ -394,15 +367,11 @@ class TestMemoryMCPFeatures:
         params = {
             "memory_id": "mem_12345",
             "content": "User prefers DEBUG logging",
-            "tags": ["logging", "configuration", "debug"]
+            "tags": ["logging", "configuration", "debug"],
         }
 
-        with patch.object(memory_tool, '_make_request', new_callable=AsyncMock) as mock_request:
-            mock_request.return_value = {
-                "success": True,
-                "memory_id": "mem_12345",
-                "updated": True
-            }
+        with patch.object(memory_tool, "_make_request", new_callable=AsyncMock) as mock_request:
+            mock_request.return_value = {"success": True, "memory_id": "mem_12345", "updated": True}
 
             result = await memory_tool.execute("update", params)
 
@@ -414,12 +383,8 @@ class TestMemoryMCPFeatures:
         """Test deleting memory"""
         params = {"memory_id": "mem_12345"}
 
-        with patch.object(memory_tool, '_make_request', new_callable=AsyncMock) as mock_request:
-            mock_request.return_value = {
-                "success": True,
-                "memory_id": "mem_12345",
-                "deleted": True
-            }
+        with patch.object(memory_tool, "_make_request", new_callable=AsyncMock) as mock_request:
+            mock_request.return_value = {"success": True, "memory_id": "mem_12345", "deleted": True}
 
             result = await memory_tool.execute("delete", params)
 
@@ -437,6 +402,7 @@ class TestMemoryMCPFeatures:
 # CodeBaseBuddy MCP Server Feature Tests
 # =============================================================================
 
+
 class TestCodeBaseBuddyMCPFeatures:
     """Test all CodeBaseBuddy MCP server features"""
 
@@ -448,36 +414,34 @@ class TestCodeBaseBuddyMCPFeatures:
             "index_path": "./data/test_codebase_index",
             "embedding_model": "all-MiniLM-L6-v2",
             "embedding_dimensions": 384,
-            "timeout": 60
+            "timeout": 60,
         }
         return CodeBaseBuddyMCPTool(server_url=config["server_url"], config=config)
 
     @pytest.mark.asyncio
     async def test_codebasebuddy_semantic_search(self, codebasebuddy_tool):
         """Test semantic code search"""
-        params = {
-            "query": "How does authentication work?",
-            "top_k": 5,
-            "file_filter": "*.py"
-        }
+        params = {"query": "How does authentication work?", "top_k": 5, "file_filter": "*.py"}
 
-        with patch.object(codebasebuddy_tool, '_make_request', new_callable=AsyncMock) as mock_request:
+        with patch.object(
+            codebasebuddy_tool, "_make_request", new_callable=AsyncMock
+        ) as mock_request:
             mock_request.return_value = {
                 "results": [
                     {
                         "file": "src/auth.py",
                         "function": "authenticate_user",
                         "score": 0.95,
-                        "content": "def authenticate_user(username, password):"
+                        "content": "def authenticate_user(username, password):",
                     },
                     {
                         "file": "src/middleware.py",
                         "function": "check_auth",
                         "score": 0.88,
-                        "content": "def check_auth(request):"
-                    }
+                        "content": "def check_auth(request):",
+                    },
                 ],
-                "total": 5
+                "total": 5,
             }
 
             result = await codebasebuddy_tool.execute("semantic_search", params)
@@ -492,22 +456,16 @@ class TestCodeBaseBuddyMCPFeatures:
         params = {
             "code_snippet": "def calculate_total(items):\n    return sum(items)",
             "top_k": 5,
-            "exclude_self": True
+            "exclude_self": True,
         }
 
-        with patch.object(codebasebuddy_tool, '_make_request', new_callable=AsyncMock) as mock_request:
+        with patch.object(
+            codebasebuddy_tool, "_make_request", new_callable=AsyncMock
+        ) as mock_request:
             mock_request.return_value = {
                 "similar": [
-                    {
-                        "file": "src/utils.py",
-                        "function": "sum_values",
-                        "similarity": 0.92
-                    },
-                    {
-                        "file": "src/calculator.py",
-                        "function": "total_amount",
-                        "similarity": 0.85
-                    }
+                    {"file": "src/utils.py", "function": "sum_values", "similarity": 0.92},
+                    {"file": "src/calculator.py", "function": "total_amount", "similarity": 0.85},
                 ]
             }
 
@@ -519,21 +477,19 @@ class TestCodeBaseBuddyMCPFeatures:
     @pytest.mark.asyncio
     async def test_codebasebuddy_get_code_context(self, codebasebuddy_tool):
         """Test getting code context around a line"""
-        params = {
-            "file_path": "src/main.py",
-            "line_number": 42,
-            "context_lines": 10
-        }
+        params = {"file_path": "src/main.py", "line_number": 42, "context_lines": 10}
 
-        with patch.object(codebasebuddy_tool, '_make_request', new_callable=AsyncMock) as mock_request:
+        with patch.object(
+            codebasebuddy_tool, "_make_request", new_callable=AsyncMock
+        ) as mock_request:
             mock_request.return_value = {
                 "file": "src/main.py",
                 "target_line": 42,
                 "context": {
                     "before": ["line 32", "line 33", "..."],
                     "target": "def main():",
-                    "after": ["    app.run()", "    logger.info('Started')"]
-                }
+                    "after": ["    app.run()", "    logger.info('Started')"],
+                },
             }
 
             result = await codebasebuddy_tool.execute("get_code_context", params)
@@ -544,18 +500,16 @@ class TestCodeBaseBuddyMCPFeatures:
     @pytest.mark.asyncio
     async def test_codebasebuddy_build_index(self, codebasebuddy_tool):
         """Test building code index"""
-        params = {
-            "root_path": "./src",
-            "file_extensions": [".py", ".js"],
-            "rebuild": False
-        }
+        params = {"root_path": "./src", "file_extensions": [".py", ".js"], "rebuild": False}
 
-        with patch.object(codebasebuddy_tool, '_make_request', new_callable=AsyncMock) as mock_request:
+        with patch.object(
+            codebasebuddy_tool, "_make_request", new_callable=AsyncMock
+        ) as mock_request:
             mock_request.return_value = {
                 "success": True,
                 "files_indexed": 42,
                 "functions_indexed": 156,
-                "classes_indexed": 28
+                "classes_indexed": 28,
             }
 
             result = await codebasebuddy_tool.execute("build_index", params)
@@ -567,27 +521,26 @@ class TestCodeBaseBuddyMCPFeatures:
     @pytest.mark.asyncio
     async def test_codebasebuddy_find_usages(self, codebasebuddy_tool):
         """Test finding symbol usages"""
-        params = {
-            "symbol_name": "authenticate_user",
-            "top_k": 10
-        }
+        params = {"symbol_name": "authenticate_user", "top_k": 10}
 
-        with patch.object(codebasebuddy_tool, '_make_request', new_callable=AsyncMock) as mock_request:
+        with patch.object(
+            codebasebuddy_tool, "_make_request", new_callable=AsyncMock
+        ) as mock_request:
             mock_request.return_value = {
                 "symbol": "authenticate_user",
                 "usages": [
                     {
                         "file": "src/views.py",
                         "line": 25,
-                        "context": "user = authenticate_user(username, pwd)"
+                        "context": "user = authenticate_user(username, pwd)",
                     },
                     {
                         "file": "src/api.py",
                         "line": 102,
-                        "context": "result = authenticate_user(req.user, req.pass)"
-                    }
+                        "context": "result = authenticate_user(req.user, req.pass)",
+                    },
                 ],
-                "total": 2
+                "total": 2,
             }
 
             result = await codebasebuddy_tool.execute("find_usages", params)

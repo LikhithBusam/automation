@@ -8,6 +8,7 @@ import re
 import sys
 from pathlib import Path
 
+
 class TestFixer:
     """Automated test fixing utility"""
 
@@ -25,38 +26,35 @@ class TestFixer:
             return
 
         print(f"Fixing {file_path.name}...")
-        content = file_path.read_text(encoding='utf-8')
+        content = file_path.read_text(encoding="utf-8")
         original = content
 
         # Fix 1: Replace function_schemas_path with config_path
-        content = content.replace(
-            'function_schemas_path=',
-            'config_path='
-        )
+        content = content.replace("function_schemas_path=", "config_path=")
 
         # Fix 2: Replace get_function_schemas() with accessing function_schemas attribute
         content = re.sub(
-            r'schemas = registry\.get_function_schemas\(\)',
-            'schemas = registry.function_schemas',
-            content
+            r"schemas = registry\.get_function_schemas\(\)",
+            "schemas = registry.function_schemas",
+            content,
         )
 
         # Fix 3: Comment out non-existent methods
         content = re.sub(
-            r'registry\.register_specific_functions\(',
-            '# registry.register_specific_functions(  # Method doesn\'t exist\n        pass  # ',
-            content
+            r"registry\.register_specific_functions\(",
+            "# registry.register_specific_functions(  # Method doesn't exist\n        pass  # ",
+            content,
         )
 
         # Fix 4: Fix execute_function to use proper signature
         content = re.sub(
             r'await registry\.execute_function\(\s*"([^"]+)",',
             r'await registry.execute_function("\1",',
-            content
+            content,
         )
 
         if content != original:
-            file_path.write_text(content, encoding='utf-8')
+            file_path.write_text(content, encoding="utf-8")
             self.fixes_applied += 1
             self.files_modified.append(file_path.name)
             print(f"  [OK] Applied fixes to {file_path.name}")
@@ -69,37 +67,33 @@ class TestFixer:
             return
 
         print(f"Fixing {file_path.name}...")
-        content = file_path.read_text(encoding='utf-8')
+        content = file_path.read_text(encoding="utf-8")
         original = content
 
         # Fix 1: Remove max_round parameter (not accepted by create_groupchat)
         content = re.sub(
             r'groupchat = factory\.create_groupchat\(\s*"([^"]+)",\s*agents[^,)]*,\s*max_round=\d+\s*\)',
             r'groupchat = factory.create_groupchat("\1", agents)',
-            content
+            content,
         )
 
         # Fix 2: Replace create_groupchat_from_config with create_groupchat
         content = content.replace(
-            'factory.create_groupchat_from_config(',
-            'factory.create_groupchat('
+            "factory.create_groupchat_from_config(", "factory.create_groupchat("
         )
 
         # Fix 3: Replace list_groupchat_configs with list_groupchats
-        content = content.replace(
-            'factory.list_groupchat_configs(',
-            'factory.list_groupchats('
-        )
+        content = content.replace("factory.list_groupchat_configs(", "factory.list_groupchats(")
 
         # Fix 4: Replace groupchat_configs property access
         content = re.sub(
             r'assert "([^"]+)" in factory\.groupchat_configs',
             r'assert "\1" in factory.groupchat_configs or "\1" in factory.list_groupchats()',
-            content
+            content,
         )
 
         if content != original:
-            file_path.write_text(content, encoding='utf-8')
+            file_path.write_text(content, encoding="utf-8")
             self.fixes_applied += 1
             self.files_modified.append(file_path.name)
             print(f"  [OK] Applied fixes to {file_path.name}")
@@ -112,23 +106,23 @@ class TestFixer:
             return
 
         print(f"Fixing {file_path.name}...")
-        content = file_path.read_text(encoding='utf-8')
+        content = file_path.read_text(encoding="utf-8")
         original = content
 
         # Fix 1: Comment out CircuitBreakerState import (doesn't exist)
         content = re.sub(
-            r'from src\.security\.circuit_breaker import \([^)]*CircuitBreakerState[^)]*\)',
-            '# CircuitBreakerState import commented - class structure changed\n# from src.security.circuit_breaker import CircuitBreaker',
-            content
+            r"from src\.security\.circuit_breaker import \([^)]*CircuitBreakerState[^)]*\)",
+            "# CircuitBreakerState import commented - class structure changed\n# from src.security.circuit_breaker import CircuitBreaker",
+            content,
         )
 
         content = content.replace(
-            'CircuitBreakerState',
-            '# CircuitBreakerState  # Not available in current implementation'
+            "CircuitBreakerState",
+            "# CircuitBreakerState  # Not available in current implementation",
         )
 
         if content != original:
-            file_path.write_text(content, encoding='utf-8')
+            file_path.write_text(content, encoding="utf-8")
             self.fixes_applied += 1
             self.files_modified.append(file_path.name)
             print(f"  [OK] Applied fixes to {file_path.name}")
@@ -141,58 +135,52 @@ class TestFixer:
             return
 
         print(f"Fixing {file_path.name}...")
-        content = file_path.read_text(encoding='utf-8')
+        content = file_path.read_text(encoding="utf-8")
         original = content
 
         # Fix 1: Update TTLCache.set() signature (takes operation, params, data)
         content = re.sub(
             r'cache\.set\("([^"]+)",\s*"([^"]+)"\)',
             r'cache.set("\1", {}, "\2")',  # Add empty params dict
-            content
+            content,
         )
 
         # Fix 2: Update TTLCache.get() signature (takes operation, params)
         content = re.sub(
-            r'cache\.get\("([^"]+)"\)',
-            r'cache.get("\1", {})',  # Add empty params dict
-            content
+            r'cache\.get\("([^"]+)"\)', r'cache.get("\1", {})', content  # Add empty params dict
         )
 
         # Fix 3: Fix CacheEntry initialization (data, created_at, expires_at)
         content = re.sub(
             r'CacheEntry\(value="([^"]+)"',
             r'CacheEntry(data="\1", created_at=time.time(), expires_at=time.time() + 300',
-            content
+            content,
         )
 
         # Fix 4: Update ToolStatistics.record_call signature
         content = re.sub(
-            r'stats\.record_call\(duration=([^,]+),\s*success=([^,]+),\s*from_cache=([^)]+)\)',
+            r"stats\.record_call\(duration=([^,]+),\s*success=([^,]+),\s*from_cache=([^)]+)\)",
             r'stats.record_call(operation="test", success=\2, cached=\3)',
-            content
+            content,
         )
 
         # Fix 5: Comment out ExponentialBackoff tests (API changed)
         content = re.sub(
-            r'(class TestExponentialBackoff:.*?(?=class |$))',
-            r'# \1  # ExponentialBackoff API changed, tests need rewrite',
+            r"(class TestExponentialBackoff:.*?(?=class |$))",
+            r"# \1  # ExponentialBackoff API changed, tests need rewrite",
             content,
-            flags=re.DOTALL
+            flags=re.DOTALL,
         )
 
         # Fix 6: Fix InputValidator method names
-        content = content.replace(
-            'validator.validate_path_safety(',
-            'validator.validate_path('
-        )
+        content = content.replace("validator.validate_path_safety(", "validator.validate_path(")
 
         content = content.replace(
-            'validator.validate_sql_safety(',
-            'validator._default_validation('
+            "validator.validate_sql_safety(", "validator._default_validation("
         )
 
         if content != original:
-            file_path.write_text(content, encoding='utf-8')
+            file_path.write_text(content, encoding="utf-8")
             self.fixes_applied += 1
             self.files_modified.append(file_path.name)
             print(f"  [OK] Applied fixes to {file_path.name}")
@@ -205,22 +193,18 @@ class TestFixer:
             return
 
         print(f"Fixing {file_path.name}...")
-        content = file_path.read_text(encoding='utf-8')
+        content = file_path.read_text(encoding="utf-8")
         original = content
 
         # Fix InputValidator method calls
-        content = content.replace(
-            'validator.validate_path_safety(',
-            'validator.validate_path('
-        )
+        content = content.replace("validator.validate_path_safety(", "validator.validate_path(")
 
         content = content.replace(
-            'validator.validate_sql_safety(',
-            'validator._default_validation('
+            "validator.validate_sql_safety(", "validator._default_validation("
         )
 
         if content != original:
-            file_path.write_text(content, encoding='utf-8')
+            file_path.write_text(content, encoding="utf-8")
             self.fixes_applied += 1
             self.files_modified.append(file_path.name)
             print(f"  [OK] Applied fixes to {file_path.name}")
@@ -234,10 +218,10 @@ class TestFixer:
             content = ""
         else:
             print(f"Updating {conftest_path.name}...")
-            content = conftest_path.read_text(encoding='utf-8')
+            content = conftest_path.read_text(encoding="utf-8")
 
         # Check if mock_mcp_manager fixture exists
-        if 'mock_mcp_manager' not in content:
+        if "mock_mcp_manager" not in content:
             fixture_code = '''
 import pytest
 from unittest.mock import Mock, AsyncMock
@@ -262,16 +246,16 @@ async def mock_mcp_manager():
 
 '''
             content += fixture_code
-            conftest_path.write_text(content, encoding='utf-8')
+            conftest_path.write_text(content, encoding="utf-8")
             self.fixes_applied += 1
             self.files_modified.append(conftest_path.name)
             print(f"  [OK] Added mock_mcp_manager fixture to {conftest_path.name}")
 
     def run_all_fixes(self):
         """Run all fixes in sequence"""
-        print("="*70)
+        print("=" * 70)
         print("Professional Test Suite Fixer")
-        print("="*70)
+        print("=" * 70)
         print()
 
         self.fix_function_registry_tests()
@@ -282,9 +266,9 @@ async def mock_mcp_manager():
         self.create_workflow_fixtures()
 
         print()
-        print("="*70)
+        print("=" * 70)
         print(f"Summary: Applied {self.fixes_applied} fixes to {len(self.files_modified)} files")
-        print("="*70)
+        print("=" * 70)
         print()
 
         if self.files_modified:

@@ -11,12 +11,14 @@ from dataclasses import dataclass
 
 class ValidationError(Exception):
     """Raised when input validation fails"""
+
     pass
 
 
 @dataclass
 class ValidationRule:
     """Validation rule configuration"""
+
     max_length: int = 1000
     allowed_pattern: str = None
     disallowed_patterns: List[str] = None
@@ -38,44 +40,96 @@ class InputValidator:
     # Allowed workflow parameters (expanded to support all workflows)
     ALLOWED_PARAMS = {
         # Path parameters
-        'code_path', 'target_path', 'module_path', 'output_path', 'project_path',
-        'file_path', 'path', 'root_path', 'directory', 'dir_path',
+        "code_path",
+        "target_path",
+        "module_path",
+        "output_path",
+        "project_path",
+        "file_path",
+        "path",
+        "root_path",
+        "directory",
+        "dir_path",
         # Analysis parameters
-        'focus_areas', 'scope', 'depth',
+        "focus_areas",
+        "scope",
+        "depth",
         # Documentation parameters
-        'doc_type', 'format', 'output_format', 'audience', 'sections',
+        "doc_type",
+        "format",
+        "output_format",
+        "audience",
+        "sections",
         # Deployment parameters
-        'environment', 'branch', 'version', 'strategy', 'run_tests', 'notify',
+        "environment",
+        "branch",
+        "version",
+        "strategy",
+        "run_tests",
+        "notify",
         # Research parameters
-        'topic', 'query',
+        "topic",
+        "query",
         # General parameters
-        'additional_requirements', 'max_results', 'timeout',
+        "additional_requirements",
+        "max_results",
+        "timeout",
         # MCP Tool Parameters (GitHub)
-        'owner', 'repo', 'title', 'body', 'head', 'base', 'pr_number', 'labels',
-        'sha', 'ref', 'state', 'per_page',
+        "owner",
+        "repo",
+        "title",
+        "body",
+        "head",
+        "base",
+        "pr_number",
+        "labels",
+        "sha",
+        "ref",
+        "state",
+        "per_page",
         # MCP Tool Parameters (Filesystem)
-        'content', 'pattern', 'recursive', 'file_types', 'max_depth',
+        "content",
+        "pattern",
+        "recursive",
+        "file_types",
+        "max_depth",
         # MCP Tool Parameters (Memory)
-        'memory_type', 'tags', 'metadata', 'memory_id', 'limit', 'min_relevance',
+        "memory_type",
+        "tags",
+        "metadata",
+        "memory_id",
+        "limit",
+        "min_relevance",
         # MCP Tool Parameters (Slack)
-        'channel', 'text', 'thread_ts', 'blocks', 'severity',
+        "channel",
+        "text",
+        "thread_ts",
+        "blocks",
+        "severity",
         # MCP Tool Parameters (CodeBaseBuddy)
-        'top_k', 'file_filter', 'chunk_type_filter', 'code_snippet',
-        'exclude_self', 'line_number', 'context_lines', 'file_extensions',
-        'rebuild', 'symbol_name',
+        "top_k",
+        "file_filter",
+        "chunk_type_filter",
+        "code_snippet",
+        "exclude_self",
+        "line_number",
+        "context_lines",
+        "file_extensions",
+        "rebuild",
+        "symbol_name",
     }
 
     # Shell metacharacters to block
-    SHELL_METACHARACTERS = r'[;&|`$<>()\[\]{}\\]'
+    SHELL_METACHARACTERS = r"[;&|`$<>()\[\]{}\\]"
 
     # SQL injection patterns
     SQL_INJECTION_PATTERNS = [
         r"('|(\\')|(;)|(--)|(\/\*))",  # SQL comments and delimiters
-        r"(union\s+select)",            # UNION attacks
-        r"(drop\s+table)",              # DROP TABLE
-        r"(insert\s+into)",             # INSERT attacks
-        r"(update\s+.*\s+set)",         # UPDATE attacks
-        r"(delete\s+from)",             # DELETE attacks
+        r"(union\s+select)",  # UNION attacks
+        r"(drop\s+table)",  # DROP TABLE
+        r"(insert\s+into)",  # INSERT attacks
+        r"(update\s+.*\s+set)",  # UPDATE attacks
+        r"(delete\s+from)",  # DELETE attacks
     ]
 
     # Maximum input lengths
@@ -91,208 +145,110 @@ class InputValidator:
         """Setup parameter-specific validation rules"""
         return {
             # Path parameters
-            'code_path': ValidationRule(
-                max_length=500,
-                allowed_pattern=r'^[a-zA-Z0-9._/\\-]+$'
-            ),
-            'target_path': ValidationRule(
-                max_length=500,
-                allowed_pattern=r'^[a-zA-Z0-9._/\\-]+$'
-            ),
-            'module_path': ValidationRule(
-                max_length=500,
-                allowed_pattern=r'^[a-zA-Z0-9._/\\-]+$'
-            ),
-            'output_path': ValidationRule(
-                max_length=500,
-                allowed_pattern=r'^[a-zA-Z0-9._/\\-]+$'
-            ),
-            'project_path': ValidationRule(
-                max_length=500,
-                allowed_pattern=r'^[a-zA-Z0-9._/\\-]+$'
-            ),
+            "code_path": ValidationRule(max_length=500, allowed_pattern=r"^[a-zA-Z0-9._/\\-]+$"),
+            "target_path": ValidationRule(max_length=500, allowed_pattern=r"^[a-zA-Z0-9._/\\-]+$"),
+            "module_path": ValidationRule(max_length=500, allowed_pattern=r"^[a-zA-Z0-9._/\\-]+$"),
+            "output_path": ValidationRule(max_length=500, allowed_pattern=r"^[a-zA-Z0-9._/\\-]+$"),
+            "project_path": ValidationRule(max_length=500, allowed_pattern=r"^[a-zA-Z0-9._/\\-]+$"),
             # Analysis parameters
-            'focus_areas': ValidationRule(
-                max_length=500,
-                allowed_pattern=r'^[a-zA-Z0-9, _-]+$'
+            "focus_areas": ValidationRule(max_length=500, allowed_pattern=r"^[a-zA-Z0-9, _-]+$"),
+            "scope": ValidationRule(
+                max_length=100, allowed_values={"full", "partial", "quick", "deep", "basic"}
             ),
-            'scope': ValidationRule(
-                max_length=100,
-                allowed_values={'full', 'partial', 'quick', 'deep', 'basic'}
-            ),
-            'depth': ValidationRule(
-                max_length=50,
-                allowed_values={'shallow', 'medium', 'deep', 'comprehensive'}
+            "depth": ValidationRule(
+                max_length=50, allowed_values={"shallow", "medium", "deep", "comprehensive"}
             ),
             # Documentation parameters
-            'doc_type': ValidationRule(
+            "doc_type": ValidationRule(
                 max_length=50,
-                allowed_values={'readme', 'api', 'user_guide', 'developer', 'architecture'}
+                allowed_values={"readme", "api", "user_guide", "developer", "architecture"},
             ),
-            'format': ValidationRule(
-                max_length=50,
-                allowed_values={'markdown', 'html', 'rst', 'pdf', 'docx'}
+            "format": ValidationRule(
+                max_length=50, allowed_values={"markdown", "html", "rst", "pdf", "docx"}
             ),
-            'output_format': ValidationRule(
-                max_length=50,
-                allowed_values={'markdown', 'html', 'rst', 'pdf', 'json', 'yaml'}
+            "output_format": ValidationRule(
+                max_length=50, allowed_values={"markdown", "html", "rst", "pdf", "json", "yaml"}
             ),
-            'audience': ValidationRule(
+            "audience": ValidationRule(
                 max_length=100,
-                allowed_values={'developers', 'users', 'admins', 'all', 'technical', 'non-technical'}
+                allowed_values={
+                    "developers",
+                    "users",
+                    "admins",
+                    "all",
+                    "technical",
+                    "non-technical",
+                },
             ),
-            'sections': ValidationRule(
-                max_length=500,
-                allowed_pattern=r'^[a-zA-Z0-9, _-]+$'
-            ),
+            "sections": ValidationRule(max_length=500, allowed_pattern=r"^[a-zA-Z0-9, _-]+$"),
             # Deployment parameters
-            'environment': ValidationRule(
+            "environment": ValidationRule(
                 max_length=50,
-                allowed_values={'development', 'staging', 'production', 'test', 'dev', 'prod'}
+                allowed_values={"development", "staging", "production", "test", "dev", "prod"},
             ),
-            'branch': ValidationRule(
-                max_length=100,
-                allowed_pattern=r'^[a-zA-Z0-9._/-]+$'
-            ),
-            'version': ValidationRule(
+            "branch": ValidationRule(max_length=100, allowed_pattern=r"^[a-zA-Z0-9._/-]+$"),
+            "version": ValidationRule(max_length=50, allowed_pattern=r"^[a-zA-Z0-9._-]+$"),
+            "strategy": ValidationRule(
                 max_length=50,
-                allowed_pattern=r'^[a-zA-Z0-9._-]+$'
+                allowed_values={"blue-green", "canary", "rolling", "recreate", "direct"},
             ),
-            'strategy': ValidationRule(
-                max_length=50,
-                allowed_values={'blue-green', 'canary', 'rolling', 'recreate', 'direct'}
+            "run_tests": ValidationRule(
+                max_length=10, allowed_values={"true", "false", "yes", "no", "1", "0"}
             ),
-            'run_tests': ValidationRule(
-                max_length=10,
-                allowed_values={'true', 'false', 'yes', 'no', '1', '0'}
-            ),
-            'notify': ValidationRule(
-                max_length=10,
-                allowed_values={'true', 'false', 'yes', 'no', '1', '0'}
+            "notify": ValidationRule(
+                max_length=10, allowed_values={"true", "false", "yes", "no", "1", "0"}
             ),
             # Research parameters
-            'topic': ValidationRule(
-                max_length=500,
-                allowed_pattern=r'^[a-zA-Z0-9, _.\'"-]+$'
-            ),
-            'query': ValidationRule(
-                max_length=1000,
-                allowed_pattern=r'^[a-zA-Z0-9, _.\'"\-?!]+$'
-            ),
+            "topic": ValidationRule(max_length=500, allowed_pattern=r'^[a-zA-Z0-9, _.\'"-]+$'),
+            "query": ValidationRule(max_length=1000, allowed_pattern=r'^[a-zA-Z0-9, _.\'"\-?!]+$'),
             # General parameters
-            'additional_requirements': ValidationRule(
-                max_length=1000,
-                allowed_pattern=r'^[a-zA-Z0-9, _.\-\'"]+$'
+            "additional_requirements": ValidationRule(
+                max_length=1000, allowed_pattern=r'^[a-zA-Z0-9, _.\-\'"]+$'
             ),
-            'max_results': ValidationRule(
-                max_length=10,
-                allowed_pattern=r'^[0-9]+$'
-            ),
-            'timeout': ValidationRule(
-                max_length=10,
-                allowed_pattern=r'^[0-9]+$'
-            ),
+            "max_results": ValidationRule(max_length=10, allowed_pattern=r"^[0-9]+$"),
+            "timeout": ValidationRule(max_length=10, allowed_pattern=r"^[0-9]+$"),
             # MCP Tool Parameters - GitHub
-            'owner': ValidationRule(
-                max_length=100,
-                allowed_pattern=r'^[a-zA-Z0-9_-]+$'
-            ),
-            'repo': ValidationRule(
-                max_length=100,
-                allowed_pattern=r'^[a-zA-Z0-9._-]+$'
-            ),
-            'pr_number': ValidationRule(
-                max_length=10,
-                allowed_pattern=r'^[0-9]+$'
-            ),
-            'sha': ValidationRule(
-                max_length=40,
-                allowed_pattern=r'^[a-f0-9]+$'
-            ),
-            'ref': ValidationRule(
-                max_length=100,
-                allowed_pattern=r'^[a-zA-Z0-9._/-]+$'
-            ),
-            'state': ValidationRule(
-                max_length=20,
-                allowed_values={'open', 'closed', 'all'}
-            ),
-            'per_page': ValidationRule(
-                max_length=10,
-                allowed_pattern=r'^[0-9]+$'
-            ),
+            "owner": ValidationRule(max_length=100, allowed_pattern=r"^[a-zA-Z0-9_-]+$"),
+            "repo": ValidationRule(max_length=100, allowed_pattern=r"^[a-zA-Z0-9._-]+$"),
+            "pr_number": ValidationRule(max_length=10, allowed_pattern=r"^[0-9]+$"),
+            "sha": ValidationRule(max_length=40, allowed_pattern=r"^[a-f0-9]+$"),
+            "ref": ValidationRule(max_length=100, allowed_pattern=r"^[a-zA-Z0-9._/-]+$"),
+            "state": ValidationRule(max_length=20, allowed_values={"open", "closed", "all"}),
+            "per_page": ValidationRule(max_length=10, allowed_pattern=r"^[0-9]+$"),
             # MCP Tool Parameters - Filesystem
-            'pattern': ValidationRule(
-                max_length=500,
-                allowed_pattern=r'^[a-zA-Z0-9*._/\\-]+$'
+            "pattern": ValidationRule(max_length=500, allowed_pattern=r"^[a-zA-Z0-9*._/\\-]+$"),
+            "recursive": ValidationRule(
+                max_length=10, allowed_values={"true", "false", "yes", "no", "1", "0"}
             ),
-            'recursive': ValidationRule(
-                max_length=10,
-                allowed_values={'true', 'false', 'yes', 'no', '1', '0'}
-            ),
-            'max_depth': ValidationRule(
-                max_length=10,
-                allowed_pattern=r'^[0-9]+$'
-            ),
+            "max_depth": ValidationRule(max_length=10, allowed_pattern=r"^[0-9]+$"),
             # MCP Tool Parameters - Memory
-            'memory_type': ValidationRule(
+            "memory_type": ValidationRule(
                 max_length=50,
-                allowed_values={'pattern', 'preference', 'solution', 'context', 'error'}
+                allowed_values={"pattern", "preference", "solution", "context", "error"},
             ),
-            'memory_id': ValidationRule(
-                max_length=100,
-                allowed_pattern=r'^[a-zA-Z0-9_-]+$'
-            ),
-            'limit': ValidationRule(
-                max_length=10,
-                allowed_pattern=r'^[0-9]+$'
-            ),
-            'min_relevance': ValidationRule(
-                max_length=10,
-                allowed_pattern=r'^[0-9]+(\.[0-9]+)?$'
-            ),
+            "memory_id": ValidationRule(max_length=100, allowed_pattern=r"^[a-zA-Z0-9_-]+$"),
+            "limit": ValidationRule(max_length=10, allowed_pattern=r"^[0-9]+$"),
+            "min_relevance": ValidationRule(max_length=10, allowed_pattern=r"^[0-9]+(\.[0-9]+)?$"),
             # MCP Tool Parameters - Slack
-            'channel': ValidationRule(
-                max_length=100,
-                allowed_pattern=r'^[#@a-zA-Z0-9_-]+$'
-            ),
-            'severity': ValidationRule(
-                max_length=20,
-                allowed_values={'info', 'warning', 'error', 'success', 'critical'}
+            "channel": ValidationRule(max_length=100, allowed_pattern=r"^[#@a-zA-Z0-9_-]+$"),
+            "severity": ValidationRule(
+                max_length=20, allowed_values={"info", "warning", "error", "success", "critical"}
             ),
             # MCP Tool Parameters - CodeBaseBuddy
-            'top_k': ValidationRule(
-                max_length=10,
-                allowed_pattern=r'^[0-9]+$'
+            "top_k": ValidationRule(max_length=10, allowed_pattern=r"^[0-9]+$"),
+            "file_filter": ValidationRule(max_length=200, allowed_pattern=r"^[a-zA-Z0-9*._/\\-]+$"),
+            "chunk_type_filter": ValidationRule(
+                max_length=20, allowed_values={"function", "class", "file", "method", "module"}
             ),
-            'file_filter': ValidationRule(
-                max_length=200,
-                allowed_pattern=r'^[a-zA-Z0-9*._/\\-]+$'
+            "exclude_self": ValidationRule(
+                max_length=10, allowed_values={"true", "false", "yes", "no", "1", "0"}
             ),
-            'chunk_type_filter': ValidationRule(
-                max_length=20,
-                allowed_values={'function', 'class', 'file', 'method', 'module'}
+            "line_number": ValidationRule(max_length=10, allowed_pattern=r"^[0-9]+$"),
+            "context_lines": ValidationRule(max_length=10, allowed_pattern=r"^[0-9]+$"),
+            "rebuild": ValidationRule(
+                max_length=10, allowed_values={"true", "false", "yes", "no", "1", "0"}
             ),
-            'exclude_self': ValidationRule(
-                max_length=10,
-                allowed_values={'true', 'false', 'yes', 'no', '1', '0'}
-            ),
-            'line_number': ValidationRule(
-                max_length=10,
-                allowed_pattern=r'^[0-9]+$'
-            ),
-            'context_lines': ValidationRule(
-                max_length=10,
-                allowed_pattern=r'^[0-9]+$'
-            ),
-            'rebuild': ValidationRule(
-                max_length=10,
-                allowed_values={'true', 'false', 'yes', 'no', '1', '0'}
-            ),
-            'symbol_name': ValidationRule(
-                max_length=200,
-                allowed_pattern=r'^[a-zA-Z0-9_:.]+$'
-            ),
+            "symbol_name": ValidationRule(max_length=200, allowed_pattern=r"^[a-zA-Z0-9_:.]+$"),
         }
 
     def validate_parameters(self, parameters: Dict[str, Any]) -> Dict[str, Any]:
@@ -314,8 +270,7 @@ class InputValidator:
         # Check total number of parameters
         if len(parameters) > self.MAX_TOTAL_PARAMS:
             raise ValidationError(
-                f"Too many parameters: {len(parameters)} "
-                f"(max {self.MAX_TOTAL_PARAMS})"
+                f"Too many parameters: {len(parameters)} " f"(max {self.MAX_TOTAL_PARAMS})"
             )
 
         validated = {}
@@ -352,8 +307,7 @@ class InputValidator:
 
         if key not in self.ALLOWED_PARAMS:
             raise ValidationError(
-                f"Invalid parameter: {key}. "
-                f"Allowed: {', '.join(sorted(self.ALLOWED_PARAMS))}"
+                f"Invalid parameter: {key}. " f"Allowed: {', '.join(sorted(self.ALLOWED_PARAMS))}"
             )
 
         return key
@@ -379,8 +333,7 @@ class InputValidator:
         # Check length
         if len(value) > self.MAX_PARAM_LENGTH:
             raise ValidationError(
-                f"Parameter '{key}' too long: {len(value)} "
-                f"(max {self.MAX_PARAM_LENGTH})"
+                f"Parameter '{key}' too long: {len(value)} " f"(max {self.MAX_PARAM_LENGTH})"
             )
 
         # Get validation rule
@@ -400,12 +353,10 @@ class InputValidator:
         # Check against pattern
         if rule.allowed_pattern:
             if not re.match(rule.allowed_pattern, value):
-                raise ValidationError(
-                    f"Invalid format for '{key}': {value}"
-                )
+                raise ValidationError(f"Invalid format for '{key}': {value}")
 
         # Path-specific validation
-        if key.endswith('_path'):
+        if key.endswith("_path"):
             return self.validate_path(value)
 
         return value
@@ -424,11 +375,11 @@ class InputValidator:
             ValidationError: If path is unsafe
         """
         # Check for path traversal
-        if '../' in path or '..\\' in path:
+        if "../" in path or "..\\" in path:
             raise ValidationError(f"Path traversal detected: {path}")
 
         # Check for absolute paths (only allow relative)
-        if path.startswith('/') or (len(path) > 1 and path[1] == ':'):
+        if path.startswith("/") or (len(path) > 1 and path[1] == ":"):
             # Allow if within project directory
             try:
                 resolved_path = Path(path).resolve()
@@ -499,7 +450,7 @@ class InputValidator:
                 raise ValidationError(f"Potentially malicious input detected")
 
         # Check for null bytes
-        if '\x00' in value:
+        if "\x00" in value:
             raise ValidationError("Null bytes not allowed")
 
         return value
@@ -527,7 +478,7 @@ class InputValidator:
             raise ValidationError(f"Workflow name too long: {len(workflow_name)}")
 
         # Only allow alphanumeric, underscore, hyphen
-        if not re.match(r'^[a-zA-Z0-9_-]+$', workflow_name):
+        if not re.match(r"^[a-zA-Z0-9_-]+$", workflow_name):
             raise ValidationError(f"Invalid workflow name: {workflow_name}")
 
         return workflow_name
@@ -547,19 +498,16 @@ class InputValidator:
             value = str(value)
 
         # Remove control characters
-        value = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', value)
+        value = re.sub(r"[\x00-\x1f\x7f-\x9f]", "", value)
 
         # Truncate if needed
         if max_length and len(value) > max_length:
-            value = value[:max_length] + '...'
+            value = value[:max_length] + "..."
 
         return value
 
     def validate_mcp_tool_params(
-        self,
-        tool_name: str,
-        operation: str,
-        params: Dict[str, Any]
+        self, tool_name: str, operation: str, params: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
         Validate parameters for MCP tool operations.
@@ -579,14 +527,14 @@ class InputValidator:
             raise ValidationError("MCP tool parameters must be a dictionary")
 
         # Validate tool name
-        allowed_tools = {'github', 'filesystem', 'memory', 'slack', 'codebasebuddy'}
+        allowed_tools = {"github", "filesystem", "memory", "slack", "codebasebuddy"}
         if tool_name not in allowed_tools:
             raise ValidationError(
                 f"Invalid tool name: {tool_name}. Allowed: {', '.join(allowed_tools)}"
             )
 
         # Validate operation name (alphanumeric and underscore only)
-        if not re.match(r'^[a-z_][a-z0-9_]*$', operation):
+        if not re.match(r"^[a-z_][a-z0-9_]*$", operation):
             raise ValidationError(f"Invalid operation name: {operation}")
 
         # Validate each parameter

@@ -27,20 +27,16 @@ class WhiteBoxTestRunner:
         print(f"Running: {suite_name}")
         print(f"{'='*80}\n")
 
-        cmd = [
-            sys.executable, "-m", "pytest",
-            test_file,
-            "-v",
-            "--tb=short",
-            "--color=yes"
-        ]
+        cmd = [sys.executable, "-m", "pytest", test_file, "-v", "--tb=short", "--color=yes"]
 
         if self.coverage:
-            cmd.extend([
-                "--cov=src",
-                "--cov-report=term-missing",
-                f"--cov-report=html:reports/coverage/{suite_name.replace(' ', '_')}"
-            ])
+            cmd.extend(
+                [
+                    "--cov=src",
+                    "--cov-report=term-missing",
+                    f"--cov-report=html:reports/coverage/{suite_name.replace(' ', '_')}",
+                ]
+            )
 
         if self.verbose:
             cmd.append("-vv")
@@ -51,17 +47,14 @@ class WhiteBoxTestRunner:
 
         try:
             result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=300  # 5 minute timeout per suite
+                cmd, capture_output=True, text=True, timeout=300  # 5 minute timeout per suite
             )
 
             self.results[suite_name] = {
                 "status": "PASSED" if result.returncode == 0 else "FAILED",
                 "return_code": result.returncode,
                 "stdout": result.stdout,
-                "stderr": result.stderr
+                "stderr": result.stderr,
             }
 
             # Print output
@@ -75,19 +68,12 @@ class WhiteBoxTestRunner:
 
         except subprocess.TimeoutExpired:
             print(f"❌ TIMEOUT: {suite_name} exceeded 5 minutes", file=sys.stderr)
-            self.results[suite_name] = {
-                "status": "TIMEOUT",
-                "return_code": -1
-            }
+            self.results[suite_name] = {"status": "TIMEOUT", "return_code": -1}
             return False
 
         except Exception as e:
             print(f"❌ ERROR: {suite_name} - {e}", file=sys.stderr)
-            self.results[suite_name] = {
-                "status": "ERROR",
-                "return_code": -1,
-                "error": str(e)
-            }
+            self.results[suite_name] = {"status": "ERROR", "return_code": -1, "error": str(e)}
             return False
 
     def run_all_tests(self):
@@ -171,14 +157,14 @@ class WhiteBoxTestRunner:
                 "failed": sum(1 for r in self.results.values() if r["status"] == "FAILED"),
                 "timeout": sum(1 for r in self.results.values() if r["status"] == "TIMEOUT"),
                 "error": sum(1 for r in self.results.values() if r["status"] == "ERROR"),
-            }
+            },
         }
 
         # Save report
         report_path = Path("reports/whitebox_test_report.json")
         report_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(report_path, 'w') as f:
+        with open(report_path, "w") as f:
             json.dump(report, f, indent=2)
 
         print(f"📄 Detailed report saved to: {report_path}")
@@ -207,18 +193,15 @@ class WhiteBoxTestRunner:
 
 """
 
-        for suite_name, result in report['suites'].items():
-            status_emoji = {
-                "PASSED": "✅",
-                "FAILED": "❌",
-                "TIMEOUT": "⏱️",
-                "ERROR": "⚠️"
-            }.get(result['status'], "❓")
+        for suite_name, result in report["suites"].items():
+            status_emoji = {"PASSED": "✅", "FAILED": "❌", "TIMEOUT": "⏱️", "ERROR": "⚠️"}.get(
+                result["status"], "❓"
+            )
 
             md_content += f"### {status_emoji} {suite_name}\n\n"
             md_content += f"**Status:** {result['status']}\n\n"
 
-            if result.get('stderr'):
+            if result.get("stderr"):
                 md_content += f"**Error Output:**\n```\n{result['stderr'][:500]}\n```\n\n"
 
         md_content += f"""
@@ -241,14 +224,16 @@ White-box tests cover:
 
 """
 
-        if report['summary']['failed'] > 0:
-            md_content += "⚠️ **Action Required:** Fix failing test suites before production deployment.\n\n"
+        if report["summary"]["failed"] > 0:
+            md_content += (
+                "⚠️ **Action Required:** Fix failing test suites before production deployment.\n\n"
+            )
         else:
             md_content += "✅ **All tests passed!** System is ready for production deployment.\n\n"
 
         # Save markdown report
         md_path = Path("reports/WHITEBOX_TEST_REPORT.md")
-        with open(md_path, 'w') as f:
+        with open(md_path, "w") as f:
             f.write(md_content)
 
         print(f"📄 Markdown report saved to: {md_path}")
@@ -259,27 +244,31 @@ def main():
     parser = argparse.ArgumentParser(description="Run comprehensive white-box tests")
     parser.add_argument("-v", "--verbose", action="store_true", help="Verbose output")
     parser.add_argument("-c", "--coverage", action="store_true", help="Generate coverage reports")
-    parser.add_argument("--quick", action="store_true", help="Run only quick tests (skip integration)")
+    parser.add_argument(
+        "--quick", action="store_true", help="Run only quick tests (skip integration)"
+    )
 
     args = parser.parse_args()
 
     runner = WhiteBoxTestRunner(verbose=args.verbose, coverage=args.coverage)
 
-    print("""
+    print(
+        """
 ╔════════════════════════════════════════════════════════════════════════════╗
 ║                   COMPREHENSIVE WHITE-BOX TEST SUITE                       ║
 ║                AutoGen Development Assistant v2.0.0                        ║
 ╚════════════════════════════════════════════════════════════════════════════╝
-    """)
+    """
+    )
 
     exit_code = runner.run_all_tests()
 
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     if exit_code == 0:
         print("✅ ALL TESTS PASSED - System is production ready!")
     else:
         print("❌ SOME TESTS FAILED - Review errors and fix issues")
-    print("="*80 + "\n")
+    print("=" * 80 + "\n")
 
     sys.exit(exit_code)
 

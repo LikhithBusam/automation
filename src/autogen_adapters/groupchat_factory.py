@@ -11,6 +11,7 @@ from typing import Dict, Any, Optional, List, Callable
 # AutoGen imports
 try:
     from autogen import GroupChat, GroupChatManager
+
     HAS_AUTOGEN = True
 except ImportError:
     HAS_AUTOGEN = False
@@ -51,7 +52,9 @@ class GroupChatFactory:
         self.groupchats: Dict[str, GroupChat] = {}
         self.managers: Dict[str, GroupChatManager] = {}
 
-        self.logger.info(f"GroupChatFactory initialized with {len(self.groupchat_configs)} chat configs")
+        self.logger.info(
+            f"GroupChatFactory initialized with {len(self.groupchat_configs)} chat configs"
+        )
 
     def _load_config(self) -> Dict[str, Any]:
         """Load configuration from YAML file"""
@@ -60,7 +63,7 @@ class GroupChatFactory:
         if not config_file.exists():
             raise FileNotFoundError(f"Config file not found: {self.config_path}")
 
-        with open(config_file, 'r', encoding='utf-8') as f:
+        with open(config_file, "r", encoding="utf-8") as f:
             config = yaml.safe_load(f)
 
         return config
@@ -110,10 +113,7 @@ class GroupChatFactory:
         return is_termination_msg
 
     def create_groupchat(
-        self,
-        chat_name: str,
-        agents: Dict[str, Any],
-        llm_config: Optional[Dict[str, Any]] = None
+        self, chat_name: str, agents: Dict[str, Any], llm_config: Optional[Dict[str, Any]] = None
     ) -> GroupChat:
         """
         Create a GroupChat instance from configuration.
@@ -159,6 +159,7 @@ class GroupChatFactory:
         # Create GroupChat with backward compatibility
         # Feature detection: Check if GroupChat accepts allow_repeat_speaker
         import inspect
+
         groupchat_params = inspect.signature(GroupChat.__init__).parameters
 
         # Build kwargs dynamically based on what's supported
@@ -191,10 +192,7 @@ class GroupChatFactory:
         return groupchat
 
     def create_groupchat_manager(
-        self,
-        chat_name: str,
-        agents: Dict[str, Any],
-        llm_config: Dict[str, Any]
+        self, chat_name: str, agents: Dict[str, Any], llm_config: Dict[str, Any]
     ) -> GroupChatManager:
         """
         Create a GroupChatManager for a group chat.
@@ -230,11 +228,7 @@ class GroupChatFactory:
             self.logger.debug(f"Using termination condition: {termination_condition_name}")
 
         # Create manager with termination function
-        manager_kwargs = {
-            "groupchat": groupchat,
-            "llm_config": llm_config,
-            "name": manager_name
-        }
+        manager_kwargs = {"groupchat": groupchat, "llm_config": llm_config, "name": manager_name}
 
         # Add is_termination_msg if we have a termination function
         if termination_func:
@@ -296,7 +290,9 @@ class GroupChatFactory:
 
 
 # Convenience function
-def create_groupchat_factory(config_path: str = "config/autogen_groupchats.yaml") -> GroupChatFactory:
+def create_groupchat_factory(
+    config_path: str = "config/autogen_groupchats.yaml",
+) -> GroupChatFactory:
     """
     Create a GroupChatFactory instance.
 

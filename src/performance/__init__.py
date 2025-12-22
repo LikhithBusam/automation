@@ -17,7 +17,7 @@ from .optimizer import (
     ParallelExecutor,
     SmartCache,
     ResponseStreamer,
-    PerformanceMonitor
+    PerformanceMonitor,
 )
 
 __all__ = [
@@ -27,5 +27,5 @@ __all__ = [
     "ParallelExecutor",
     "SmartCache",
     "ResponseStreamer",
-    "PerformanceMonitor"
+    "PerformanceMonitor",
 ]

@@ -19,6 +19,7 @@ from src.autogen_adapters.function_registry import FunctionRegistry
 @dataclass
 class ConversationResult:
     """Result of a conversation/workflow execution"""
+
     workflow_name: str
     status: str  # success, partial, failed
     messages: List[Dict[str, Any]]
@@ -46,7 +47,7 @@ class ConversationManager:
         config_path: str = "config/autogen_workflows.yaml",
         agent_factory: Optional[AutoGenAgentFactory] = None,
         groupchat_factory: Optional[GroupChatFactory] = None,
-        function_registry: Optional[FunctionRegistry] = None
+        function_registry: Optional[FunctionRegistry] = None,
     ):
         """
         Initialize the conversation manager.
@@ -74,7 +75,9 @@ class ConversationManager:
         # Execution history
         self.history: List[ConversationResult] = []
 
-        self.logger.info(f"ConversationManager initialized with {len(self.workflow_configs)} workflows")
+        self.logger.info(
+            f"ConversationManager initialized with {len(self.workflow_configs)} workflows"
+        )
 
     def _load_config(self) -> Dict[str, Any]:
         """Load configuration from YAML file"""
@@ -83,7 +86,7 @@ class ConversationManager:
         if not config_file.exists():
             raise FileNotFoundError(f"Config file not found: {self.config_path}")
 
-        with open(config_file, 'r', encoding='utf-8') as f:
+        with open(config_file, "r", encoding="utf-8") as f:
             config = yaml.safe_load(f)
 
         return config
@@ -133,9 +136,7 @@ class ConversationManager:
         return result
 
     async def execute_workflow(
-        self,
-        workflow_name: str,
-        variables: Optional[Dict[str, Any]] = None
+        self, workflow_name: str, variables: Optional[Dict[str, Any]] = None
     ) -> ConversationResult:
         """
         Execute a workflow from configuration.
@@ -160,9 +161,13 @@ class ConversationManager:
             workflow_type = workflow_cfg.get("type", "group_chat")
 
             if workflow_type == "group_chat":
-                result = await self._execute_groupchat_workflow(workflow_name, workflow_cfg, variables)
+                result = await self._execute_groupchat_workflow(
+                    workflow_name, workflow_cfg, variables
+                )
             elif workflow_type == "two_agent":
-                result = await self._execute_two_agent_workflow(workflow_name, workflow_cfg, variables)
+                result = await self._execute_two_agent_workflow(
+                    workflow_name, workflow_cfg, variables
+                )
             elif workflow_type == "nested_chat":
                 result = await self._execute_nested_workflow(workflow_name, workflow_cfg, variables)
             else:
@@ -191,17 +196,14 @@ class ConversationManager:
                 duration_seconds=duration,
                 tasks_completed=0,
                 tasks_failed=1,
-                error=str(e)
+                error=str(e),
             )
 
             self.history.append(result)
             return result
 
     async def _execute_groupchat_workflow(
-        self,
-        workflow_name: str,
-        workflow_cfg: Dict[str, Any],
-        variables: Dict[str, Any]
+        self, workflow_name: str, workflow_cfg: Dict[str, Any], variables: Dict[str, Any]
     ) -> ConversationResult:
         """Execute a group chat workflow"""
         # Get groupchat configuration
@@ -222,9 +224,7 @@ class ConversationManager:
 
         # Create groupchat and manager
         manager = self.groupchat_factory.create_groupchat_manager(
-            groupchat_name,
-            agents,
-            llm_config
+            groupchat_name, agents, llm_config
         )
 
         # Get termination keywords
@@ -241,19 +241,17 @@ class ConversationManager:
 
                 # Start the actual conversation
                 max_turns = workflow_cfg.get("max_turns", 10)
-                
+
                 # Initiate the group chat
                 chat_result = initiator.initiate_chat(
-                    manager,
-                    message=initial_message,
-                    max_turns=max_turns
+                    manager, message=initial_message, max_turns=max_turns
                 )
 
                 # Extract messages from chat history
                 messages = []
-                if hasattr(chat_result, 'chat_history'):
+                if hasattr(chat_result, "chat_history"):
                     messages = chat_result.chat_history
-                elif hasattr(manager, 'chat_messages') and manager.chat_messages:
+                elif hasattr(manager, "chat_messages") and manager.chat_messages:
                     # Get messages from the manager
                     for agent_name, agent_messages in manager.chat_messages.items():
                         messages.extend(agent_messages)
@@ -262,7 +260,9 @@ class ConversationManager:
                 summary_method = workflow_cfg.get("summary_method", "last")
                 if summary_method == "reflection_with_llm" and messages:
                     # Use the last message as summary
-                    summary = messages[-1].get("content", f"GroupChat workflow '{workflow_name}' executed")
+                    summary = messages[-1].get(
+                        "content", f"GroupChat workflow '{workflow_name}' executed"
+                    )
                 else:
                     summary = f"GroupChat workflow '{workflow_name}' completed with {len(messages)} messages"
 
@@ -282,20 +282,19 @@ class ConversationManager:
             summary=summary,
             duration_seconds=0,  # Will be set by caller
             tasks_completed=tasks_completed,
-            tasks_failed=0 if status == "success" else 1
+            tasks_failed=0 if status == "success" else 1,
         )
 
     async def _execute_two_agent_workflow(
-        self,
-        workflow_name: str,
-        workflow_cfg: Dict[str, Any],
-        variables: Dict[str, Any]
+        self, workflow_name: str, workflow_cfg: Dict[str, Any], variables: Dict[str, Any]
     ) -> ConversationResult:
         """Execute a two-agent conversation workflow"""
         agent_names = workflow_cfg.get("agents", [])
 
         if len(agent_names) != 2:
-            raise ValueError(f"Two-agent workflow requires exactly 2 agents, got {len(agent_names)}")
+            raise ValueError(
+                f"Two-agent workflow requires exactly 2 agents, got {len(agent_names)}"
+            )
 
         # Get agents
         agent1 = self.agent_factory.get_agent(agent_names[0])
@@ -314,16 +313,12 @@ class ConversationManager:
         # Execute actual two-agent conversation
         messages = []
         try:
-            chat_result = agent1.initiate_chat(
-                agent2,
-                message=initial_message,
-                max_turns=max_turns
-            )
+            chat_result = agent1.initiate_chat(agent2, message=initial_message, max_turns=max_turns)
 
             # Extract messages from chat history
-            if hasattr(chat_result, 'chat_history'):
+            if hasattr(chat_result, "chat_history"):
                 messages = chat_result.chat_history
-            elif hasattr(agent1, 'chat_messages') and agent1.chat_messages:
+            elif hasattr(agent1, "chat_messages") and agent1.chat_messages:
                 # Get messages from agent1
                 for agent_name, agent_messages in agent1.chat_messages.items():
                     messages.extend(agent_messages)
@@ -342,14 +337,11 @@ class ConversationManager:
             summary=summary,
             duration_seconds=0,
             tasks_completed=1 if status == "success" else 0,
-            tasks_failed=0 if status == "success" else 1
+            tasks_failed=0 if status == "success" else 1,
         )
 
     async def _execute_nested_workflow(
-        self,
-        workflow_name: str,
-        workflow_cfg: Dict[str, Any],
-        variables: Dict[str, Any]
+        self, workflow_name: str, workflow_cfg: Dict[str, Any], variables: Dict[str, Any]
     ) -> ConversationResult:
         """Execute a nested conversation workflow"""
         child_conversations = workflow_cfg.get("child_conversations", [])
@@ -366,9 +358,7 @@ class ConversationManager:
             try:
                 if child_type == "two_agent":
                     result = await self._execute_two_agent_workflow(
-                        child_name,
-                        child_cfg,
-                        variables
+                        child_name, child_cfg, variables
                     )
                     all_messages.extend(result.messages)
                     tasks_completed += 1
@@ -385,7 +375,7 @@ class ConversationManager:
             summary=summary,
             duration_seconds=0,
             tasks_completed=tasks_completed,
-            tasks_failed=tasks_failed
+            tasks_failed=tasks_failed,
         )
 
     def get_workflow_history(self, limit: int = 10) -> List[Dict[str, Any]]:
@@ -408,7 +398,7 @@ class ConversationManager:
                 "duration_seconds": r.duration_seconds,
                 "tasks_completed": r.tasks_completed,
                 "tasks_failed": r.tasks_failed,
-                "error": r.error
+                "error": r.error,
             }
             for r in recent
         ]
@@ -437,7 +427,7 @@ class ConversationManager:
 
 # Convenience function
 async def create_conversation_manager(
-    config_path: str = "config/autogen_workflows.yaml"
+    config_path: str = "config/autogen_workflows.yaml",
 ) -> ConversationManager:
     """
     Create and initialize a ConversationManager instance.

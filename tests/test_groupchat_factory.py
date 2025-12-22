@@ -57,8 +57,14 @@ class TestGroupChatFactoryInit:
         factory = GroupChatFactory(config_path=mock_groupchat_config)
 
         assert factory.config_path == mock_groupchat_config
-        assert "code_review_team" in factory.groupchat_configs or "code_review_team" in factory.list_groupchats()
-        assert "security_team" in factory.groupchat_configs or "security_team" in factory.list_groupchats()
+        assert (
+            "code_review_team" in factory.groupchat_configs
+            or "code_review_team" in factory.list_groupchats()
+        )
+        assert (
+            "security_team" in factory.groupchat_configs
+            or "security_team" in factory.list_groupchats()
+        )
         assert len(factory.groupchats) == 0
 
     def test_init_with_missing_config(self):
@@ -84,7 +90,7 @@ class TestGroupChatCreation:
         factory = GroupChatFactory(config_path=mock_groupchat_config)
 
         # Mock the AutoGen GroupChat class
-        with patch('src.autogen_adapters.groupchat_factory.GroupChat') as MockGroupChat:
+        with patch("src.autogen_adapters.groupchat_factory.GroupChat") as MockGroupChat:
             mock_groupchat = Mock()
             MockGroupChat.return_value = mock_groupchat
 
@@ -98,29 +104,25 @@ class TestGroupChatCreation:
         """Test creating group chat from configuration"""
         factory = GroupChatFactory(config_path=mock_groupchat_config)
 
-        with patch('src.autogen_adapters.groupchat_factory.GroupChat') as MockGroupChat:
+        with patch("src.autogen_adapters.groupchat_factory.GroupChat") as MockGroupChat:
             MockGroupChat.return_value = Mock()
 
             # create_groupchat expects Dict[str, agent], not List
-            groupchat = factory.create_groupchat(
-                "code_review_team",
-                mock_agents
-            )
+            groupchat = factory.create_groupchat("code_review_team", mock_agents)
 
             # Verify GroupChat was called with config parameters
             call_kwargs = MockGroupChat.call_args[1]
             assert call_kwargs["max_round"] == 10
-            assert "speaker_selection_method" in call_kwargs or "allow_repeat_speaker" in call_kwargs
+            assert (
+                "speaker_selection_method" in call_kwargs or "allow_repeat_speaker" in call_kwargs
+            )
 
     def test_create_groupchat_invalid_config(self, mock_groupchat_config, mock_agents):
         """Test creating group chat with invalid config name"""
         factory = GroupChatFactory(config_path=mock_groupchat_config)
 
         with pytest.raises(ValueError, match="not found"):
-            factory.create_groupchat(
-                "nonexistent_chat",
-                mock_agents
-            )
+            factory.create_groupchat("nonexistent_chat", mock_agents)
 
 
 class TestGroupChatManager:
@@ -130,8 +132,8 @@ class TestGroupChatManager:
         """Test basic manager creation"""
         factory = GroupChatFactory(config_path=mock_groupchat_config)
 
-        with patch('src.autogen_adapters.groupchat_factory.GroupChat') as MockGroupChat:
-            with patch('src.autogen_adapters.groupchat_factory.GroupChatManager') as MockManager:
+        with patch("src.autogen_adapters.groupchat_factory.GroupChat") as MockGroupChat:
+            with patch("src.autogen_adapters.groupchat_factory.GroupChatManager") as MockManager:
                 mock_groupchat = Mock()
                 MockGroupChat.return_value = mock_groupchat
                 mock_manager = Mock()
@@ -147,8 +149,8 @@ class TestGroupChatManager:
         """Test creating manager from configuration"""
         factory = GroupChatFactory(config_path=mock_groupchat_config)
 
-        with patch('src.autogen_adapters.groupchat_factory.GroupChat') as MockGroupChat:
-            with patch('src.autogen_adapters.groupchat_factory.GroupChatManager') as MockManager:
+        with patch("src.autogen_adapters.groupchat_factory.GroupChat") as MockGroupChat:
+            with patch("src.autogen_adapters.groupchat_factory.GroupChatManager") as MockManager:
                 mock_groupchat = Mock()
                 MockGroupChat.return_value = mock_groupchat
                 mock_manager = Mock()
@@ -156,10 +158,7 @@ class TestGroupChatManager:
 
                 agents_list = [Mock() for _ in range(3)]
                 groupchat = factory.create_groupchat("test", agents)
-                manager = factory.create_manager_from_config(
-                    groupchat,
-                    "default_manager"
-                )
+                manager = factory.create_manager_from_config(groupchat, "default_manager")
 
                 MockManager.assert_called_once()
                 # Verify system_message was passed
@@ -204,7 +203,7 @@ class TestGroupChatStorage:
         """Test storing created group chats"""
         factory = GroupChatFactory(config_path=mock_groupchat_config)
 
-        with patch('src.autogen_adapters.groupchat_factory.GroupChat') as MockGroupChat:
+        with patch("src.autogen_adapters.groupchat_factory.GroupChat") as MockGroupChat:
             mock_groupchat = Mock()
             MockGroupChat.return_value = mock_groupchat
 
@@ -219,7 +218,7 @@ class TestGroupChatStorage:
         """Test retrieving stored group chats"""
         factory = GroupChatFactory(config_path=mock_groupchat_config)
 
-        with patch('src.autogen_adapters.groupchat_factory.GroupChat') as MockGroupChat:
+        with patch("src.autogen_adapters.groupchat_factory.GroupChat") as MockGroupChat:
             mock_groupchat = Mock()
             MockGroupChat.return_value = mock_groupchat
 
@@ -253,7 +252,7 @@ class TestGroupChatListing:
         """Test listing created group chats"""
         factory = GroupChatFactory(config_path=mock_groupchat_config)
 
-        with patch('src.autogen_adapters.groupchat_factory.GroupChat') as MockGroupChat:
+        with patch("src.autogen_adapters.groupchat_factory.GroupChat") as MockGroupChat:
             MockGroupChat.return_value = Mock()
 
             agents_list = list(mock_agents.values())[:3]
@@ -276,7 +275,7 @@ class TestAgentValidation:
         # Should accept list of agents
         agents = [Mock(name="agent1"), Mock(name="agent2")]
 
-        with patch('src.autogen_adapters.groupchat_factory.GroupChat'):
+        with patch("src.autogen_adapters.groupchat_factory.GroupChat"):
             # Should not raise
             factory.create_groupchat("test", agents, max_round=5)
 
@@ -284,7 +283,7 @@ class TestAgentValidation:
         """Test handling empty agents list"""
         factory = GroupChatFactory(config_path=mock_groupchat_config)
 
-        with patch('src.autogen_adapters.groupchat_factory.GroupChat') as MockGroupChat:
+        with patch("src.autogen_adapters.groupchat_factory.GroupChat") as MockGroupChat:
             # Some implementations may allow empty list
             factory.create_groupchat("test", [], max_round=5)
             MockGroupChat.assert_called_once()
@@ -307,7 +306,7 @@ class TestMaxRoundConfiguration:
         """Test overriding max_round"""
         factory = GroupChatFactory(config_path=mock_groupchat_config)
 
-        with patch('src.autogen_adapters.groupchat_factory.GroupChat') as MockGroupChat:
+        with patch("src.autogen_adapters.groupchat_factory.GroupChat") as MockGroupChat:
             MockGroupChat.return_value = Mock()
 
             agents_list = list(mock_agents.values())[:3]
@@ -336,24 +335,18 @@ class TestGroupChatFactoryIntegration:
         """Test pipeline from config to groupchat to manager"""
         factory = GroupChatFactory(config_path=mock_groupchat_config)
 
-        with patch('src.autogen_adapters.groupchat_factory.GroupChat') as MockGroupChat:
-            with patch('src.autogen_adapters.groupchat_factory.GroupChatManager') as MockManager:
+        with patch("src.autogen_adapters.groupchat_factory.GroupChat") as MockGroupChat:
+            with patch("src.autogen_adapters.groupchat_factory.GroupChatManager") as MockManager:
                 MockGroupChat.return_value = Mock()
                 MockManager.return_value = Mock()
 
                 agents_list = list(mock_agents.values())[:3]
 
                 # Create groupchat from config
-                groupchat = factory.create_groupchat(
-                    "code_review_team",
-                    agents_list
-                )
+                groupchat = factory.create_groupchat("code_review_team", agents_list)
 
                 # Create manager
-                manager = factory.create_manager_from_config(
-                    groupchat,
-                    "default_manager"
-                )
+                manager = factory.create_manager_from_config(groupchat, "default_manager")
 
                 # Verify both were created
                 MockGroupChat.assert_called_once()
@@ -385,7 +378,7 @@ group_chats:
         factory = GroupChatFactory(config_path=str(config_file))
 
         # Should handle missing fields gracefully
-        with patch('src.autogen_adapters.groupchat_factory.GroupChat'):
+        with patch("src.autogen_adapters.groupchat_factory.GroupChat"):
             # May raise error or use defaults depending on implementation
             try:
                 factory.create_groupchat("incomplete_chat", [Mock()])

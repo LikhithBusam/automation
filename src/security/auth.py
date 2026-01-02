@@ -9,7 +9,7 @@ import logging
 import os
 import secrets
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from functools import wraps
 from typing import Any, Dict, List, Optional
@@ -144,7 +144,7 @@ class AuthManager:
                 email="admin@localhost",
                 role=Role.ADMIN,
                 api_keys=[],
-                created_at=datetime.utcnow(),
+                created_at=datetime.now(timezone.utc),
                 is_active=True,
             )
             self._users[admin_user.user_id] = admin_user
@@ -152,7 +152,7 @@ class AuthManager:
 
     def create_user(self, username: str, email: Optional[str], role: Role = Role.DEVELOPER) -> User:
         """Create a new user"""
-        user_id = hashlib.sha256(f"{username}:{datetime.utcnow()}".encode()).hexdigest()[:16]
+        user_id = hashlib.sha256(f"{username}:{datetime.now(timezone.utc)}".encode()).hexdigest()[:16]
 
         user = User(
             user_id=user_id,
@@ -160,7 +160,7 @@ class AuthManager:
             email=email,
             role=role,
             api_keys=[],
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
 
         self._users[user_id] = user
@@ -204,7 +204,7 @@ class AuthManager:
             return None
 
         # Update last login
-        user.last_login = datetime.utcnow()
+        user.last_login = datetime.now(timezone.utc)
         return user
 
     def revoke_api_key(self, user_id: str, api_key: str) -> bool:
@@ -234,8 +234,8 @@ class AuthManager:
             "user_id": user.user_id,
             "username": user.username,
             "role": user.role.value,
-            "exp": datetime.utcnow() + timedelta(hours=self.token_expiry_hours),
-            "iat": datetime.utcnow(),
+            "exp": datetime.now(timezone.utc) + timedelta(hours=self.token_expiry_hours),
+            "iat": datetime.now(timezone.utc),
         }
 
         token = jwt.encode(payload, self.secret_key, algorithm=self.algorithm)
@@ -253,7 +253,7 @@ class AuthManager:
 
             user = self._users.get(user_id)
             if user and user.is_active:
-                user.last_login = datetime.utcnow()
+                user.last_login = datetime.now(timezone.utc)
                 return user
 
             return None

@@ -1,0 +1,210 @@
+# ============================================================================
+# Main Application Deployment
+# Production-ready deployment with replica sets, resource limits, and probes
+# ============================================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: automaton-app
+  namespace: automaton-production
+  labels:
+    app: automaton
+    component: app
+    tier: backend
+    app.kubernetes.io/name: automaton
+    app.kubernetes.io/component: app
+    app.kubernetes.io/version: "2.0.0"
+spec:
+  replicas: 3  # High availability with 3 replicas
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0  # Zero-downtime deployments
+  selector:
+    matchLabels:
+      app: automaton
+      component: app
+  template:
+    metadata:
+      labels:
+        app: automaton
+        component: app
+        tier: backend
+        app.kubernetes.io/name: automaton
+        app.kubernetes.io/component: app
+        app.kubernetes.io/version: "2.0.0"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      # Security context
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      
+      # Service account
+      serviceAccountName: automaton-app-sa
+      
+      # Init containers for setup
+      initContainers:
+      - name: wait-for-db
+        image: busybox:1.36
+        command: ['sh', '-c', 'until nc -z automaton-postgres 5432; do echo waiting for postgres; sleep 2; done;']
+      - name: wait-for-redis
+        image: busybox:1.36
+        command: ['sh', '-c', 'until nc -z automaton-redis 6379; do echo waiting for redis; sleep 2; done;']
+      
+      containers:
+      - name: app
+        image: automaton-app:2.0.0  # Replace with your registry
+        imagePullPolicy: IfNotPresent
+        
+        # Ports
+        ports:
+        - name: http
+          containerPort: 8000
+          protocol: TCP
+        - name: metrics
+          containerPort: 9090
+          protocol: TCP
+        
+        # Environment variables from ConfigMap and Secrets
+        env:
+        - name: APP_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: automaton-app-config
+              key: APP_PORT
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: automaton-app-config
+              key: LOG_LEVEL
+        - name: OPENROUTER_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: automaton-app-secrets
+              key: OPENROUTER_API_KEY
+        - name: GITHUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: automaton-app-secrets
+              key: GITHUB_TOKEN
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: automaton-app-secrets
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: automaton-app-secrets
+              key: POSTGRES_PASSWORD
+        - name: DATABASE_URL
+          value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@automaton-postgres:5432/automaton"
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: automaton-app-secrets
+              key: REDIS_PASSWORD
+        - name: REDIS_URL
+          value: "redis://:$(REDIS_PASSWORD)@automaton-redis:6379/0"
+        
+        # Volume mounts
+        volumeMounts:
+        - name: app-data
+          mountPath: /app/data
+        - name: app-logs
+          mountPath: /app/logs
+        - name: app-workspace
+          mountPath: /app/workspace
+        - name: config
+          mountPath: /app/config
+          readOnly: true
+        
+        # Resource limits and requests
+        resources:
+          requests:
+            cpu: "500m"      # 0.5 CPU
+            memory: "1Gi"    # 1 GB RAM
+          limits:
+            cpu: "2000m"     # 2 CPU
+            memory: "4Gi"    # 4 GB RAM
+        
+        # Liveness probe
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          successThreshold: 1
+          failureThreshold: 3
+        
+        # Readiness probe
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        
+        # Startup probe (for slow-starting containers)
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 30  # 5 minutes max startup time
+      
+      # Volumes
+      volumes:
+      - name: app-data
+        persistentVolumeClaim:
+          claimName: automaton-app-data-pvc
+      - name: app-logs
+        emptyDir: {}
+      - name: app-workspace
+        persistentVolumeClaim:
+          claimName: automaton-app-data-pvc
+      - name: config
+        configMap:
+          name: automaton-app-config
+      
+      # Affinity rules for pod distribution
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - automaton
+                - key: component
+                  operator: In
+                  values:
+                  - app
+              topologyKey: kubernetes.io/hostname
+      
+      # Tolerations (if using tainted nodes)
+      tolerations: []
+      
+      # Node selector (optional)
+      # nodeSelector:
+      #   workload-type: compute
+

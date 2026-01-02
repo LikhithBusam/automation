@@ -127,7 +127,8 @@ services:
       - '--web.console.libraries=/usr/share/prometheus/console_libraries'
       - '--web.console.templates=/usr/share/prometheus/consoles'
     volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/alerts.yml:/etc/prometheus/alerts/alerts.yml:ro
       - prometheus_data:/prometheus
     ports:
       - "${PROMETHEUS_PORT:-9091}:9090"
@@ -160,6 +161,141 @@ services:
       - automaton-network
     restart: unless-stopped
 
+  # ============================================================================
+  # Alertmanager
+  # ============================================================================
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: automaton-alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    volumes:
+      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_data:/alertmanager
+    ports:
+      - "${ALERTMANAGER_PORT:-9093}:9093"
+    depends_on:
+      - prometheus
+    networks:
+      - automaton-network
+    restart: unless-stopped
+
+  # ============================================================================
+  # Jaeger Distributed Tracing
+  # ============================================================================
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: automaton-jaeger
+    environment:
+      COLLECTOR_ZIPKIN_HTTP_PORT: 9411
+    ports:
+      - "${JAEGER_UI_PORT:-16686}:16686"  # UI
+      - "${JAEGER_COLLECTOR_PORT:-14268}:14268"  # HTTP collector
+      - "${JAEGER_AGENT_PORT:-6831}:6831/udp"  # UDP agent
+      - "9411:9411"  # Zipkin
+    networks:
+      - automaton-network
+    restart: unless-stopped
+
+  # ============================================================================
+  # ELK Stack - Elasticsearch
+  # ============================================================================
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: automaton-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+      - xpack.security.enabled=false
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    ports:
+      - "${ELASTICSEARCH_PORT:-9200}:9200"
+      - "9300:9300"
+    networks:
+      - automaton-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # ============================================================================
+  # ELK Stack - Logstash
+  # ============================================================================
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.11.0
+    container_name: automaton-logstash
+    volumes:
+      - ./monitoring/logstash/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+    ports:
+      - "5000:5000"
+      - "5044:5044"
+    depends_on:
+      - elasticsearch
+    networks:
+      - automaton-network
+    restart: unless-stopped
+
+  # ============================================================================
+  # ELK Stack - Kibana
+  # ============================================================================
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: automaton-kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - "${KIBANA_PORT:-5601}:5601"
+    depends_on:
+      - elasticsearch
+    networks:
+      - automaton-network
+    restart: unless-stopped
+
+  # ============================================================================
+  # Message Queue - RabbitMQ
+  # ============================================================================
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: automaton-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"  # AMQP
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"  # Management UI
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - automaton-network
+    restart: unless-stopped
+
+  # ============================================================================
+  # Service Discovery - Consul
+  # ============================================================================
+  consul:
+    image: consul:latest
+    container_name: automaton-consul
+    command: consul agent -dev -client=0.0.0.0 -ui
+    ports:
+      - "${CONSUL_PORT:-8500}:8500"  # HTTP API
+      - "8300:8300"  # Server RPC
+      - "8301:8301"  # Serf LAN
+      - "8302:8302"  # Serf WAN
+    volumes:
+      - consul_data:/consul/data
+    networks:
+      - automaton-network
+    restart: unless-stopped
+
 # ============================================================================
 # Volumes
 # ============================================================================
@@ -171,6 +307,14 @@ volumes:
   prometheus_data:
     driver: local
   grafana_data:
+    driver: local
+  alertmanager_data:
+    driver: local
+  elasticsearch_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
+  consul_data:
     driver: local
 
 # ============================================================================

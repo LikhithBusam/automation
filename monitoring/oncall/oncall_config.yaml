@@ -1,0 +1,113 @@
+# On-Call Rotation and Escalation Configuration
+
+# On-call schedules
+schedules:
+  primary:
+    name: "Primary On-Call"
+    timezone: "America/New_York"
+    rotations:
+      - name: "Week 1"
+        users:
+          - "user1@example.com"
+          - "user2@example.com"
+        start_date: "2024-01-01"
+        rotation_type: "weekly"
+        handoff_time: "09:00"
+  
+  secondary:
+    name: "Secondary On-Call"
+    timezone: "America/New_York"
+    rotations:
+      - name: "Week 1"
+        users:
+          - "user3@example.com"
+          - "user4@example.com"
+        start_date: "2024-01-01"
+        rotation_type: "weekly"
+        handoff_time: "09:00"
+
+# Escalation policies
+escalation_policies:
+  critical:
+    name: "Critical Alerts Escalation"
+    steps:
+      - level: 1
+        delay_minutes: 0
+        notify:
+          - type: "pagerduty"
+            service_key: "${PAGERDUTY_CRITICAL_KEY}"
+          - type: "slack"
+            channel: "#critical-alerts"
+      
+      - level: 2
+        delay_minutes: 15
+        notify:
+          - type: "pagerduty"
+            service_key: "${PAGERDUTY_ESCALATION_KEY}"
+          - type: "phone"
+            numbers: ["+1234567890"]
+      
+      - level: 3
+        delay_minutes: 30
+        notify:
+          - type: "email"
+            recipients: ["oncall-manager@example.com"]
+          - type: "slack"
+            channel: "#engineering-managers"
+  
+  security:
+    name: "Security Alerts Escalation"
+    steps:
+      - level: 1
+        delay_minutes: 0
+        notify:
+          - type: "slack"
+            channel: "#security-team"
+          - type: "email"
+            recipients: ["security@example.com"]
+      
+      - level: 2
+        delay_minutes: 10
+        notify:
+          - type: "pagerduty"
+            service_key: "${PAGERDUTY_SECURITY_KEY}"
+          - type: "phone"
+            numbers: ["+1234567891"]
+  
+  performance:
+    name: "Performance Alerts Escalation"
+    steps:
+      - level: 1
+        delay_minutes: 0
+        notify:
+          - type: "slack"
+            channel: "#performance-team"
+      
+      - level: 2
+        delay_minutes: 30
+        notify:
+          - type: "email"
+            recipients: ["performance-team@example.com"]
+
+# Alert routing by severity
+alert_routing:
+  critical:
+    escalation_policy: "critical"
+    schedule: "primary"
+    auto_escalate: true
+  
+  high:
+    escalation_policy: "critical"
+    schedule: "primary"
+    auto_escalate: false
+  
+  medium:
+    escalation_policy: "performance"
+    schedule: "secondary"
+    auto_escalate: false
+  
+  low:
+    escalation_policy: null
+    schedule: "secondary"
+    auto_escalate: false
+

@@ -270,13 +270,17 @@ class MemoryMCPTool(BaseMCPTool):
 
     async def _store_memory(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Store a memory entry with tier management"""
+        # Validate required parameters
+        if "content" not in params:
+            raise MCPValidationError("Missing required parameter: content")
+        
         # Determine tier
         tier = self._determine_tier(params)
 
         # Build memory data
         memory_data = {
             "content": params["content"],
-            "type": params["type"],
+            "type": params.get("type", "context"),  # Default to "context" if not provided
             "tier": tier,
             "tags": params.get("tags", []),
             "agent": params.get("agent", "unknown"),

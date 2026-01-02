@@ -124,6 +124,10 @@ runs/
 checkpoints/
 reports/
 old_tests/
+*.pid
+daemon_state.json
+app_state.json
+memory_fallback.json
 
 # Cache directories
 .cache/
@@ -144,4 +148,21 @@ dump.rdb
 # Node modules (if any JS tooling)
 node_modules/
 
+# Temporary test files
+*_test.txt
+*_test_results.txt
+test_output.txt
+final_test.txt
+simple_test.txt
+mcp_test_results.txt
+
+# OS specific
 nul
+Thumbs.db
+.DS_Store
+
+# Duplicate directories (keep only one)
+scripts/daemon/
+scripts/data/
+scripts/logs/
+scripts/reports/

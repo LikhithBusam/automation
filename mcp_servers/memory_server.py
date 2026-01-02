@@ -9,6 +9,7 @@ import logging
 import os
 import re
 import sqlite3
+import sys
 import time
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass
@@ -21,14 +22,23 @@ import yaml
 from fastmcp import FastMCP
 
 # Conditional import for sentence-transformers
-try:
-    from sentence_transformers import SentenceTransformer
+# Python 3.13+ has compatibility issues with sentence-transformers
+EMBEDDINGS_AVAILABLE = False
+embedding_model = None
 
-    EMBEDDINGS_AVAILABLE = True
-except ImportError:
-    EMBEDDINGS_AVAILABLE = False
+if sys.version_info < (3, 13):
+    try:
+        from sentence_transformers import SentenceTransformer
+        EMBEDDINGS_AVAILABLE = True
+    except ImportError:
+        logging.warning(
+            "sentence-transformers not installed. Semantic search will use keyword matching."
+        )
+else:
     logging.warning(
-        "sentence-transformers not installed. Semantic search will use keyword matching."
+        f"Python {sys.version_info.major}.{sys.version_info.minor} detected. "
+        "sentence-transformers has known compatibility issues with Python 3.13+. "
+        "Using keyword-based search fallback."
     )
 
 
@@ -106,15 +116,16 @@ VALID_MEMORY_TYPES = CONFIG.get(
 # Embedding model name (from config)
 EMBEDDING_MODEL_NAME = CONFIG.get("embedding_model", "all-MiniLM-L6-v2")
 
-# Initialize embedding model
-embedding_model = None
-if EMBEDDINGS_AVAILABLE:
+# Initialize embedding model (only if Python < 3.13)
+if EMBEDDINGS_AVAILABLE and sys.version_info < (3, 13):
     try:
+        from sentence_transformers import SentenceTransformer
         embedding_model = SentenceTransformer(EMBEDDING_MODEL_NAME)
         logger.info(f"Loaded sentence-transformers embedding model: {EMBEDDING_MODEL_NAME}")
     except Exception as e:
         logger.warning(f"Failed to load embedding model: {e}")
         EMBEDDINGS_AVAILABLE = False
+        embedding_model = None
 
 
 def init_database():

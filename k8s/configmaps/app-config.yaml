@@ -1,0 +1,48 @@
+# ============================================================================
+# Application ConfigMap
+# Non-sensitive configuration for the main application
+# ============================================================================
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: automaton-app-config
+  namespace: automaton-production
+  labels:
+    app: automaton
+    component: app
+    app.kubernetes.io/name: automaton
+    app.kubernetes.io/component: config
+data:
+  # Application settings
+  APP_PORT: "8000"
+  METRICS_PORT: "9090"
+  LOG_LEVEL: "INFO"
+  MAX_WORKERS: "4"
+  GPU_ENABLED: "false"
+  
+  # MCP Server URLs (internal cluster DNS)
+  MCP_GITHUB_URL: "http://automaton-mcp-github:3000/mcp/github"
+  MCP_FILESYSTEM_URL: "http://automaton-mcp-filesystem:3001/mcp/filesystem"
+  MCP_MEMORY_URL: "http://automaton-mcp-memory:3002/mcp/memory"
+  MCP_CODEBASEBUDDY_URL: "http://automaton-mcp-codebasebuddy:3004/mcp/codebasebuddy"
+  
+  # Database connection (hostname from service)
+  DATABASE_HOST: "automaton-postgres"
+  DATABASE_PORT: "5432"
+  DATABASE_NAME: "automaton"
+  
+  # Redis connection (hostname from service)
+  REDIS_HOST: "automaton-redis"
+  REDIS_PORT: "6379"
+  
+  # Prometheus metrics
+  METRICS_ENABLED: "true"
+  METRICS_PATH: "/metrics"
+  
+  # Feature flags
+  ENABLE_TEACHABLE_AGENT: "true"
+  ENABLE_MEMORY_TIERS: "true"
+  ENABLE_CIRCUIT_BREAKER: "true"
+  ENABLE_RATE_LIMITING: "true"
+

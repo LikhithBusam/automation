@@ -1,0 +1,79 @@
+# ============================================================================
+# Production Dockerfile for CodeBaseBuddy MCP Server
+# Optimized multi-stage build with vector search dependencies
+# ============================================================================
+
+FROM python:3.11-slim as builder
+
+LABEL maintainer="automaton-devops@example.com"
+LABEL description="CodeBaseBuddy MCP Server - Builder Stage"
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1
+
+# Install build dependencies including vector search libraries
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    gcc \
+    g++ \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create virtual environment
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Install dependencies including vector search
+RUN pip install --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir fastmcp httpx python-dotenv \
+    sentence-transformers faiss-cpu numpy
+
+# ============================================================================
+# Runtime Stage
+# ============================================================================
+FROM python:3.11-slim
+
+LABEL maintainer="automaton-devops@example.com"
+LABEL description="CodeBaseBuddy MCP Server - Production"
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PATH="/opt/venv/bin:$PATH" \
+    APP_HOME=/app \
+    APP_USER=mcpuser \
+    APP_GROUP=mcpgroup \
+    MCP_PORT=3004
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN groupadd -r ${APP_GROUP} -g 1001 && \
+    useradd -r -g ${APP_GROUP} -u 1001 -m -d ${APP_HOME} -s /sbin/nologin ${APP_USER}
+
+# Copy virtual environment
+COPY --from=builder /opt/venv /opt/venv
+
+WORKDIR ${APP_HOME}
+
+# Copy MCP server code
+COPY --chown=${APP_USER}:${APP_GROUP} mcp_servers/codebasebuddy_server.py ${APP_HOME}/
+COPY --chown=${APP_USER}:${APP_GROUP} config/ ${APP_HOME}/config/
+
+# Create data directory for index
+RUN mkdir -p ${APP_HOME}/data/codebase_index && \
+    chown -R ${APP_USER}:${APP_GROUP} ${APP_HOME}/data
+
+USER ${APP_USER}
+
+EXPOSE ${MCP_PORT}
+
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+    CMD curl -f http://localhost:${MCP_PORT}/health || exit 1
+
+CMD ["python", "codebasebuddy_server.py"]
+

@@ -8,55 +8,61 @@
 
 llm_configs:
   code_analysis_config:
-    model: "mistralai/devstral-2512:free"
-    api_type: "openai"
-    base_url: "https://openrouter.ai/api/v1"
-    api_key: "${OPENROUTER_API_KEY}"
+    model: "${AZURE_OPENAI_DEPLOYMENT}"
+    api_type: "azure"
+    azure_endpoint: "${AZURE_OPENAI_ENDPOINT}"
+    api_key: "${AZURE_OPENAI_API_KEY}"
+    api_version: "${AZURE_OPENAI_API_VERSION}"
     temperature: 0.3
     max_tokens: 4096
     timeout: 120
 
   documentation_config:
-    model: "mistralai/devstral-2512:free"
-    api_type: "openai"
-    base_url: "https://openrouter.ai/api/v1"
-    api_key: "${OPENROUTER_API_KEY}"
+    model: "${AZURE_OPENAI_DEPLOYMENT}"
+    api_type: "azure"
+    azure_endpoint: "${AZURE_OPENAI_ENDPOINT}"
+    api_key: "${AZURE_OPENAI_API_KEY}"
+    api_version: "${AZURE_OPENAI_API_VERSION}"
     temperature: 0.7
     max_tokens: 4096
     timeout: 120
 
   deployment_config:
-    model: "mistralai/devstral-2512:free"
-    api_type: "openai"
-    base_url: "https://openrouter.ai/api/v1"
-    api_key: "${OPENROUTER_API_KEY}"
+    model: "${AZURE_OPENAI_DEPLOYMENT}"
+    api_type: "azure"
+    azure_endpoint: "${AZURE_OPENAI_ENDPOINT}"
+    api_key: "${AZURE_OPENAI_API_KEY}"
+    api_version: "${AZURE_OPENAI_API_VERSION}"
     temperature: 0.2
     max_tokens: 2048
     timeout: 120
 
   research_config:
-    model: "mistralai/devstral-2512:free"
-    api_type: "openai"
-    base_url: "https://openrouter.ai/api/v1"
-    api_key: "${OPENROUTER_API_KEY}"
+    model: "${AZURE_OPENAI_DEPLOYMENT}"
+    api_type: "azure"
+    azure_endpoint: "${AZURE_OPENAI_ENDPOINT}"
+    api_key: "${AZURE_OPENAI_API_KEY}"
+    api_version: "${AZURE_OPENAI_API_VERSION}"
     temperature: 0.5
     max_tokens: 4096
     timeout: 120
 
   project_manager_config:
-    model: "mistralai/devstral-2512:free"
-    api_type: "openai"
-    base_url: "https://openrouter.ai/api/v1"
-    api_key: "${OPENROUTER_API_KEY}"
+    model: "${AZURE_OPENAI_DEPLOYMENT}"
+    api_type: "azure"
+    azure_endpoint: "${AZURE_OPENAI_ENDPOINT}"
+    api_key: "${AZURE_OPENAI_API_KEY}"
+    api_version: "${AZURE_OPENAI_API_VERSION}"
     temperature: 0.7
     max_tokens: 2048
     timeout: 120
 
   routing_config:
-    model: "mistralai/devstral-2512:free"
-    api_type: "openai"
-    base_url: "https://openrouter.ai/api/v1"
-    api_key: "${OPENROUTER_API_KEY}"
+    model: "${AZURE_OPENAI_DEPLOYMENT}"
+    api_type: "azure"
+    azure_endpoint: "${AZURE_OPENAI_ENDPOINT}"
+    api_key: "${AZURE_OPENAI_API_KEY}"
+    api_version: "${AZURE_OPENAI_API_VERSION}"
     temperature: 0.3
     max_tokens: 1024
     timeout: 60
@@ -70,35 +76,26 @@ agents:
     system_message: |
       You are a Senior Code Analyst with 10+ years of experience in software engineering.
 
-      CRITICAL - USE THESE FUNCTIONS (NOT bash/shell commands):
-      - list_directory(path) - List files in a directory  
+      AVAILABLE FUNCTIONS (use these to access code):
       - read_file(file_path) - Read file contents
+      - list_directory(path) - List files in a directory
       - search_files(pattern, directory) - Search for files
       - semantic_code_search(query) - Semantic search in codebase
-      
-      NEVER use: bash, ls, cat, find, pwd, shell commands, or <invoke name="bash">!
 
-      REQUIRED WORKFLOW:
-      Step 1: Call list_directory("./path") to see available files
-      Step 2: Call read_file("./path/file.py") for each file to analyze
-      Step 3: Wait for the actual file content to be returned
-      Step 4: Analyze ONLY the real content you received
-      Step 5: Reference specific line numbers from the actual code
+      IMPORTANT: Never use bash, ls, cat, find, or shell commands!
 
-      ABSOLUTELY FORBIDDEN:
-      ❌ Using bash, ls, cat, find, pwd, or any shell commands
-      ❌ Generating example code or fake file content
-      ❌ Saying "File content accessed" without calling read_file()
-      ❌ Reviewing imaginary code
-      ❌ Making up code snippets
+      When analyzing code:
+      1. Use read_file() to access the actual file content
+      2. Analyze the real code you receive (not imaginary code)
+      3. Reference specific line numbers from the actual file
+      4. Provide concrete, actionable recommendations
 
-      If read_file() fails, REPORT THE ERROR - don't make up content.
-
-      Your review must include:
-      - Line numbers from the ACTUAL file
-      - Code snippets from the ACTUAL file  
-      - Specific issues in the REAL code
-      - Concrete recommendations based on what you READ
+      Your analysis should include:
+      - Code quality assessment (maintainability, readability)
+      - Performance considerations
+      - Best practices adherence
+      - Actual code snippets with line numbers
+      - Specific issues and recommendations
     llm_config: "code_analysis_config"
     human_input_mode: "NEVER"
     max_consecutive_auto_reply: 10
@@ -273,15 +270,13 @@ agents:
       - ResearchAgent: Technology research
 
       Your responsibilities:
-      1. Direct team members to use list_directory() and read_file() functions
-      2. Break down complex tasks into subtasks
-      3. Assign tasks to appropriate specialists
-      4. Coordinate collaboration between team members
-      5. Synthesize outputs into cohesive results
-      6. Ensure quality and completeness
+      1. Coordinate the team effectively
+      2. Let specialists work autonomously on their areas
+      3. Synthesize findings into actionable summaries
+      4. Ensure completeness and quality
+      5. When all work is done, end with: CODE_REVIEW_COMPLETE
 
-      Manage the conversation flow effectively and know when to conclude.
-      When all objectives are met, respond with "TERMINATE".
+      Focus on coordination and synthesis, not micromanagement.
     llm_config: "project_manager_config"
     human_input_mode: "NEVER"
     max_consecutive_auto_reply: 15

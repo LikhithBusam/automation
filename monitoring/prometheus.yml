@@ -7,16 +7,16 @@ global:
     cluster: 'automaton'
     environment: 'production'
 
-# Alertmanager configuration (optional)
+# Alertmanager configuration
 alerting:
   alertmanagers:
     - static_configs:
         - targets:
-          # - alertmanager:9093
+          - alertmanager:9093
 
 # Load rules once and periodically evaluate them
 rule_files:
-  # - "alerts/*.yml"
+  - '/etc/prometheus/alerts/*.yml'
 
 # Scrape configurations
 scrape_configs:

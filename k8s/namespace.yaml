@@ -1,0 +1,44 @@
+# ============================================================================
+# Kubernetes Namespace Configuration
+# Multi-tenancy and environment isolation
+# ============================================================================
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: automaton-production
+  labels:
+    name: automaton-production
+    environment: production
+    managed-by: helm
+    app.kubernetes.io/name: automaton
+    app.kubernetes.io/instance: automaton-prod
+    app.kubernetes.io/version: "2.0.0"
+    app.kubernetes.io/component: namespace
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: automaton-staging
+  labels:
+    name: automaton-staging
+    environment: staging
+    managed-by: helm
+    app.kubernetes.io/name: automaton
+    app.kubernetes.io/instance: automaton-staging
+    app.kubernetes.io/version: "2.0.0"
+    app.kubernetes.io/component: namespace
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: automaton-development
+  labels:
+    name: automaton-development
+    environment: development
+    managed-by: helm
+    app.kubernetes.io/name: automaton
+    app.kubernetes.io/instance: automaton-dev
+    app.kubernetes.io/version: "2.0.0"
+    app.kubernetes.io/component: namespace
+

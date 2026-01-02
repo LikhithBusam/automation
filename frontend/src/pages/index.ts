@@ -1,0 +1,7 @@
+export { default as Dashboard } from './Dashboard'
+export { default as NewAnalysis } from './NewAnalysis'
+export { default as Results } from './Results'
+export { default as History } from './History'
+export { default as Agents } from './Agents'
+export { default as Settings } from './Settings'
+export { default as NotFound } from './NotFound'

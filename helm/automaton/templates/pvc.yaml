@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "automaton.fullname" . }}-app-data-pvc
+  namespace: {{ .Values.app.namespace }}
+  labels:
+    {{- include "automaton.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: {{ .Values.global.storageClass }}
+

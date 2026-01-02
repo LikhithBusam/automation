@@ -149,7 +149,24 @@ class WorkflowValidationError(WorkflowError):
 class MCPToolError(AutoGenAssistantError):
     """Base class for MCP tool-related errors"""
 
-    pass
+    def __init__(
+        self,
+        message: str,
+        operation: Optional[str] = None,
+        error_code: Optional[str] = None,
+        details: Optional[Dict[str, Any]] = None,
+    ):
+        """
+        Initialize the MCP tool exception.
+
+        Args:
+            message: Human-readable error message
+            operation: The MCP operation that failed
+            error_code: Machine-readable error code
+            details: Additional error details as a dictionary
+        """
+        super().__init__(message, error_code=error_code, details=details)
+        self.operation = operation
 
 
 class MCPConnectionError(MCPToolError):

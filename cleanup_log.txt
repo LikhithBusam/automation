@@ -1,0 +1,10 @@
+2025-12-31T11:42:02.772987 - 
+[1m======================================================================
+2025-12-31T11:42:02.774466 - PHASE 1: CRITICAL SECURITY - Remove Credentials
+2025-12-31T11:42:02.775246 - ======================================================================[0m
+2025-12-31T11:42:02.776005 -   [DRY RUN] Would delete: c:\Users\Likith\OneDrive\Desktop\automaton\credentials.json - Contains API secrets - MUST NOT be in git
+2025-12-31T11:42:02.776720 -   [DRY RUN] Would delete: c:\Users\Likith\OneDrive\Desktop\automaton\.env.backup - Backup environment file
+2025-12-31T11:48:12.456515 - 
+[1m======================================================================
+2025-12-31T11:48:12.457582 - PHASE 1: CRITICAL SECURITY - Remove Credentials
+2025-12-31T11:48:12.458207 - ======================================================================[0m

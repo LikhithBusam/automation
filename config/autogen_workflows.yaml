@@ -8,21 +8,22 @@ workflows:
     group_chat_config: "code_review_chat"
     description: "Comprehensive code quality and security analysis"
     initial_message_template: |
-      Please analyze the code at: {code_path}
+      Analyze the code at: {code_path}
 
-      Analysis requirements:
+      Please review:
       - Code quality and maintainability
       - Security vulnerabilities
       - Performance considerations
       - Best practices compliance
       {additional_requirements}
 
-      Provide a comprehensive review with specific recommendations.
+      Provide specific findings with line numbers and actionable recommendations.
+      When analysis is complete, end with: CODE_REVIEW_COMPLETE
     message_variables:
       code_path: "${CODE_PATH}"
       additional_requirements: "${ADDITIONAL_REQUIREMENTS}"
     max_turns: 20
-    termination_keywords: ["TERMINATE", "CODE_REVIEW_COMPLETE"]
+    termination_keywords: ["CODE_REVIEW_COMPLETE", "TERMINATE"]
     human_input_required: false
     summary_method: "reflection_with_llm"
     summary_prompt: |
@@ -70,30 +71,36 @@ workflows:
       - Remediation recommendations
       - Compliance considerations
 
-  # Documentation Generation Workflow
+  # Documentation Generation Workflow (Fast two-agent version)
   documentation_generation:
-    type: "group_chat"
-    group_chat_config: "documentation_chat"
+    type: "two_agent"
+    agents: ["documentation_agent", "user_proxy_executor"]
+    initiator: "user_proxy_executor"
     description: "Generate comprehensive project documentation"
     initial_message_template: |
-      Generate {doc_type} documentation for: {code_path}
+      You are a documentation specialist. Generate documentation for this file.
 
-      Requirements:
-      - Format: {format}
-      - Audience: {audience}
-      - Include: {sections}
+      File: {code_path}
 
-      Ensure documentation is accurate, complete, and well-structured.
+      === FILE CONTENT START ===
+      {file_content}
+      === FILE CONTENT END ===
+
+      Please generate:
+      1. A brief description of what this code does
+      2. Key functions/classes and their purposes
+      3. Usage examples
+      4. Any important notes or caveats
+
+      Format the output as clean Markdown documentation.
+
+      When complete, end with TERMINATE
     message_variables:
-      code_path: "${CODE_PATH}"
-      doc_type: "${DOC_TYPE}"  # readme, api, user_guide
-      format: "${FORMAT}"  # markdown, html, rst
-      audience: "${AUDIENCE}"  # developers, users, admins
-      sections: "${SECTIONS}"
-    max_turns: 15
+      code_path: "${code_path}"
+      file_content: "${file_content}"
+    max_turns: 5
     termination_keywords: ["TERMINATE", "DOCUMENTATION_COMPLETE"]
     human_input_required: false
-    summary_method: "last"
 
   # Deployment Workflow
   deployment:
@@ -178,26 +185,29 @@ workflows:
     initiator: "user_proxy_executor"
     description: "Quick code review for small changes"
     initial_message_template: |
-      TASK: Code Review
+      You are a senior code reviewer analyzing a file.
 
-      File to review: {code_path}
+      File: {code_path}
       Focus areas: {focus_areas}
 
-      INSTRUCTIONS FOR CODE ANALYZER:
-      1. Read the file at {code_path} to get the actual code content
-      2. Analyze the REAL code from that file (not examples)
-      3. Provide specific feedback on:
-         - Error handling and edge cases
-         - Security vulnerabilities
-         - Performance issues
-         - Code quality and best practices
-      4. Reference specific line numbers and code sections in your review
-      5. Do NOT execute the code, only analyze it
+      === FILE CONTENT START ===
+      {file_content}
+      === FILE CONTENT END ===
 
-      Please start by reading the file.
+      Please provide a comprehensive code review covering:
+      1. Error handling and edge cases
+      2. Security vulnerabilities (SQL injection, XSS, authentication issues)
+      3. Performance bottlenecks
+      4. Code quality and best practices adherence
+      5. Specific line-by-line issues with references
+
+      Rate the overall code quality (1-10) and provide prioritized improvement recommendations.
+
+      When complete, end with TERMINATE
     message_variables:
-      code_path: "${CODE_PATH}"
-      focus_areas: "${FOCUS_AREAS}"
+      code_path: "${code_path}"
+      focus_areas: "${focus_areas}"
+      file_content: "${file_content}"
     max_turns: 10
     termination_keywords: ["TERMINATE", "REVIEW_COMPLETE"]
     human_input_required: false

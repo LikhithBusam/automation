@@ -1,0 +1,20 @@
+apiVersion: v2
+name: automaton
+description: A Helm chart for AutoGen Development Assistant - Multi-Agent AI System
+type: application
+version: 2.0.0
+appVersion: "2.0.0"
+keywords:
+  - autogen
+  - ai
+  - multi-agent
+  - code-analysis
+  - development-assistant
+home: https://github.com/your-org/automaton
+sources:
+  - https://github.com/your-org/automaton
+maintainers:
+  - name: DevOps Team
+    email: devops@example.com
+dependencies: []
+

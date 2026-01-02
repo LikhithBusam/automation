@@ -3,9 +3,12 @@
 > **Production-ready multi-agent AI system for intelligent code analysis, security auditing, and development automation**
 
 [![CI/CD Pipeline](https://github.com/LikhithBusam/automation/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/LikhithBusam/automation/actions/workflows/ci-cd.yml)
+[![Security Tests](https://github.com/LikhithBusam/automation/actions/workflows/security-tests.yml/badge.svg)](https://github.com/LikhithBusam/automation/actions/workflows/security-tests.yml)
+[![codecov](https://codecov.io/gh/LikhithBusam/automation/branch/main/graph/badge.svg)](https://codecov.io/gh/LikhithBusam/automation)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![AutoGen](https://img.shields.io/badge/AutoGen-0.2.0+-green.svg)](https://microsoft.github.io/autogen/)
 [![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Type Checked: mypy](https://img.shields.io/badge/type%20checked-mypy-blue.svg)](https://mypy-lang.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ## Overview

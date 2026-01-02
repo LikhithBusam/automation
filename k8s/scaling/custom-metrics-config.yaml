@@ -1,0 +1,70 @@
+# ============================================================================
+# Custom Metrics Configuration for HPA
+# Prometheus adapter configuration for request rate, queue depth, etc.
+# ============================================================================
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-adapter-config
+  namespace: kube-system
+  labels:
+    app: prometheus-adapter
+data:
+  config.yaml: |
+    rules:
+      # HTTP Request Rate
+      - seriesQuery: 'http_requests_total{namespace!="",pod!=""}'
+        resources:
+          overrides:
+            namespace: {resource: "namespace"}
+            pod: {resource: "pod"}
+        name:
+          matches: "^http_requests_total$"
+          as: "http_requests_per_second"
+        metricsQuery: 'sum(rate(<<.Series>>{<<.LabelMatchers>>}[2m])) by (<<.GroupBy>>)'
+      
+      # Queue Depth
+      - seriesQuery: 'queue_depth{namespace!="",pod!=""}'
+        resources:
+          overrides:
+            namespace: {resource: "namespace"}
+            pod: {resource: "pod"}
+        name:
+          matches: "^queue_depth$"
+          as: "queue_depth"
+        metricsQuery: 'avg(<<.Series>>{<<.LabelMatchers>>}) by (<<.GroupBy>>)'
+      
+      # Response Time (p95)
+      - seriesQuery: 'http_request_duration_seconds{namespace!="",pod!=""}'
+        resources:
+          overrides:
+            namespace: {resource: "namespace"}
+            pod: {resource: "pod"}
+        name:
+          matches: "^http_request_duration_seconds$"
+          as: "http_request_duration_p95"
+        metricsQuery: 'histogram_quantile(0.95, sum(rate(<<.Series>>_bucket{<<.LabelMatchers>>}[5m])) by (le, <<.GroupBy>>))'
+      
+      # MCP Request Rate
+      - seriesQuery: 'mcp_requests_total{namespace!="",pod!=""}'
+        resources:
+          overrides:
+            namespace: {resource: "namespace"}
+            pod: {resource: "pod"}
+        name:
+          matches: "^mcp_requests_total$"
+          as: "mcp_requests_per_second"
+        metricsQuery: 'sum(rate(<<.Series>>{<<.LabelMatchers>>}[2m])) by (<<.GroupBy>>)'
+      
+      # Vector Search Queue Depth
+      - seriesQuery: 'vector_search_queue_depth{namespace!="",pod!=""}'
+        resources:
+          overrides:
+            namespace: {resource: "namespace"}
+            pod: {resource: "pod"}
+        name:
+          matches: "^vector_search_queue_depth$"
+          as: "vector_search_queue_depth"
+        metricsQuery: 'avg(<<.Series>>{<<.LabelMatchers>>}) by (<<.GroupBy>>)'
+

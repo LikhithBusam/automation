@@ -1,0 +1,92 @@
+# ============================================================================
+# GitHub MCP Server Deployment
+# ============================================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: automaton-mcp-github
+  namespace: automaton-production
+  labels:
+    app: automaton
+    component: mcp-github
+    tier: mcp-server
+    app.kubernetes.io/name: automaton
+    app.kubernetes.io/component: mcp-github
+    app.kubernetes.io/version: "2.0.0"
+spec:
+  replicas: 2  # 2 replicas for high availability
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: automaton
+      component: mcp-github
+  template:
+    metadata:
+      labels:
+        app: automaton
+        component: mcp-github
+        tier: mcp-server
+        app.kubernetes.io/name: automaton
+        app.kubernetes.io/component: mcp-github
+        app.kubernetes.io/version: "2.0.0"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+      containers:
+      - name: mcp-github
+        image: automaton-mcp-github:2.0.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 3000
+          protocol: TCP
+        env:
+        - name: MCP_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: automaton-mcp-config
+              key: github_port
+        - name: GITHUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: automaton-app-secrets
+              key: GITHUB_TOKEN
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 10
+

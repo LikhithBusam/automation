@@ -1,0 +1,60 @@
+{
+  "dashboard": {
+    "title": "Security Metrics",
+    "tags": ["security", "monitoring"],
+    "panels": [
+      {
+        "id": 1,
+        "title": "Failed Login Attempts",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(automaton_security_failed_logins_total[5m])",
+            "legendFormat": "Failed Logins/sec"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Anomaly Detections",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(automaton_security_anomaly_detections_total[5m])",
+            "legendFormat": "Anomalies/sec"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Intrusion Detections",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(automaton_security_intrusion_detections_total[5m])",
+            "legendFormat": "Intrusions/sec"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+      },
+      {
+        "id": 4,
+        "title": "Rate Limit Violations",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(automaton_security_rate_limit_violations_total[5m])",
+            "legendFormat": "Violations/sec"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      }
+    ],
+    "refresh": "10s",
+    "schemaVersion": 27,
+    "version": 1
+  }
+}
+

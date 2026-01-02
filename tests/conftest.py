@@ -1,84 +1,98 @@
-import os
-import sys
-from pathlib import Path
-from unittest.mock import MagicMock, Mock
+"""
+Pytest Configuration and Fixtures
+"""
 
 import pytest
+import asyncio
+from typing import Any, Dict, Generator
+from unittest.mock import AsyncMock, MagicMock, Mock
 
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Test fixtures and factories
 
 
-@pytest.fixture(scope="session")
-def test_config():
-    """Test configuration"""
+@pytest.fixture
+def event_loop():
+    """Create event loop for async tests"""
+    loop = asyncio.new_event_loop()
+    yield loop
+    loop.close()
+
+
+@pytest.fixture
+def mock_llm_response():
+    """Mock LLM response"""
     return {
-        "test_mode": True,
-        "mcp_servers": {
-            "github": {"port": 3000, "timeout": 5},
-            "filesystem": {"port": 3001, "timeout": 5},
-            "memory": {"port": 3002, "timeout": 5},
-            "communication": {"port": 3003, "timeout": 5},
-        },
+        "content": "Mock LLM response",
+        "tokens_used": 100,
+        "model": "gpt-4"
     }
 
 
 @pytest.fixture
-def mock_env(monkeypatch):
-    """Mock environment variables"""
-    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
-    monkeypatch.setenv("GROQ_API_KEY", "test-key")
-    monkeypatch.setenv("GITHUB_TOKEN", "test-token")
-    return monkeypatch
+def mock_llm():
+    """Mock LLM client"""
+    mock = AsyncMock()
+    mock.generate.return_value = {
+        "content": "Mock LLM response",
+        "tokens_used": 100,
+        "model": "gpt-4"
+    }
+    mock.chat.return_value = {
+        "content": "Mock chat response",
+        "tokens_used": 50
+    }
+    return mock
 
 
 @pytest.fixture
-def temp_workspace(tmp_path):
-    """Create temporary workspace directory"""
-    workspace = tmp_path / "workspace"
-    workspace.mkdir()
-    return workspace
+def mock_tool():
+    """Mock tool"""
+    mock = AsyncMock()
+    mock.execute.return_value = {"success": True, "result": "tool_result"}
+    return mock
 
 
 @pytest.fixture
-def sample_code_file(temp_workspace):
-    """Create sample code file for testing"""
-    code_file = temp_workspace / "sample.py"
-    code_file.write_text(
-        '''
-def hello_world():
-    """Say hello"""
-    return "Hello, World!"
-
-class Calculator:
-    def add(self, a, b):
-        return a + b
-'''
-    )
-    return code_file
-
-
-from unittest.mock import AsyncMock, Mock
-
-import pytest
+def mock_storage_backend():
+    """Mock storage backend"""
+    mock = AsyncMock()
+    mock.get.return_value = None
+    mock.set.return_value = True
+    mock.delete.return_value = True
+    return mock
 
 
 @pytest.fixture
-async def mock_mcp_manager():
-    """Mock MCP Manager for integration tests"""
-    manager = Mock()
-    manager.start_all = AsyncMock()
-    manager.stop_all = AsyncMock()
-    manager.health_check_all = AsyncMock(
-        return_value={
-            "github": {"status": "healthy"},
-            "filesystem": {"status": "healthy"},
-            "memory": {"status": "healthy"},
-            "codebasebuddy": {"status": "healthy"},
-        }
-    )
-    manager.get_server = Mock(return_value=Mock())
+def sample_workflow_definition():
+    """Sample workflow definition"""
+    return {
+        "name": "Test Workflow",
+        "steps": [
+            {
+                "id": "step1",
+                "type": "agent",
+                "agent": "test_agent",
+                "task": "test_task"
+            }
+        ]
+    }
 
-    await manager.start_all()
-    yield manager
-    await manager.stop_all()
+
+@pytest.fixture
+def sample_user_data():
+    """Sample user data"""
+    return {
+        "user_id": "test_user_123",
+        "email": "test@example.com",
+        "name": "Test User"
+    }
+
+
+@pytest.fixture
+def sample_tenant_data():
+    """Sample tenant data"""
+    return {
+        "tenant_id": "test_tenant_123",
+        "name": "Test Tenant",
+        "plan": "professional"
+    }

@@ -1,0 +1,131 @@
+# ============================================================================
+# Persistent Volume Claims for Stateful Components
+# Storage for databases, caches, and application data
+# ============================================================================
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: automaton-postgres-pvc
+  namespace: automaton-production
+  labels:
+    app: automaton
+    component: postgres
+    app.kubernetes.io/name: automaton
+    app.kubernetes.io/component: postgres-storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+  storageClassName: standard  # Adjust based on your cluster
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: automaton-redis-pvc
+  namespace: automaton-production
+  labels:
+    app: automaton
+    component: redis
+    app.kubernetes.io/name: automaton
+    app.kubernetes.io/component: redis-storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: standard
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: automaton-app-data-pvc
+  namespace: automaton-production
+  labels:
+    app: automaton
+    component: app
+    app.kubernetes.io/name: automaton
+    app.kubernetes.io/component: app-storage
+spec:
+  accessModes:
+    - ReadWriteMany  # For shared data across pods
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: standard
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: automaton-memory-pvc
+  namespace: automaton-production
+  labels:
+    app: automaton
+    component: memory-server
+    app.kubernetes.io/name: automaton
+    app.kubernetes.io/component: memory-storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: standard
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: automaton-codebasebuddy-pvc
+  namespace: automaton-production
+  labels:
+    app: automaton
+    component: codebasebuddy-server
+    app.kubernetes.io/name: automaton
+    app.kubernetes.io/component: codebasebuddy-storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+  storageClassName: standard
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: automaton-prometheus-pvc
+  namespace: automaton-production
+  labels:
+    app: automaton
+    component: prometheus
+    app.kubernetes.io/name: automaton
+    app.kubernetes.io/component: prometheus-storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 30Gi
+  storageClassName: standard
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: automaton-grafana-pvc
+  namespace: automaton-production
+  labels:
+    app: automaton
+    component: grafana
+    app.kubernetes.io/name: automaton
+    app.kubernetes.io/component: grafana-storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: standard
+

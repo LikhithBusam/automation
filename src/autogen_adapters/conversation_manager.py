@@ -8,13 +8,20 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 import yaml
 
 from src.autogen_adapters.agent_factory import AutoGenAgentFactory
 from src.autogen_adapters.function_registry import FunctionRegistry
 from src.autogen_adapters.groupchat_factory import GroupChatFactory
+from src.exceptions import (
+    WorkflowError,
+    WorkflowNotFoundError,
+    WorkflowExecutionError,
+    WorkflowValidationError,
+    AgentNotFoundError,
+)
 
 
 @dataclass
@@ -128,11 +135,18 @@ class ConversationManager:
         Returns:
             String with variables replaced
         """
+        self.logger.info(f"DEBUG: _replace_variables called with {len(variables)} variables")
+        self.logger.info(f"DEBUG: Variable keys: {list(variables.keys())}")
+
         result = template
 
         for key, value in variables.items():
             placeholder = "{" + key + "}"
-            result = result.replace(placeholder, str(value))
+            if placeholder in result:
+                # Truncate value for logging if it's too long
+                value_preview = str(value)[:100] + "..." if len(str(value)) > 100 else str(value)
+                self.logger.info(f"DEBUG: Replacing {placeholder} with value (preview): {value_preview}")
+                result = result.replace(placeholder, str(value))
 
         return result
 
@@ -150,29 +164,37 @@ class ConversationManager:
             ConversationResult with execution details
         """
         if workflow_name not in self.workflow_configs:
-            raise ValueError(f"Workflow '{workflow_name}' not found in configuration")
+            raise WorkflowNotFoundError(
+                f"Workflow '{workflow_name}' not found in configuration",
+                error_code="WORKFLOW_001",
+                details={"workflow_name": workflow_name, "available": list(self.workflow_configs.keys())}
+            )
 
         workflow_cfg = self.workflow_configs[workflow_name]
         variables = variables or {}
 
         start_time = datetime.now()
 
+        # Workflow type handlers registry
+        workflow_handlers: Dict[str, Callable] = {
+            "group_chat": self._execute_groupchat_workflow,
+            "two_agent": self._execute_two_agent_workflow,
+            "nested_chat": self._execute_nested_workflow,
+        }
+
         try:
             # Get workflow type
             workflow_type = workflow_cfg.get("type", "group_chat")
 
-            if workflow_type == "group_chat":
-                result = await self._execute_groupchat_workflow(
-                    workflow_name, workflow_cfg, variables
+            handler = workflow_handlers.get(workflow_type)
+            if not handler:
+                raise WorkflowValidationError(
+                    f"Unknown workflow type: {workflow_type}",
+                    error_code="WORKFLOW_002",
+                    details={"workflow_type": workflow_type, "supported": list(workflow_handlers.keys())}
                 )
-            elif workflow_type == "two_agent":
-                result = await self._execute_two_agent_workflow(
-                    workflow_name, workflow_cfg, variables
-                )
-            elif workflow_type == "nested_chat":
-                result = await self._execute_nested_workflow(workflow_name, workflow_cfg, variables)
-            else:
-                raise ValueError(f"Unknown workflow type: {workflow_type}")
+
+            result = await handler(workflow_name, workflow_cfg, variables)
 
             # Calculate duration
             duration = (datetime.now() - start_time).total_seconds()
@@ -184,34 +206,83 @@ class ConversationManager:
             self.logger.info(f"Workflow '{workflow_name}' completed in {duration:.2f}s")
             return result
 
+        except WorkflowError:
+            # Re-raise our custom exceptions
+            raise
         except Exception as e:
-            self.logger.error(f"Workflow '{workflow_name}' failed: {e}")
+            self.logger.error(f"Workflow '{workflow_name}' failed: {e}", exc_info=True)
 
             duration = (datetime.now() - start_time).total_seconds()
 
-            result = ConversationResult(
+            result = self._create_failed_result(
                 workflow_name=workflow_name,
-                status="failed",
-                messages=[],
-                summary=f"Workflow failed: {str(e)}",
-                duration_seconds=duration,
-                tasks_completed=0,
-                tasks_failed=1,
-                error=str(e),
+                error=e,
+                duration=duration
             )
 
             self.history.append(result)
             return result
 
+    def _create_failed_result(
+        self,
+        workflow_name: str,
+        error: Exception,
+        duration: float = 0.0,
+        messages: Optional[List[Dict[str, Any]]] = None
+    ) -> ConversationResult:
+        """Create a standardized failed result object."""
+        return ConversationResult(
+            workflow_name=workflow_name,
+            status="failed",
+            messages=messages or [],
+            summary=f"Workflow failed: {str(error)}",
+            duration_seconds=duration,
+            tasks_completed=0,
+            tasks_failed=1,
+            error=str(error),
+        )
+
+    def _extract_messages(self, chat_result: Any, fallback_source: Any = None) -> List[Dict[str, Any]]:
+        """Extract messages from chat result with fallback."""
+        messages = []
+        if hasattr(chat_result, "chat_history"):
+            messages = chat_result.chat_history
+        elif fallback_source and hasattr(fallback_source, "chat_messages") and fallback_source.chat_messages:
+            for agent_name, agent_messages in fallback_source.chat_messages.items():
+                messages.extend(agent_messages)
+        return messages
+
+    def _create_success_result(
+        self,
+        workflow_name: str,
+        messages: List[Dict[str, Any]],
+        summary: str,
+        tasks_completed: int = 1
+    ) -> ConversationResult:
+        """Create a standardized success result object."""
+        return ConversationResult(
+            workflow_name=workflow_name,
+            status="success",
+            messages=messages,
+            summary=summary,
+            duration_seconds=0,  # Will be set by caller
+            tasks_completed=tasks_completed,
+            tasks_failed=0,
+        )
+
     async def _execute_groupchat_workflow(
         self, workflow_name: str, workflow_cfg: Dict[str, Any], variables: Dict[str, Any]
     ) -> ConversationResult:
-        """Execute a group chat workflow"""
+        """Execute a group chat workflow."""
         # Get groupchat configuration
         groupchat_name = workflow_cfg.get("group_chat_config")
 
         if not groupchat_name:
-            raise ValueError(f"No group_chat_config specified for workflow '{workflow_name}'")
+            raise WorkflowValidationError(
+                f"No group_chat_config specified for workflow '{workflow_name}'",
+                error_code="WORKFLOW_003",
+                details={"workflow_name": workflow_name}
+            )
 
         # Get initial message template
         message_template = workflow_cfg.get("initial_message_template", "")
@@ -248,53 +319,41 @@ class ConversationManager:
                     manager, message=initial_message, max_turns=max_turns
                 )
 
-                # Extract messages from chat history
-                messages = []
-                if hasattr(chat_result, "chat_history"):
-                    messages = chat_result.chat_history
-                elif hasattr(manager, "chat_messages") and manager.chat_messages:
-                    # Get messages from the manager
-                    for agent_name, agent_messages in manager.chat_messages.items():
-                        messages.extend(agent_messages)
+                # Extract messages using helper
+                messages = self._extract_messages(chat_result, manager)
 
                 # Get summary
                 summary_method = workflow_cfg.get("summary_method", "last")
                 if summary_method == "reflection_with_llm" and messages:
-                    # Use the last message as summary
                     summary = messages[-1].get(
                         "content", f"GroupChat workflow '{workflow_name}' executed"
                     )
                 else:
                     summary = f"GroupChat workflow '{workflow_name}' completed with {len(messages)} messages"
 
-                status = "success"
-                tasks_completed = 1
+                return self._create_success_result(workflow_name, messages, summary)
 
+        except WorkflowError:
+            raise
         except Exception as e:
-            self.logger.error(f"GroupChat execution error: {e}")
-            summary = f"Error: {str(e)}"
-            status = "failed"
-            tasks_completed = 0
-
-        return ConversationResult(
-            workflow_name=workflow_name,
-            status=status,
-            messages=messages,
-            summary=summary,
-            duration_seconds=0,  # Will be set by caller
-            tasks_completed=tasks_completed,
-            tasks_failed=0 if status == "success" else 1,
-        )
+            self.logger.error(f"GroupChat execution error: {e}", exc_info=True)
+            raise WorkflowExecutionError(
+                f"GroupChat execution failed: {str(e)}",
+                error_code="WORKFLOW_004",
+                details={"workflow_name": workflow_name, "groupchat": groupchat_name}
+            ) from e
 
     async def _execute_two_agent_workflow(
         self, workflow_name: str, workflow_cfg: Dict[str, Any], variables: Dict[str, Any]
     ) -> ConversationResult:
-        """Execute a two-agent conversation workflow"""
+        """Execute a two-agent conversation workflow."""
         agent_names = workflow_cfg.get("agents", [])
 
         if len(agent_names) != 2:
-            raise ValueError(
-                f"Two-agent workflow requires exactly 2 agents, got {len(agent_names)}"
+            raise WorkflowValidationError(
+                f"Two-agent workflow requires exactly 2 agents, got {len(agent_names)}",
+                error_code="WORKFLOW_005",
+                details={"agent_names": agent_names, "count": len(agent_names)}
             )
 
         # Get agents
@@ -302,7 +361,12 @@ class ConversationManager:
         agent2 = self.agent_factory.get_agent(agent_names[1])
 
         if not agent1 or not agent2:
-            raise ValueError(f"Failed to get agents: {agent_names}")
+            missing = [n for n, a in zip(agent_names, [agent1, agent2]) if not a]
+            raise AgentNotFoundError(
+                f"Failed to get agents: {missing}",
+                error_code="AGENT_001",
+                details={"requested": agent_names, "missing": missing}
+            )
 
         # Get initial message
         message_template = workflow_cfg.get("initial_message_template", "")
@@ -312,34 +376,24 @@ class ConversationManager:
         max_turns = workflow_cfg.get("max_turns", 5)
 
         # Execute actual two-agent conversation
-        messages = []
         try:
             chat_result = agent1.initiate_chat(agent2, message=initial_message, max_turns=max_turns)
 
-            # Extract messages from chat history
-            if hasattr(chat_result, "chat_history"):
-                messages = chat_result.chat_history
-            elif hasattr(agent1, "chat_messages") and agent1.chat_messages:
-                # Get messages from agent1
-                for agent_name, agent_messages in agent1.chat_messages.items():
-                    messages.extend(agent_messages)
+            # Extract messages using helper
+            messages = self._extract_messages(chat_result, agent1)
 
             summary = f"Two-agent conversation between {agent_names[0]} and {agent_names[1]} completed with {len(messages)} messages"
-            status = "success"
-        except Exception as e:
-            self.logger.error(f"Two-agent conversation error: {e}")
-            summary = f"Error: {str(e)}"
-            status = "failed"
+            return self._create_success_result(workflow_name, messages, summary)
 
-        return ConversationResult(
-            workflow_name=workflow_name,
-            status=status,
-            messages=messages,
-            summary=summary,
-            duration_seconds=0,
-            tasks_completed=1 if status == "success" else 0,
-            tasks_failed=0 if status == "success" else 1,
-        )
+        except WorkflowError:
+            raise
+        except Exception as e:
+            self.logger.error(f"Two-agent conversation error: {e}", exc_info=True)
+            raise WorkflowExecutionError(
+                f"Two-agent conversation failed: {str(e)}",
+                error_code="WORKFLOW_006",
+                details={"workflow_name": workflow_name, "agents": agent_names}
+            ) from e
 
     async def _execute_nested_workflow(
         self, workflow_name: str, workflow_cfg: Dict[str, Any], variables: Dict[str, Any]

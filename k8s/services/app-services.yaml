@@ -1,0 +1,181 @@
+# ============================================================================
+# Kubernetes Services for Internal Communication
+# ClusterIP services for service discovery
+# ============================================================================
+
+# ============================================================================
+# Main Application Service
+# ============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: automaton-app
+  namespace: automaton-production
+  labels:
+    app: automaton
+    component: app
+    app.kubernetes.io/name: automaton
+    app.kubernetes.io/component: app
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+    protocol: TCP
+  - name: metrics
+    port: 9090
+    targetPort: 9090
+    protocol: TCP
+  selector:
+    app: automaton
+    component: app
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+---
+# ============================================================================
+# GitHub MCP Server Service
+# ============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: automaton-mcp-github
+  namespace: automaton-production
+  labels:
+    app: automaton
+    component: mcp-github
+    app.kubernetes.io/name: automaton
+    app.kubernetes.io/component: mcp-github
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 3000
+    targetPort: 3000
+    protocol: TCP
+  selector:
+    app: automaton
+    component: mcp-github
+---
+# ============================================================================
+# Filesystem MCP Server Service
+# ============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: automaton-mcp-filesystem
+  namespace: automaton-production
+  labels:
+    app: automaton
+    component: mcp-filesystem
+    app.kubernetes.io/name: automaton
+    app.kubernetes.io/component: mcp-filesystem
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 3001
+    targetPort: 3001
+    protocol: TCP
+  selector:
+    app: automaton
+    component: mcp-filesystem
+---
+# ============================================================================
+# Memory MCP Server Service
+# ============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: automaton-mcp-memory
+  namespace: automaton-production
+  labels:
+    app: automaton
+    component: mcp-memory
+    app.kubernetes.io/name: automaton
+    app.kubernetes.io/component: mcp-memory
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 3002
+    targetPort: 3002
+    protocol: TCP
+  selector:
+    app: automaton
+    component: mcp-memory
+---
+# ============================================================================
+# CodeBaseBuddy MCP Server Service
+# ============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: automaton-mcp-codebasebuddy
+  namespace: automaton-production
+  labels:
+    app: automaton
+    component: mcp-codebasebuddy
+    app.kubernetes.io/name: automaton
+    app.kubernetes.io/component: mcp-codebasebuddy
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 3004
+    targetPort: 3004
+    protocol: TCP
+  selector:
+    app: automaton
+    component: mcp-codebasebuddy
+---
+# ============================================================================
+# PostgreSQL Service
+# ============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: automaton-postgres
+  namespace: automaton-production
+  labels:
+    app: automaton
+    component: postgres
+    app.kubernetes.io/name: automaton
+    app.kubernetes.io/component: postgres
+spec:
+  type: ClusterIP
+  ports:
+  - name: postgres
+    port: 5432
+    targetPort: 5432
+    protocol: TCP
+  selector:
+    app: automaton
+    component: postgres
+---
+# ============================================================================
+# Redis Service
+# ============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: automaton-redis
+  namespace: automaton-production
+  labels:
+    app: automaton
+    component: redis
+    app.kubernetes.io/name: automaton
+    app.kubernetes.io/component: redis
+spec:
+  type: ClusterIP
+  ports:
+  - name: redis
+    port: 6379
+    targetPort: 6379
+    protocol: TCP
+  selector:
+    app: automaton
+    component: redis
+

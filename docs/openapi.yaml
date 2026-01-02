@@ -1,0 +1,1028 @@
+openapi: 3.0.3
+info:
+  title: AutoGen Development Assistant API
+  description: |
+    Multi-Agent AI System for intelligent code analysis, security auditing, and development automation.
+
+    ## Features
+    - Intelligent code review and quality analysis
+    - Security vulnerability assessment (OWASP Top 10)
+    - Automated documentation generation
+    - CI/CD deployment automation
+    - Technology research and recommendations
+    - Semantic code search
+    - Memory-enabled conversation context
+
+    ## Authentication
+    All API endpoints require authentication using Bearer token in the Authorization header.
+
+    ## Rate Limiting
+    - Default: 60 requests/minute, 1000 requests/hour per user
+    - Rate limit headers are included in all responses
+
+  version: 2.1.0
+  contact:
+    name: AutoGen Development Assistant Support
+    url: https://github.com/yourusername/automaton
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Local development server
+  - url: https://staging.example.com/api/v1
+    description: Staging environment
+  - url: https://api.example.com/api/v1
+    description: Production environment
+
+tags:
+  - name: workflows
+    description: Workflow execution and management
+  - name: agents
+    description: AI agent management and status
+  - name: mcp
+    description: Model Context Protocol server operations
+  - name: memory
+    description: Semantic memory and context management
+  - name: code-search
+    description: Semantic code search operations
+  - name: health
+    description: Health check and monitoring
+  - name: billing
+    description: Usage tracking and cost management
+
+security:
+  - BearerAuth: []
+
+paths:
+  # ============================================================================
+  # Health & Status
+  # ============================================================================
+  /health:
+    get:
+      tags: [health]
+      summary: Health check endpoint
+      description: Returns the health status of the application and all dependencies
+      operationId: getHealth
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /health/ready:
+    get:
+      tags: [health]
+      summary: Readiness check
+      description: Checks if the service is ready to accept requests
+      operationId: getReadiness
+      security: []
+      responses:
+        '200':
+          description: Service is ready
+        '503':
+          description: Service is not ready
+
+  /health/live:
+    get:
+      tags: [health]
+      summary: Liveness check
+      description: Checks if the service is alive
+      operationId: getLiveness
+      security: []
+      responses:
+        '200':
+          description: Service is alive
+        '503':
+          description: Service is not alive
+
+  # ============================================================================
+  # Workflows
+  # ============================================================================
+  /workflows:
+    get:
+      tags: [workflows]
+      summary: List available workflows
+      description: Returns a list of all available workflows with their configurations
+      operationId: listWorkflows
+      responses:
+        '200':
+          description: Successfully retrieved workflows
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  workflows:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WorkflowInfo'
+
+  /workflows/{workflowName}/execute:
+    post:
+      tags: [workflows]
+      summary: Execute a workflow
+      description: |
+        Executes a specified workflow with provided parameters.
+
+        ## Available Workflows
+        - `quick_code_review` - Fast code review (3-5s)
+        - `code_analysis` - Comprehensive analysis (20-60s)
+        - `security_audit` - Security assessment (30-90s)
+        - `documentation_generation` - Auto-generate docs (10-30s)
+        - `deployment` - CI/CD automation (15-45s)
+        - `research` - Technology research (20-60s)
+        - `comprehensive_feature_review` - Multi-perspective review (60-180s)
+      operationId: executeWorkflow
+      parameters:
+        - name: workflowName
+          in: path
+          required: true
+          schema:
+            type: string
+            enum:
+              - quick_code_review
+              - code_analysis
+              - security_audit
+              - documentation_generation
+              - deployment
+              - research
+              - comprehensive_feature_review
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkflowExecutionRequest'
+            examples:
+              codeAnalysis:
+                summary: Code Analysis Example
+                value:
+                  variables:
+                    file_path: "./src/main.py"
+                    analysis_depth: "comprehensive"
+              securityAudit:
+                summary: Security Audit Example
+                value:
+                  variables:
+                    target_path: "./src"
+                    severity_threshold: "medium"
+      responses:
+        '200':
+          description: Workflow execution started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowExecutionResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Workflow not found
+        '429':
+          description: Rate limit exceeded
+          headers:
+            X-RateLimit-Limit:
+              schema:
+                type: integer
+              description: Request limit per hour
+            X-RateLimit-Remaining:
+              schema:
+                type: integer
+              description: Remaining requests
+            X-RateLimit-Reset:
+              schema:
+                type: integer
+              description: Time when limit resets (Unix timestamp)
+
+  /workflows/{workflowName}/status/{executionId}:
+    get:
+      tags: [workflows]
+      summary: Get workflow execution status
+      description: Returns the current status of a workflow execution
+      operationId: getWorkflowStatus
+      parameters:
+        - name: workflowName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: executionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Execution status retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowStatus'
+        '404':
+          description: Execution not found
+
+  /workflows/history:
+    get:
+      tags: [workflows]
+      summary: Get workflow execution history
+      description: Returns the history of workflow executions
+      operationId: getWorkflowHistory
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: workflow_name
+          in: query
+          schema:
+            type: string
+          description: Filter by workflow name
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [success, failed, partial, running]
+          description: Filter by execution status
+      responses:
+        '200':
+          description: History retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+                  executions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WorkflowHistoryEntry'
+
+  # ============================================================================
+  # Agents
+  # ============================================================================
+  /agents:
+    get:
+      tags: [agents]
+      summary: List all agents
+      description: Returns information about all available AI agents
+      operationId: listAgents
+      responses:
+        '200':
+          description: Successfully retrieved agents
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  agents:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AgentInfo'
+
+  /agents/{agentName}/status:
+    get:
+      tags: [agents]
+      summary: Get agent status
+      description: Returns the current status and metrics of a specific agent
+      operationId: getAgentStatus
+      parameters:
+        - name: agentName
+          in: path
+          required: true
+          schema:
+            type: string
+            enum:
+              - CodeAnalyzer
+              - SecurityAuditor
+              - DocumentationAgent
+              - DeploymentAgent
+              - ResearchAgent
+              - ProjectManager
+      responses:
+        '200':
+          description: Agent status retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentStatus'
+
+  # ============================================================================
+  # MCP Servers
+  # ============================================================================
+  /mcp/servers:
+    get:
+      tags: [mcp]
+      summary: List MCP servers
+      description: Returns the status of all MCP servers
+      operationId: listMCPServers
+      responses:
+        '200':
+          description: Successfully retrieved server status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  servers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MCPServerStatus'
+
+  /mcp/servers/{serverName}/health:
+    get:
+      tags: [mcp]
+      summary: Check MCP server health
+      description: Returns the health status of a specific MCP server
+      operationId: getMCPServerHealth
+      parameters:
+        - name: serverName
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [github, filesystem, memory, codebasebuddy, slack]
+      responses:
+        '200':
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MCPServerHealth'
+        '503':
+          description: Server is unhealthy
+
+  # ============================================================================
+  # Memory Operations
+  # ============================================================================
+  /memory/store:
+    post:
+      tags: [memory]
+      summary: Store memory
+      description: Stores a new memory entry with semantic indexing
+      operationId: storeMemory
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StoreMemoryRequest'
+      responses:
+        '201':
+          description: Memory stored successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StoreMemoryResponse'
+
+  /memory/retrieve:
+    post:
+      tags: [memory]
+      summary: Retrieve memories
+      description: Retrieves memories based on semantic similarity
+      operationId: retrieveMemory
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RetrieveMemoryRequest'
+      responses:
+        '200':
+          description: Memories retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RetrieveMemoryResponse'
+
+  # ============================================================================
+  # Code Search
+  # ============================================================================
+  /code/search:
+    post:
+      tags: [code-search]
+      summary: Semantic code search
+      description: Searches the codebase using semantic similarity
+      operationId: searchCode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CodeSearchRequest'
+      responses:
+        '200':
+          description: Search completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CodeSearchResponse'
+
+  /code/index:
+    post:
+      tags: [code-search]
+      summary: Index codebase
+      description: Triggers re-indexing of the codebase for semantic search
+      operationId: indexCodebase
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                paths:
+                  type: array
+                  items:
+                    type: string
+                  description: Paths to index
+                incremental:
+                  type: boolean
+                  default: false
+                  description: Whether to perform incremental indexing
+      responses:
+        '202':
+          description: Indexing started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job_id:
+                    type: string
+                  status:
+                    type: string
+                    enum: [queued, running]
+
+  # ============================================================================
+  # Billing & Usage
+  # ============================================================================
+  /billing/usage:
+    get:
+      tags: [billing]
+      summary: Get usage statistics
+      description: Returns usage statistics for the current user/tenant
+      operationId: getUsage
+      parameters:
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: granularity
+          in: query
+          schema:
+            type: string
+            enum: [hour, day, week, month]
+            default: day
+      responses:
+        '200':
+          description: Usage statistics retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsageStatistics'
+
+  /billing/costs:
+    get:
+      tags: [billing]
+      summary: Get cost breakdown
+      description: Returns detailed cost breakdown by resource type
+      operationId: getCosts
+      parameters:
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Cost breakdown retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CostBreakdown'
+
+  /billing/quotas:
+    get:
+      tags: [billing]
+      summary: Get quota information
+      description: Returns current quota usage and limits
+      operationId: getQuotas
+      responses:
+        '200':
+          description: Quota information retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuotaInfo'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from authentication endpoint
+
+  schemas:
+    # ============================================================================
+    # Health Schemas
+    # ============================================================================
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - timestamp
+      properties:
+        status:
+          type: string
+          enum: [healthy, unhealthy, degraded]
+        timestamp:
+          type: string
+          format: date-time
+        version:
+          type: string
+        uptime_seconds:
+          type: integer
+        dependencies:
+          type: object
+          properties:
+            mcp_servers:
+              type: object
+              additionalProperties:
+                type: string
+                enum: [up, down]
+            database:
+              type: string
+              enum: [up, down]
+            redis:
+              type: string
+              enum: [up, down]
+
+    # ============================================================================
+    # Workflow Schemas
+    # ============================================================================
+    WorkflowInfo:
+      type: object
+      required:
+        - name
+        - type
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+          enum: [two-agent, groupchat, nested-chat]
+        agents:
+          type: array
+          items:
+            type: string
+        estimated_duration_seconds:
+          type: integer
+        required_parameters:
+          type: array
+          items:
+            type: string
+
+    WorkflowExecutionRequest:
+      type: object
+      properties:
+        variables:
+          type: object
+          additionalProperties:
+            type: string
+        timeout_seconds:
+          type: integer
+          default: 300
+        priority:
+          type: string
+          enum: [low, normal, high, critical]
+          default: normal
+
+    WorkflowExecutionResponse:
+      type: object
+      required:
+        - execution_id
+        - status
+      properties:
+        execution_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [queued, running, success, failed, partial]
+        workflow_name:
+          type: string
+        started_at:
+          type: string
+          format: date-time
+        summary:
+          type: string
+        duration_seconds:
+          type: number
+        tasks_completed:
+          type: integer
+        tasks_failed:
+          type: integer
+        error:
+          type: string
+
+    WorkflowStatus:
+      type: object
+      required:
+        - execution_id
+        - status
+      properties:
+        execution_id:
+          type: string
+          format: uuid
+        workflow_name:
+          type: string
+        status:
+          type: string
+          enum: [queued, running, success, failed, partial]
+        progress_percentage:
+          type: integer
+          minimum: 0
+          maximum: 100
+        current_task:
+          type: string
+        started_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+        result:
+          type: object
+
+    WorkflowHistoryEntry:
+      type: object
+      properties:
+        execution_id:
+          type: string
+          format: uuid
+        workflow_name:
+          type: string
+        status:
+          type: string
+        started_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+        duration_seconds:
+          type: number
+        tasks_completed:
+          type: integer
+        tasks_failed:
+          type: integer
+
+    # ============================================================================
+    # Agent Schemas
+    # ============================================================================
+    AgentInfo:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          enum: [AssistantAgent, UserProxyAgent, TeachableAgent]
+        description:
+          type: string
+        enabled:
+          type: boolean
+        tools:
+          type: array
+          items:
+            type: string
+        llm_config:
+          type: object
+
+    AgentStatus:
+      type: object
+      properties:
+        name:
+          type: string
+        status:
+          type: string
+          enum: [idle, busy, error]
+        active_tasks:
+          type: integer
+        total_tasks_completed:
+          type: integer
+        average_response_time_ms:
+          type: number
+        last_activity:
+          type: string
+          format: date-time
+
+    # ============================================================================
+    # MCP Server Schemas
+    # ============================================================================
+    MCPServerStatus:
+      type: object
+      properties:
+        name:
+          type: string
+        port:
+          type: integer
+        status:
+          type: string
+          enum: [running, stopped, error]
+        uptime_seconds:
+          type: integer
+        requests_total:
+          type: integer
+        requests_failed:
+          type: integer
+        average_response_time_ms:
+          type: number
+
+    MCPServerHealth:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, unhealthy]
+        uptime_seconds:
+          type: integer
+        last_health_check:
+          type: string
+          format: date-time
+
+    # ============================================================================
+    # Memory Schemas
+    # ============================================================================
+    StoreMemoryRequest:
+      type: object
+      required:
+        - content
+        - memory_type
+      properties:
+        content:
+          type: string
+        memory_type:
+          type: string
+          enum: [pattern, preference, solution, context, error]
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+        ttl_seconds:
+          type: integer
+
+    StoreMemoryResponse:
+      type: object
+      properties:
+        memory_id:
+          type: string
+        status:
+          type: string
+          enum: [stored, duplicate]
+
+    RetrieveMemoryRequest:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+        memory_type:
+          type: string
+          enum: [pattern, preference, solution, context, error]
+        limit:
+          type: integer
+          default: 5
+          minimum: 1
+          maximum: 20
+        similarity_threshold:
+          type: number
+          default: 0.7
+          minimum: 0.0
+          maximum: 1.0
+
+    RetrieveMemoryResponse:
+      type: object
+      properties:
+        memories:
+          type: array
+          items:
+            type: object
+            properties:
+              memory_id:
+                type: string
+              content:
+                type: string
+              memory_type:
+                type: string
+              similarity_score:
+                type: number
+              created_at:
+                type: string
+                format: date-time
+              metadata:
+                type: object
+
+    # ============================================================================
+    # Code Search Schemas
+    # ============================================================================
+    CodeSearchRequest:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+          description: Natural language search query
+        limit:
+          type: integer
+          default: 10
+          minimum: 1
+          maximum: 50
+        file_types:
+          type: array
+          items:
+            type: string
+          description: Filter by file extensions
+        exclude_paths:
+          type: array
+          items:
+            type: string
+
+    CodeSearchResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              file_path:
+                type: string
+              function_name:
+                type: string
+              line_number:
+                type: integer
+              code_snippet:
+                type: string
+              similarity_score:
+                type: number
+              context:
+                type: string
+
+    # ============================================================================
+    # Billing Schemas
+    # ============================================================================
+    UsageStatistics:
+      type: object
+      properties:
+        period_start:
+          type: string
+          format: date-time
+        period_end:
+          type: string
+          format: date-time
+        workflows_executed:
+          type: integer
+        api_requests:
+          type: integer
+        llm_tokens_used:
+          type: integer
+        storage_bytes:
+          type: integer
+        compute_minutes:
+          type: number
+        by_resource:
+          type: object
+          additionalProperties:
+            type: object
+
+    CostBreakdown:
+      type: object
+      properties:
+        total_cost:
+          type: number
+        currency:
+          type: string
+          default: USD
+        period_start:
+          type: string
+          format: date-time
+        period_end:
+          type: string
+          format: date-time
+        breakdown:
+          type: object
+          properties:
+            llm_api_costs:
+              type: number
+            compute_costs:
+              type: number
+            storage_costs:
+              type: number
+            network_costs:
+              type: number
+        cost_by_workflow:
+          type: object
+          additionalProperties:
+            type: number
+        cost_by_tenant:
+          type: object
+          additionalProperties:
+            type: number
+
+    QuotaInfo:
+      type: object
+      properties:
+        workflows_per_day:
+          type: object
+          properties:
+            used:
+              type: integer
+            limit:
+              type: integer
+            percentage:
+              type: number
+        api_requests_per_hour:
+          type: object
+          properties:
+            used:
+              type: integer
+            limit:
+              type: integer
+            percentage:
+              type: number
+        storage_bytes:
+          type: object
+          properties:
+            used:
+              type: integer
+            limit:
+              type: integer
+            percentage:
+              type: number
+
+    # ============================================================================
+    # Error Schema
+    # ============================================================================
+    Error:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+        timestamp:
+          type: string
+          format: date-time
+        request_id:
+          type: string

@@ -1,0 +1,49 @@
+# ============================================================================
+# MCP Servers ConfigMap
+# Configuration for all MCP server instances
+# ============================================================================
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: automaton-mcp-config
+  namespace: automaton-production
+  labels:
+    app: automaton
+    component: mcp-servers
+    app.kubernetes.io/name: automaton
+    app.kubernetes.io/component: mcp-config
+data:
+  # GitHub MCP Server
+  github_port: "3000"
+  github_host: "0.0.0.0"
+  github_timeout: "30"
+  github_retry_attempts: "3"
+  github_rate_limit_minute: "60"
+  github_rate_limit_hour: "1000"
+  github_cache_ttl: "300"
+  
+  # Filesystem MCP Server
+  filesystem_port: "3001"
+  filesystem_host: "0.0.0.0"
+  filesystem_timeout: "10"
+  filesystem_max_file_size_mb: "10"
+  filesystem_rate_limit_minute: "300"
+  
+  # Memory MCP Server
+  memory_port: "3002"
+  memory_host: "0.0.0.0"
+  memory_timeout: "30"
+  memory_retention_days: "90"
+  memory_rate_limit_minute: "200"
+  
+  # CodeBaseBuddy MCP Server
+  codebasebuddy_port: "3004"
+  codebasebuddy_host: "0.0.0.0"
+  codebasebuddy_timeout: "60"
+  codebasebuddy_rate_limit_minute: "100"
+  codebasebuddy_index_path: "/app/data/codebase_index"
+  
+  # Allowed paths for filesystem (JSON array)
+  filesystem_allowed_paths: '["/app/workspace", "/app/projects", "/app/src", "/app/config"]'
+

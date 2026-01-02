@@ -1,0 +1,113 @@
+# ============================================================================
+# Network Policies for Namespace Isolation
+# Controls traffic flow between pods and namespaces
+# ============================================================================
+
+# ============================================================================
+# Default deny all ingress traffic
+# ============================================================================
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: automaton-default-deny-all
+  namespace: automaton-production
+  labels:
+    app: automaton
+    app.kubernetes.io/name: automaton
+    app.kubernetes.io/component: network-policy
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+---
+# ============================================================================
+# Allow app to communicate with MCP servers
+# ============================================================================
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: automaton-allow-app-to-mcp
+  namespace: automaton-production
+  labels:
+    app: automaton
+    app.kubernetes.io/name: automaton
+    app.kubernetes.io/component: network-policy
+spec:
+  podSelector:
+    matchLabels:
+      app: automaton
+      component: app
+  policyTypes:
+  - Egress
+  egress:
+  # Allow to MCP servers
+  - to:
+    - podSelector:
+        matchLabels:
+          app: automaton
+          tier: mcp-server
+    ports:
+    - protocol: TCP
+      port: 3000  # GitHub
+    - protocol: TCP
+      port: 3001  # Filesystem
+    - protocol: TCP
+      port: 3002  # Memory
+    - protocol: TCP
+      port: 3004  # CodeBaseBuddy
+  # Allow to database
+  - to:
+    - podSelector:
+        matchLabels:
+          app: automaton
+          component: postgres
+    ports:
+    - protocol: TCP
+      port: 5432
+  # Allow to Redis
+  - to:
+    - podSelector:
+        matchLabels:
+          app: automaton
+          component: redis
+    ports:
+    - protocol: TCP
+      port: 6379
+  # Allow DNS
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: UDP
+      port: 53
+---
+# ============================================================================
+# Allow ingress to app from ingress controller
+# ============================================================================
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: automaton-allow-ingress-to-app
+  namespace: automaton-production
+  labels:
+    app: automaton
+    app.kubernetes.io/name: automaton
+    app.kubernetes.io/component: network-policy
+spec:
+  podSelector:
+    matchLabels:
+      app: automaton
+      component: app
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx  # Adjust based on your ingress controller namespace
+    ports:
+    - protocol: TCP
+      port: 8000
+    - protocol: TCP
+      port: 9090
+

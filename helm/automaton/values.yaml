@@ -1,0 +1,203 @@
+# ============================================================================
+# Helm Chart Values for AutoGen Development Assistant
+# Default values for production deployment
+# ============================================================================
+
+# Global settings
+global:
+  imageRegistry: ""  # Use default registry or specify
+  imagePullSecrets: []
+  storageClass: "standard"
+
+# Application settings
+app:
+  name: automaton
+  namespace: automaton-production
+  environment: production
+  
+  # Image settings
+  image:
+    repository: automaton-app
+    tag: "2.0.0"
+    pullPolicy: IfNotPresent
+  
+  # Replica configuration
+  replicas: 3
+  minReplicas: 3
+  maxReplicas: 10
+  
+  # Resource limits
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "2000m"
+      memory: "4Gi"
+  
+  # Autoscaling
+  autoscaling:
+    enabled: true
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+    minReplicas: 3
+    maxReplicas: 10
+  
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 8000
+    metricsPort: 9090
+  
+  # Ingress configuration
+  ingress:
+    enabled: true
+    className: "nginx"
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    hosts:
+      - host: automaton.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: automaton-tls-secret
+        hosts:
+          - automaton.example.com
+
+# MCP Servers configuration
+mcpServers:
+  github:
+    enabled: true
+    image:
+      repository: automaton-mcp-github
+      tag: "2.0.0"
+    replicas: 2
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "256Mi"
+      limits:
+        cpu: "500m"
+        memory: "512Mi"
+  
+  filesystem:
+    enabled: true
+    image:
+      repository: automaton-mcp-filesystem
+      tag: "2.0.0"
+    replicas: 2
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "256Mi"
+      limits:
+        cpu: "500m"
+        memory: "512Mi"
+  
+  memory:
+    enabled: true
+    image:
+      repository: automaton-mcp-memory
+      tag: "2.0.0"
+    replicas: 2
+    resources:
+      requests:
+        cpu: "200m"
+        memory: "512Mi"
+      limits:
+        cpu: "1000m"
+        memory: "2Gi"
+    storage:
+      size: 10Gi
+  
+  codebasebuddy:
+    enabled: true
+    image:
+      repository: automaton-mcp-codebasebuddy
+      tag: "2.0.0"
+    replicas: 2
+    resources:
+      requests:
+        cpu: "500m"
+        memory: "1Gi"
+      limits:
+        cpu: "2000m"
+        memory: "4Gi"
+    storage:
+      size: 20Gi
+
+# Database configuration
+postgres:
+  enabled: true
+  image:
+    repository: postgres
+    tag: "15-alpine"
+  replicas: 1
+  storage:
+    size: 20Gi
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "2000m"
+      memory: "4Gi"
+
+# Redis configuration
+redis:
+  enabled: true
+  image:
+    repository: redis
+    tag: "7-alpine"
+  replicas: 1
+  storage:
+    size: 10Gi
+  resources:
+    requests:
+      cpu: "200m"
+      memory: "512Mi"
+    limits:
+      cpu: "1000m"
+      memory: "1Gi"
+
+# Monitoring
+monitoring:
+  prometheus:
+    enabled: true
+    storage:
+      size: 30Gi
+  grafana:
+    enabled: true
+    storage:
+      size: 5Gi
+
+# Security
+security:
+  podSecurityPolicy:
+    enabled: false
+  networkPolicy:
+    enabled: true
+  serviceAccount:
+    create: true
+    name: automaton-app-sa
+
+# Configuration
+config:
+  logLevel: "INFO"
+  maxWorkers: 4
+  gpuEnabled: false
+
+# Secrets (should be managed externally)
+secrets:
+  # These should be set via --set or secrets management
+  openrouterApiKey: ""
+  groqApiKey: ""
+  googleApiKey: ""
+  githubToken: ""
+  slackBotToken: ""
+  postgresPassword: ""
+  redisPassword: ""
+  jwtSecretKey: ""
+

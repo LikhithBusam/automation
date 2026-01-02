@@ -1,0 +1,137 @@
+# Alertmanager Configuration
+global:
+  resolve_timeout: 5m
+  slack_api_url: '${SLACK_WEBHOOK_URL}'
+  pagerduty_url: '${PAGERDUTY_URL}'
+
+# Route configuration
+route:
+  receiver: 'default'
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 12h
+  routes:
+    # Critical alerts - escalate immediately
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      continue: true
+      repeat_interval: 5m
+      group_wait: 0s
+    
+    # Security alerts
+    - match:
+        alertname: HighFailedLoginAttempts
+      receiver: 'security-team'
+      continue: true
+    
+    - match:
+        alertname: UnusualAPIAccess
+      receiver: 'security-team'
+    
+    # Performance alerts
+    - match:
+        alertname: HighResponseTime
+      receiver: 'performance-team'
+    
+    - match:
+        alertname: WorkflowSlowExecution
+      receiver: 'performance-team'
+    
+    # Resource alerts
+    - match:
+        alertname: HighCPUUsage
+      receiver: 'ops-team'
+    
+    - match:
+        alertname: HighMemoryUsage
+      receiver: 'ops-team'
+    
+    - match:
+        alertname: DiskSpaceLow
+      receiver: 'ops-team'
+    
+    # Resource exhaustion - critical
+    - match:
+        alertname: MemoryExhaustion
+      receiver: 'critical-alerts'
+    
+    - match:
+        alertname: CPUExhaustion
+      receiver: 'critical-alerts'
+    
+    - match:
+        alertname: DiskSpaceCritical
+      receiver: 'critical-alerts'
+    
+    # Business alerts
+    - match:
+        alertname: BudgetThresholdExceeded
+      receiver: 'business-team'
+    
+    - match:
+        alertname: BudgetThresholdWarning
+      receiver: 'business-team'
+    
+    - match:
+        alertname: LowWorkflowSuccessRate
+      receiver: 'business-team'
+
+# Receivers
+receivers:
+  - name: 'default'
+    slack_configs:
+      - channel: '#alerts'
+        title: '{{ .GroupLabels.alertname }}'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+  
+  - name: 'critical-alerts'
+    pagerduty_configs:
+      - service_key: '${PAGERDUTY_SERVICE_KEY}'
+        description: '{{ .GroupLabels.alertname }}'
+    slack_configs:
+      - channel: '#critical-alerts'
+        title: '🚨 CRITICAL: {{ .GroupLabels.alertname }}'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+  
+  - name: 'security-team'
+    slack_configs:
+      - channel: '#security-alerts'
+        title: '🔒 Security Alert: {{ .GroupLabels.alertname }}'
+    email_configs:
+      - to: 'security@example.com'
+        from: 'alerts@automaton.example.com'
+        headers:
+          Subject: 'Security Alert: {{ .GroupLabels.alertname }}'
+  
+  - name: 'performance-team'
+    slack_configs:
+      - channel: '#performance-alerts'
+        title: '⚡ Performance Alert: {{ .GroupLabels.alertname }}'
+  
+  - name: 'ops-team'
+    slack_configs:
+      - channel: '#ops-alerts'
+        title: '🔧 Ops Alert: {{ .GroupLabels.alertname }}'
+    pagerduty_configs:
+      - service_key: '${PAGERDUTY_OPS_KEY}'
+  
+  - name: 'business-team'
+    slack_configs:
+      - channel: '#business-alerts'
+        title: '💰 Business Alert: {{ .GroupLabels.alertname }}'
+    email_configs:
+      - to: 'business@example.com'
+        from: 'alerts@automaton.example.com'
+        headers:
+          Subject: 'Business Alert: {{ .GroupLabels.alertname }}'
+
+# Inhibition rules
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'instance']
+

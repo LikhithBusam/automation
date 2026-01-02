@@ -86,7 +86,10 @@ class GroupChatFactory:
         keywords = condition_cfg.get("keywords", [])
 
         def is_termination_msg(msg: Dict[str, Any]) -> bool:
-            """Check if message indicates termination"""
+            """
+            Dynamically check if message indicates termination.
+            Uses smart matching to avoid false positives from casual mentions.
+            """
             content = msg.get("content", "")
 
             # Handle empty or None content
@@ -96,18 +99,72 @@ class GroupChatFactory:
             # Convert to string and strip whitespace
             content = str(content).strip()
 
-            # Check for termination keywords (case-insensitive)
+            # DYNAMIC TERMINATION LOGIC:
+            # Only trigger if keyword appears in specific contexts:
+            # 1. As the ONLY content (exact match)
+            # 2. At the END of a message (final statement)
+            # 3. On its own line
+            # 4. NOT in explanatory text (e.g., "I will respond with TERMINATE")
+
             content_upper = content.upper()
+            lines = content.split('\n')
+
             for keyword in keywords:
-                if keyword.upper() in content_upper:
-                    self.logger.info(f"Termination keyword '{keyword}' detected in message")
+                keyword_upper = keyword.upper()
+
+                # Check 1: Exact match (entire message is just the keyword)
+                if content_upper == keyword_upper:
+                    self.logger.info(f"Termination: Exact match for '{keyword}'")
                     return True
 
-            # Special handling for multiple consecutive TERMINATE messages
-            # This happens when agents hit max_consecutive_auto_reply
-            if content.count("**TERMINATE**") > 1 or content.count("TERMINATE") > 3:
-                self.logger.info("Multiple TERMINATE messages detected - forcing termination")
-                return True
+                # Check 2: Keyword at the very end of message (last 50 chars)
+                if content_upper.endswith(keyword_upper):
+                    # Make sure it's not part of a larger word
+                    if len(content) == len(keyword) or content[-len(keyword)-1] in [' ', '\n', '.', '!']:
+                        self.logger.info(f"Termination: '{keyword}' at message end")
+                        return True
+
+                # Check 3: Keyword on its own line at the end
+                if lines and lines[-1].strip().upper() == keyword_upper:
+                    self.logger.info(f"Termination: '{keyword}' on final line")
+                    return True
+
+                # Check 4: Multiple occurrences (forced termination from AutoGen)
+                if content_upper.count(keyword_upper) >= 2:
+                    # Check if it's bold/emphasized: **KEYWORD**
+                    bold_pattern = f"**{keyword_upper}**"
+                    if bold_pattern in content_upper:
+                        self.logger.info(f"Termination: Multiple '{keyword}' detected (forced)")
+                        return True
+
+            # Avoid false positives from explanatory text
+            # Examples that should NOT trigger:
+            # - "When complete, respond with TERMINATE"
+            # - "I will say TERMINATE when done"
+            # - "Use TERMINATE to end the workflow"
+            explanation_phrases = [
+                "RESPOND WITH",
+                "WILL SAY",
+                "WILL RESPOND",
+                "USE ",
+                "SAY ",
+                "END WITH",
+                "REPLY WITH",
+                "WHEN DONE",
+                "WHEN COMPLETE",
+                "TO END",
+                "IF NO",
+            ]
+
+            for phrase in explanation_phrases:
+                if phrase in content_upper:
+                    # Check if any keyword appears near this phrase
+                    for keyword in keywords:
+                        phrase_pos = content_upper.find(phrase)
+                        keyword_pos = content_upper.find(keyword.upper())
+                        if keyword_pos >= 0 and abs(keyword_pos - phrase_pos) < 50:
+                            # Keyword is being explained, not executed
+                            return False
 
             return False
 

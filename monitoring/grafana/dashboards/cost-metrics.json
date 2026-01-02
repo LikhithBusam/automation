@@ -1,0 +1,60 @@
+{
+  "dashboard": {
+    "title": "Cost Metrics",
+    "tags": ["cost", "business"],
+    "panels": [
+      {
+        "id": 1,
+        "title": "API Cost by Provider",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(automaton_business_api_cost_total[1h])",
+            "legendFormat": "{{provider}}/{{model}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Storage Cost",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "automaton_business_storage_cost",
+            "legendFormat": "Current Cost"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Total Daily Cost",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(automaton_business_api_cost_total[24h])) + automaton_business_storage_cost",
+            "legendFormat": "Total Cost"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+      },
+      {
+        "id": 4,
+        "title": "Cost by Workflow",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "sum by (workflow_name) (rate(automaton_business_api_cost_total[1h]))",
+            "format": "table"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      }
+    ],
+    "refresh": "5m",
+    "schemaVersion": 27,
+    "version": 1
+  }
+}
+

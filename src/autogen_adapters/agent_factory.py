@@ -122,47 +122,46 @@ class AutoGenAgentFactory:
         llm_cfg = self.llm_configs[config_name]
         api_type = llm_cfg.get("api_type", "openai")
 
-        # For Gemini API, use gemini/ prefix for LiteLLM routing
-        # For Groq and other OpenAI-compatible APIs, use standard config
-        if api_type == "google" or api_type == "gemini":
-            # Use LiteLLM with gemini/ prefix for proper routing
+        # DYNAMIC API TYPE HANDLING - AutoGen format (api_type MUST be inside config_entry)
+        # Azure OpenAI specific configuration
+        if api_type == "azure":
+            config_entry = {
+                "model": llm_cfg.get("model"),
+                "api_type": "azure",
+                "api_key": llm_cfg.get("api_key"),
+                "azure_endpoint": llm_cfg.get("azure_endpoint"),
+                "api_version": llm_cfg.get("api_version"),
+            }
+            self.logger.info(f"Using Azure OpenAI: {llm_cfg.get('azure_endpoint')}")
+
+        # Gemini API with LiteLLM routing
+        elif api_type == "google" or api_type == "gemini":
             model_name = llm_cfg.get("model")
             if not model_name.startswith("gemini/"):
                 model_name = f"gemini/{model_name}"
-
-            autogen_config = {
-                "config_list": [
-                    {
-                        "model": model_name,
-                        "api_key": llm_cfg.get("api_key"),
-                    }
-                ],
-                "temperature": llm_cfg.get("temperature", 0.7),
-                "max_tokens": llm_cfg.get("max_tokens", 2048),
-                "timeout": llm_cfg.get("timeout", 120),
-            }
-        else:
-            # OpenAI-compatible APIs (Groq, etc.)
-            model_name = llm_cfg.get("model")
-
             config_entry = {
-                "model": model_name,  # Use plain model name (not groq/ prefix)
+                "model": model_name,
                 "api_key": llm_cfg.get("api_key"),
             }
 
-            # Add base_url if specified (for Groq and other OpenAI-compatible APIs)
-            # When base_url is provided, don't use LiteLLM prefix format
+        # OpenAI-compatible APIs (OpenRouter, Groq, etc.)
+        else:
+            config_entry = {
+                "model": llm_cfg.get("model"),
+                "api_key": llm_cfg.get("api_key"),
+            }
+            # Add base_url if specified
             if "base_url" in llm_cfg and llm_cfg["base_url"]:
                 config_entry["base_url"] = llm_cfg["base_url"]
 
-            autogen_config = {
-                "config_list": [config_entry],
-                "temperature": llm_cfg.get("temperature", 0.7),
-                "max_tokens": llm_cfg.get("max_tokens", 2048),
-                "timeout": llm_cfg.get("timeout", 120),
-            }
+        autogen_config = {
+            "config_list": [config_entry],
+            "temperature": llm_cfg.get("temperature", 0.7),
+            "max_tokens": llm_cfg.get("max_tokens", 2048),
+            "timeout": llm_cfg.get("timeout", 120),
+        }
 
-        # Add cache_seed if specified
+        # Add cache_seed if specified (for caching responses)
         if "cache_seed" in llm_cfg:
             autogen_config["cache_seed"] = llm_cfg["cache_seed"]
 

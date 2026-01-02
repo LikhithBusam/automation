@@ -28,6 +28,7 @@ import hashlib
 import json
 import logging
 import re
+import sys
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -48,14 +49,16 @@ def _lazy_load_embeddings():
     global EMBEDDINGS_AVAILABLE, SentenceTransformer
     if SentenceTransformer is None:
         try:
+            # Note: sentence-transformers may crash on Python 3.13
+            # In that case, we fall back to keyword-based search
             from sentence_transformers import SentenceTransformer as ST
 
             SentenceTransformer = ST
             EMBEDDINGS_AVAILABLE = True
-        except ImportError:
+        except (ImportError, Exception) as e:
             EMBEDDINGS_AVAILABLE = False
             logging.warning(
-                "sentence-transformers not installed. Install with: pip install sentence-transformers"
+                f"sentence-transformers not available: {e}. Using keyword-based search fallback."
             )
     return EMBEDDINGS_AVAILABLE
 
@@ -69,9 +72,9 @@ def _lazy_load_faiss():
 
             faiss = faiss_module
             FAISS_AVAILABLE = True
-        except ImportError:
+        except (ImportError, Exception) as e:
             FAISS_AVAILABLE = False
-            logging.warning("faiss not installed. Install with: pip install faiss-cpu")
+            logging.warning(f"faiss not available: {e}. Using simple search fallback.")
     return FAISS_AVAILABLE
 
 
@@ -1252,23 +1255,33 @@ def validate_config():
     if not isinstance(EMBEDDING_MODEL_NAME, str) or not EMBEDDING_MODEL_NAME.strip():
         errors.append(f"Invalid embedding model name: {EMBEDDING_MODEL_NAME}")
 
-    # Check if embedding model can be loaded
-    try:
-        if _lazy_load_embeddings():
-            test_model = SentenceTransformer(EMBEDDING_MODEL_NAME)
-            actual_dims = test_model.get_sentence_embedding_dimension()
-            if actual_dims != EMBEDDING_DIMENSIONS:
-                errors.append(
-                    f"Embedding dimension mismatch: config has {EMBEDDING_DIMENSIONS}, "
-                    f"model {EMBEDDING_MODEL_NAME} has {actual_dims}"
+    # Skip embedding model validation on startup - Python 3.13 compatibility issue
+    # The model will be validated on first use instead
+    # NOTE: sentence-transformers has a known crash on Python 3.13
+    import sys
+    if sys.version_info >= (3, 13):
+        warnings.append(
+            "Python 3.13+ detected - skipping sentence-transformers validation due to compatibility issues. "
+            "Semantic search may not be available. Using keyword-based fallback."
+        )
+    else:
+        # Only try to load on Python < 3.13
+        try:
+            if _lazy_load_embeddings():
+                test_model = SentenceTransformer(EMBEDDING_MODEL_NAME)
+                actual_dims = test_model.get_sentence_embedding_dimension()
+                if actual_dims != EMBEDDING_DIMENSIONS:
+                    errors.append(
+                        f"Embedding dimension mismatch: config has {EMBEDDING_DIMENSIONS}, "
+                        f"model {EMBEDDING_MODEL_NAME} has {actual_dims}"
+                    )
+                del test_model
+            else:
+                warnings.append(
+                    "sentence-transformers not installed, semantic search will be unavailable"
                 )
-            del test_model
-        else:
-            warnings.append(
-                "sentence-transformers not installed, semantic search will be unavailable"
-            )
-    except Exception as e:
-        warnings.append(f"Could not validate embedding model: {e}")
+        except Exception as e:
+            warnings.append(f"Could not validate embedding model: {e}")
 
     # Check if FAISS is available
     if not _lazy_load_faiss():
@@ -1331,12 +1344,19 @@ def initialize():
     logger.info("CodeBaseBuddy server initialized (embedding model will load on first use)")
 
 
-# Initialize when module loads
-initialize()
+# Initialize when module loads - but only once
+_initialized = False
 
+def safe_initialize():
+    """Initialize only once"""
+    global _initialized
+    if not _initialized:
+        _initialized = True
+        initialize()
 
-# Initialize when module loads
-initialize()
+# Only initialize if not being imported for testing
+if not hasattr(sys, '_called_from_test'):
+    safe_initialize()
 
 
 if __name__ == "__main__":

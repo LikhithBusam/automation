@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jaeger
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jaeger
+  template:
+    metadata:
+      labels:
+        app: jaeger
+    spec:
+      containers:
+      - name: jaeger
+        image: jaegertracing/all-in-one:latest
+        ports:
+        - containerPort: 16686  # UI
+        - containerPort: 14268  # HTTP collector
+        - containerPort: 6831   # UDP agent
+        env:
+        - name: COLLECTOR_ZIPKIN_HTTP_PORT
+          value: "9411"
+        volumeMounts:
+        - name: jaeger-data
+          mountPath: /badger
+      volumes:
+      - name: jaeger-data
+        emptyDir: {}
+

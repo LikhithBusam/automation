@@ -28,8 +28,14 @@ from src.security.log_sanitizer import install_log_filter
 
 console = Console()
 
-# Load environment variables
-load_dotenv()
+# Load environment variables with validation
+env_loaded = load_dotenv()
+if not env_loaded:
+    # Warn if .env file not found (but don't fail - may use system env vars)
+    import os
+    if not os.path.exists('.env'):
+        import warnings
+        warnings.warn("No .env file found. Using system environment variables.")
 
 
 BANNER = """
@@ -47,24 +53,45 @@ BANNER = """
 
 
 def setup_logging():
-    """Setup logging configuration"""
-    # Create logs directory if it doesn't exist
-    Path('logs').mkdir(exist_ok=True)
+    """Setup logging configuration with proper error handling"""
+    import tempfile
+    
+    # Create logs directory with fallback to temp directory
+    log_dir = Path('logs')
+    try:
+        log_dir.mkdir(exist_ok=True)
+        log_file = log_dir / 'autogen_dev_assistant.log'
+    except (PermissionError, OSError) as e:
+        # Fallback to temp directory if current directory is read-only
+        temp_dir = Path(tempfile.gettempdir()) / 'automaton_logs'
+        temp_dir.mkdir(exist_ok=True)
+        log_file = temp_dir / 'autogen_dev_assistant.log'
+        logging.warning(f"Could not create logs directory, using {temp_dir}: {e}")
 
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.FileHandler('logs/autogen_dev_assistant.log'),
-            logging.StreamHandler()
-        ]
-    )
+    try:
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            handlers=[
+                logging.FileHandler(log_file),
+                logging.StreamHandler()
+            ]
+        )
+    except Exception as e:
+        # If file logging fails, at least enable console logging
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            handlers=[logging.StreamHandler()]
+        )
+        logging.warning(f"Could not setup file logging: {e}")
 
     # Install sensitive data filter to prevent API keys/secrets in logs
+    # Enable redaction for better security
     install_log_filter(
         logger=None,  # Install on root logger
-        redact_emails=False,
-        redact_ips=False
+        redact_emails=True,  # Enable email redaction
+        redact_ips=True  # Enable IP redaction
     )
 
 
@@ -132,9 +159,15 @@ async def main():
                 # Parse command (using shlex to properly handle quoted strings)
                 try:
                     parts = shlex.split(user_input)
-                except ValueError:
-                    # Fallback to simple split if shlex fails
-                    parts = user_input.split()
+                except ValueError as e:
+                    # Report parsing error instead of silently falling back
+                    console.print(f"[red]Invalid command syntax: {e}[/red]")
+                    console.print("[dim]Use quotes for values with spaces, e.g., param=\"value with spaces\"[/dim]")
+                    continue
+                
+                if not parts:
+                    continue
+                    
                 command = parts[0].lower()
 
                 if command in ["exit", "quit", "q"]:
@@ -169,26 +202,38 @@ async def main():
                     console.print()
 
                 elif command == "history":
-                    history = manager.get_workflow_history(10)
+                    try:
+                        history = manager.get_workflow_history(10)
 
-                    if not history:
-                        console.print("[dim]No execution history available[/dim]")
-                    else:
-                        hist_table = Table(show_header=True, header_style="bold magenta")
-                        hist_table.add_column("Workflow")
-                        hist_table.add_column("Status")
-                        hist_table.add_column("Duration")
+                        if not history:
+                            console.print("[dim]No execution history available[/dim]")
+                        else:
+                            hist_table = Table(show_header=True, header_style="bold magenta")
+                            hist_table.add_column("Workflow")
+                            hist_table.add_column("Status")
+                            hist_table.add_column("Duration")
 
-                        for entry in history:
-                            status_icon = "[OK]" if entry["status"] == "success" else "[FAIL]"
-                            duration = f"{entry['duration_seconds']:.2f}s"
-                            hist_table.add_row(
-                                entry["workflow_name"],
-                                f"{status_icon} {entry['status']}",
-                                duration
-                            )
+                            for entry in history:
+                                # Validate entry structure
+                                if not isinstance(entry, dict):
+                                    continue
+                                
+                                workflow_name = entry.get("workflow_name", "unknown")
+                                status = entry.get("status", "unknown")
+                                duration_seconds = entry.get("duration_seconds", 0.0)
+                                
+                                status_icon = "[OK]" if status == "success" else "[FAIL]"
+                                duration = f"{duration_seconds:.2f}s"
+                                hist_table.add_row(
+                                    workflow_name,
+                                    f"{status_icon} {status}",
+                                    duration
+                                )
 
-                        console.print(hist_table)
+                            console.print(hist_table)
+                    except Exception as e:
+                        console.print(f"[red]Error retrieving history: {e}[/red]")
+                        logger.error(f"History retrieval error: {e}", exc_info=True)
 
                 elif command == "run":
                     if len(parts) < 2:
@@ -202,15 +247,19 @@ async def main():
                     for arg in parts[2:]:
                         if "=" in arg:
                             key, value = arg.split("=", 1)
-                            variables[key] = value
+                            # Strip whitespace and validate key
+                            key = key.strip()
+                            if not key:
+                                console.print(f"[red]Invalid parameter: empty key in '{arg}'[/red]")
+                                continue
+                            variables[key] = value.strip()
 
                     try:
                         # Validate workflow name
                         workflow_name = validate_workflow_name(workflow_name)
 
-                        # Validate parameters
-                        if variables:
-                            variables = validate_parameters(variables)
+                        # Always validate parameters (even if empty)
+                        variables = validate_parameters(variables)
 
                     except ValidationError as e:
                         console.print(f"[red]Validation error: {e}[/red]")
@@ -223,8 +272,17 @@ async def main():
                     console.print()
 
                     try:
-                        # Execute workflow
-                        result = await manager.execute_workflow(workflow_name, variables)
+                        # Execute workflow with timeout protection
+                        import asyncio
+                        try:
+                            result = await asyncio.wait_for(
+                                manager.execute_workflow(workflow_name, variables),
+                                timeout=300.0  # 5 minute timeout
+                            )
+                        except asyncio.TimeoutError:
+                            console.print(f"[red][ERROR] Workflow timed out after 5 minutes[/red]")
+                            logger.error(f"Workflow '{workflow_name}' timed out")
+                            continue
 
                         # Display result
                         if result.status == "success":
@@ -242,6 +300,12 @@ async def main():
                         if result.error:
                             console.print(f"\n[red]Error: {result.error}[/red]")
 
+                    except ValidationError as e:
+                        console.print(f"[red]Validation error: {e}[/red]")
+                        logger.warning(f"Input validation failed: {e}")
+                    except asyncio.TimeoutError:
+                        # Already handled above
+                        pass
                     except Exception as e:
                         console.print(f"[red]Error executing workflow: {e}[/red]")
                         logger.error(f"Workflow execution error: {e}", exc_info=True)
@@ -264,7 +328,8 @@ async def main():
 
     except Exception as e:
         console.print(f"[bold red]Fatal error: {e}[/bold red]")
-        logging.exception("Fatal error")
+        logger = logging.getLogger(__name__)
+        logger.exception("Fatal error")
         return 1
 
 
